@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Seabass' DnD Character Builder</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzJjMWEwZSIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTYsMiAyOCwxMCAyOCwyMiAxNiwzMCA0LDIyIDQsMTAiIGZpbGw9IiM4YjFhMWEiIHN0cm9rZT0iI2M5YTg0YyIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMTYiIHkxPSIyIiB4Mj0iMTYiIHkyPSIzMCIgc3Ryb2tlPSIjYzlhODRjIiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjQiIHkxPSIxMCIgeDI9IjI4IiB5Mj0iMTAiIHN0cm9rZT0iI2M5YTg0YyIgc3Ryb2tlLXdpZHRoPSIwLjgiIG9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSI0IiB5MT0iMjIiIHgyPSIyOCIgeTI9IjIyIiBzdHJva2U9IiNjOWE4NGMiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjYiLz4KICA8bGluZSB4MT0iNCIgeTE9IjEwIiB4Mj0iMTYiIHkyPSIzMCIgc3Ryb2tlPSIjYzlhODRjIiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC40Ii8+CiAgPGxpbmUgeDE9IjI4IiB5MT0iMTAiIHgyPSIxNiIgeTI9IjMwIiBzdHJva2U9IiNjOWE4NGMiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjQiLz4KICA8bGluZSB4MT0iNCIgeTE9IjIyIiB4Mj0iMTYiIHkyPSIyIiBzdHJva2U9IiNjOWE4NGMiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjQiLz4KICA8bGluZSB4MT0iMjgiIHkxPSIyMiIgeDI9IjE2IiB5Mj0iMiIgc3Ryb2tlPSIjYzlhODRjIiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC40Ii8+CiAgPHRleHQgeD0iMTYiIHk9IjE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjVlZGQ2Ij4yMDwvdGV4dD4KPC9zdmc+">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --parchment: #f5edd6; --ink: #2c1a0e; --ink-light: #5c3d1e;
+  --gold: #b8860b; --gold-light: #d4a017; --red-accent: #8b1a1a;
+  --border-col: #c9a84c; --surface: #fdf6e3; --surface2: #f0e2b6;
+  --muted: #7a5c3a; --hp-red: #c0392b; --ac-blue: #1a4a6b; --spd-green: #1a5c2a;
+}
+body { background: var(--parchment); font-family: 'Crimson Text', Georgia, serif; color: var(--ink); min-height: 100vh; }
+.app { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem; }
+.app-header { text-align: center; padding: 1.5rem 0 1rem; border-bottom: 2px solid var(--border-col); margin-bottom: 1.5rem; }
+.app-header h1 { font-family: 'Cinzel', serif; font-size: 28px; font-weight: 700; color: var(--red-accent); letter-spacing: 2px; text-shadow: 1px 1px 0 var(--gold); }
+.app-header p { font-size: 14px; color: var(--muted); margin-top: 4px; font-style: italic; }
+.steps-nav { display: flex; justify-content: center; gap: 6px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.step-btn { font-family: 'Cinzel', serif; font-size: 11px; padding: 5px 12px; border: 1px solid var(--border-col); background: var(--surface2); color: var(--ink-light); cursor: pointer; border-radius: 4px; letter-spacing: 0.5px; transition: all 0.2s; }
+.step-btn:hover { background: var(--border-col); color: var(--ink); }
+.step-btn.active { background: var(--red-accent); color: #fff; border-color: var(--red-accent); }
+.step-btn.done { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+.section-card { background: var(--surface); border: 1px solid var(--border-col); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; }
+.section-title { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 600; color: var(--red-accent); border-bottom: 1px solid var(--border-col); padding-bottom: 8px; margin-bottom: 12px; letter-spacing: 1px; }
+label { font-size: 14px; color: var(--ink-light); display: block; margin-bottom: 4px; font-weight: 600; }
+input[type="text"], select, textarea { width: 100%; border: 1px solid var(--border-col); background: var(--parchment); color: var(--ink); font-family: 'Crimson Text', serif; font-size: 15px; padding: 7px 10px; border-radius: 4px; outline: none; transition: border-color 0.2s; }
+input[type="number"] { border: 1px solid var(--border-col); background: var(--parchment); color: var(--ink); font-family: 'Crimson Text', serif; font-size: 15px; padding: 7px 10px; border-radius: 4px; outline: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--red-accent); }
+textarea { resize: vertical; min-height: 80px; }
+.row { display: grid; gap: 12px; margin-bottom: 12px; }
+.row.cols-2 { grid-template-columns: 1fr 1fr; }
+.race-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.subrace-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-top: 12px; }
+.class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.background-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.choice-card { background: var(--surface2); border: 1.5px solid var(--border-col); border-radius: 6px; padding: 10px 8px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.choice-card:hover { border-color: var(--gold-light); background: var(--parchment); }
+.choice-card.selected { border-color: var(--red-accent); background: #f9e8e8; }
+.choice-card .choice-icon { font-size: 20px; margin-bottom: 4px; }
+.choice-card .choice-name { font-family: 'Cinzel', serif; font-size: 11px; color: var(--ink); letter-spacing: 0.5px; font-weight: 600; }
+.choice-card .choice-sub { font-size: 10px; color: var(--muted); margin-top: 2px; font-style: italic; line-height: 1.3; }
+.info-box { background: var(--surface2); border-left: 3px solid var(--gold); padding: 10px 14px; border-radius: 0 6px 6px 0; font-size: 13px; color: var(--ink-light); line-height: 1.7; margin-top: 10px; }
+.info-box strong { color: var(--ink); font-weight: 600; }
+.subrace-label { font-family: 'Cinzel', serif; font-size: 13px; color: var(--gold); margin: 14px 0 6px; letter-spacing: 0.5px; }
+.ability-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.ability-box { background: var(--surface2); border: 1.5px solid var(--border-col); border-radius: 6px; padding: 10px 8px; text-align: center; }
+.ability-name { font-family: 'Cinzel', serif; font-size: 10px; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; }
+.ability-score-input { width: 100%; text-align: center; font-size: 22px; font-weight: 600; background: transparent; border: none; border-bottom: 1px solid var(--border-col); color: var(--ink); padding: 2px 0; font-family: 'Cinzel', serif; outline: none; }
+.ability-modifier { font-size: 18px; font-weight: 600; color: var(--red-accent); margin-top: 4px; font-family: 'Cinzel', serif; }
+.skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 5px; }
+.skill-row { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 4px 6px; border-radius: 4px; transition: background 0.15s; position: relative; }
+.skill-row.clickable { cursor: pointer; }
+.skill-row.clickable:hover { background: var(--surface2); }
+.skill-row:hover .skill-tooltip { opacity: 1; pointer-events: none; }
+.skill-tooltip {
+  display: block;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  width: 220px;
+  background: var(--ink);
+  color: var(--parchment);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border-col);
+  z-index: 100;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+}
+.skill-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 14px;
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+}
+.skill-check { width: 16px; height: 16px; border: 1.5px solid var(--border-col); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.skill-check.checked { background: var(--red-accent); border-color: var(--red-accent); }
+.skill-check.checked::after { content: ''; width: 6px; height: 6px; background: white; border-radius: 50%; }
+.skill-name { flex: 1; }
+.skill-stat { color: var(--muted); font-size: 11px; font-style: italic; }
+.skill-bonus { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 600; color: var(--red-accent); min-width: 28px; text-align: right; }
+.stat-strip { display: flex; gap: 10px; flex-wrap: wrap; }
+.stat-badge { display: flex; flex-direction: column; align-items: center; background: var(--surface2); border: 1.5px solid var(--border-col); border-radius: 6px; padding: 8px 12px; min-width: 66px; }
+.stat-badge.hp { border-color: var(--hp-red); }
+.stat-badge.ac { border-color: var(--ac-blue); }
+.stat-badge.spd { border-color: var(--spd-green); }
+.stat-badge-val { font-family: 'Cinzel', serif; font-size: 22px; font-weight: 700; }
+.stat-badge.hp .stat-badge-val { color: var(--hp-red); }
+.stat-badge.ac .stat-badge-val { color: var(--ac-blue); }
+.stat-badge.spd .stat-badge-val { color: var(--spd-green); }
+.stat-badge-label { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; font-family: 'Cinzel', serif; margin-top: 2px; }
+.btn-primary { font-family: 'Cinzel', serif; font-size: 13px; padding: 9px 20px; background: var(--red-accent); color: white; border: none; border-radius: 5px; cursor: pointer; letter-spacing: 0.5px; transition: background 0.2s; }
+.btn-primary:hover { background: #6b1313; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-secondary { font-family: 'Cinzel', serif; font-size: 13px; padding: 9px 20px; background: var(--surface2); color: var(--ink-light); border: 1px solid var(--border-col); border-radius: 5px; cursor: pointer; letter-spacing: 0.5px; transition: all 0.2s; }
+.btn-secondary:hover { background: var(--border-col); }
+.nav-btns { display: flex; justify-content: space-between; margin-top: 16px; align-items: center; }
+.asi-pick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.asi-pick-btn { font-family: 'Cinzel', serif; font-size: 12px; padding: 5px 12px; border: 1.5px solid var(--border-col); background: var(--surface2); border-radius: 4px; cursor: pointer; transition: all 0.15s; }
+.asi-pick-btn.selected { background: var(--red-accent); color: white; border-color: var(--red-accent); }
+.asi-pick-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.feat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; margin-top: 8px; max-height: 300px; overflow-y: auto; border: 1px solid var(--border-col); border-radius: 6px; padding: 8px; background: var(--parchment); }
+.feat-card { background: var(--surface2); border: 1px solid var(--border-col); border-radius: 5px; padding: 8px; cursor: pointer; transition: all 0.15s; }
+.feat-card:hover { border-color: var(--gold-light); }
+.feat-card.selected { border-color: var(--red-accent); background: #f9e8e8; }
+.feat-card-name { font-family: 'Cinzel', serif; font-size: 11px; font-weight: 600; color: var(--ink); }
+.feat-card-desc { font-size: 11px; color: var(--muted); margin-top: 3px; font-style: italic; line-height: 1.4; }
+.character-sheet { background: var(--surface); border: 2px solid var(--border-col); border-radius: 10px; padding: 1.5rem; }
+.sheet-header { display: grid; grid-template-columns: 1fr auto; gap: 16px; border-bottom: 2px solid var(--border-col); padding-bottom: 1rem; margin-bottom: 1rem; align-items: start; }
+.char-name-display { font-family: 'Cinzel', serif; font-size: 26px; font-weight: 700; color: var(--ink); }
+.char-meta { font-size: 13px; color: var(--muted); margin-top: 4px; font-style: italic; line-height: 1.5; }
+.sheet-cols { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+.ability-display-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ability-display-box { text-align: center; background: var(--surface2); border: 1px solid var(--border-col); border-radius: 6px; padding: 8px; }
+.ability-display-name { font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 1px; color: var(--muted); }
+.ability-display-score { font-family: 'Cinzel', serif; font-size: 20px; font-weight: 700; color: var(--ink); }
+.ability-display-mod { font-size: 13px; color: var(--red-accent); font-weight: 600; }
+.trait-item { font-size: 13px; color: var(--ink-light); line-height: 1.5; margin-bottom: 6px; }
+.prof-bonus-note { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 6px; }
+.pb-btn { font-family:'Cinzel',serif; font-size:16px; font-weight:700; width:28px; height:28px; border:1.5px solid var(--border-col); background:var(--surface); color:var(--ink); border-radius:4px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; padding:0; line-height:1; }
+.pb-btn:hover:not(:disabled) { background:var(--border-col); }
+.pb-btn:disabled { opacity:0.3; cursor:not-allowed; }
+.mode-active { border-color:var(--red-accent) !important; color:var(--red-accent) !important; }
+
+/* ── Tooltip system ── */
+[data-tip]{position:relative;}
+[data-tip]::before{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#2c1a0e;color:#f5edd6;padding:7px 11px;border-radius:5px;font-size:12px;line-height:1.5;white-space:normal;width:230px;max-width:290px;pointer-events:none;opacity:0;transition:opacity 0.15s;z-index:9999;font-family:'Crimson Text',Georgia,serif;font-weight:400;font-style:normal;border:1px solid #c9a84c;box-shadow:0 3px 10px rgba(0,0,0,0.4);text-align:left;}
+[data-tip]:hover::before{opacity:1;}
+[data-tip].tip-right::before{left:0;transform:none;}
+[data-tip].tip-left::before{left:auto;right:0;transform:none;}
+[data-tip].tip-below::before{bottom:auto;top:calc(100% + 8px);}
+[data-tip]{cursor:help;}
+button[data-tip],label[data-tip]{cursor:pointer;}
+
+.eq-section-label{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin:8px 0 5px;}
+.armor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;}
+.armor-card{background:var(--surface2);border:1.5px solid var(--border-col);border-radius:6px;padding:8px;cursor:pointer;transition:all 0.2s;position:relative;}
+.armor-card:hover{border-color:var(--gold-light);}
+.armor-card.selected{border-color:var(--red-accent);background:#f9e8e8;}
+.armor-card.no-prof{opacity:0.55;}
+.armor-card .armor-name{font-family:'Cinzel',serif;font-size:11px;font-weight:600;color:var(--ink);}
+.armor-card .armor-stat{font-size:10px;color:var(--muted);margin-top:2px;line-height:1.3;}
+.armor-card .prof-badge{position:absolute;top:4px;right:5px;font-size:10px;}
+.wpn-table{width:100%;border-collapse:collapse;font-size:12px;}
+.wpn-table th{font-family:'Cinzel',serif;font-size:10px;color:var(--muted);letter-spacing:0.4px;text-align:left;padding:4px 6px;border-bottom:1px solid var(--border-col);}
+.wpn-table td{padding:3px 6px;border-bottom:1px solid rgba(201,168,76,0.2);vertical-align:middle;}
+.wpn-table tr.no-prof td{color:var(--muted);}
+.wpn-table tr:hover td{background:var(--surface2);cursor:pointer;}
+.wpn-table tr.wpn-selected td{background:#f9e8e8;}
+.wpn-check{width:14px;height:14px;border:1.5px solid var(--border-col);border-radius:3px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.wpn-check.checked{background:var(--red-accent);border-color:var(--red-accent);}
+.wpn-check.checked::after{content:'';width:7px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px);display:block;}
+.ac-preview{background:var(--surface2);border:1.5px solid var(--ac-blue);border-radius:8px;padding:8px 14px;display:inline-flex;align-items:center;gap:12px;margin-bottom:12px;}
+.ac-preview-val{font-family:'Cinzel',serif;font-size:26px;font-weight:700;color:var(--ac-blue);}
+@media print { .steps-nav, .nav-btns { display: none !important; } body { background: white; } }
+@media (max-width: 600px) {
+  .ability-grid { grid-template-columns: repeat(2, 1fr); }
+  .row.cols-2 { grid-template-columns: 1fr; }
+  .sheet-cols { grid-template-columns: 1fr; }
+  .sheet-header { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="app-header">
+    <h1>Seabass' DnD Character Builder</h1>
+    <p>Player's Handbook — Fifth Edition (2014) · PHB Strict</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;">
+    <div class="steps-nav" id="stepsNav" style="margin-bottom:0;flex:1;justify-content:flex-start;"></div>
+    <label style="font-family:'Cinzel',serif;font-size:11px;padding:5px 12px;background:var(--surface2);border:1px solid var(--border-col);border-radius:4px;cursor:pointer;color:var(--ink-light);letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;" title="Load an existing character JSON to edit">
+      📂 Import Character JSON
+      <input type="file" accept=".json" onchange="importCharacter(this)" style="display:none;"/>
+    </label>
+  </div>
+  <div id="appContent"></div>
+</div>
+<script>
+const RACES = [
+  { id:'human', name:'Human', icon:'🧑', sub:'Versatile',
+    subraces:[
+      { id:'human_std', name:'Standard Human', sub:'+1 to all six ability scores',
+        asi:{str:1,dex:1,con:1,int:1,wis:1,cha:1}, speed:30, size:'Medium',
+        traits:['Extra Language (one of your choice)','Adaptable and resourceful'],
+        languages:['Common','One of your choice'] },
+      { id:'human_var', name:'Variant Human', sub:'Feat + 2 chosen ASIs + 1 skill',
+        asi:{}, speed:30, size:'Medium', isVariant:true,
+        traits:['One feat of your choice','One skill proficiency of your choice','+1 to two ability scores of your choice'],
+        languages:['Common','One of your choice'] }
+    ]
+  },
+  { id:'elf', name:'Elf', icon:'🧝', sub:'DEX +2 · Three subraces',
+    subraces:[
+      { id:'elf_high', name:'High Elf', sub:'INT +1 · Cantrip · Extra language',
+        asi:{dex:2,int:1}, speed:30, size:'Medium',
+        traits:['Darkvision 60 ft','Keen Senses — Perception proficiency','Fey Ancestry — advantage vs charm, immune to magic sleep','Trance — 4 hr rest instead of 8','Elf Weapon Training — longsword, shortsword, shortbow, longbow','Cantrip — one wizard cantrip (INT)','Extra Language'],
+        languages:['Common','Elvish','One of your choice'], proficiencies:['Perception'] },
+      { id:'elf_wood', name:'Wood Elf', sub:'WIS +1 · 35 ft speed · Mask of the Wild',
+        asi:{dex:2,wis:1}, speed:35, size:'Medium',
+        traits:['Darkvision 60 ft','Keen Senses — Perception proficiency','Fey Ancestry','Trance','Elf Weapon Training','Fleet of Foot — speed 35 ft','Mask of the Wild — hide in natural phenomena'],
+        languages:['Common','Elvish'], proficiencies:['Perception'] },
+      { id:'elf_drow', name:'Dark Elf (Drow)', sub:'CHA +1 · Superior Darkvision · Drow Magic',
+        asi:{dex:2,cha:1}, speed:30, size:'Medium',
+        traits:['Superior Darkvision 120 ft','Keen Senses — Perception proficiency','Fey Ancestry','Trance','Sunlight Sensitivity — disadvantage in sunlight','Drow Magic — Dancing Lights / Faerie Fire / Darkness (CHA)','Drow Weapon Training — rapiers, shortswords, hand crossbows'],
+        languages:['Common','Elvish'], proficiencies:['Perception'] }
+    ]
+  },
+  { id:'dwarf', name:'Dwarf', icon:'⛏️', sub:'CON +2 · Two subraces',
+    subraces:[
+      { id:'dwarf_hill', name:'Hill Dwarf', sub:'WIS +1 · Dwarven Toughness',
+        asi:{con:2,wis:1}, speed:25, size:'Medium',
+        traits:['Darkvision 60 ft','Dwarven Resilience — advantage vs poison, poison resistance','Dwarven Combat Training — battleaxe, handaxe, throwing hammer, warhammer','Tool Proficiency — smith\'s, brewer\'s, or mason\'s tools','Stonecunning — double prof on History checks for stonework','Dwarven Toughness — +1 HP per level'],
+        languages:['Common','Dwarvish'] },
+      { id:'dwarf_mtn', name:'Mountain Dwarf', sub:'STR +2 · Light & Medium Armor',
+        asi:{con:2,str:2}, speed:25, size:'Medium',
+        traits:['Darkvision 60 ft','Dwarven Resilience — advantage vs poison, poison resistance','Dwarven Combat Training — battleaxe, handaxe, throwing hammer, warhammer','Tool Proficiency — smith\'s, brewer\'s, or mason\'s tools','Stonecunning','Dwarven Armor Training — light and medium armor proficiency'],
+        languages:['Common','Dwarvish'] }
+    ]
+  },
+  { id:'halfling', name:'Halfling', icon:'🍃', sub:'DEX +2 · Two subraces',
+    subraces:[
+      { id:'halfling_light', name:'Lightfoot', sub:'CHA +1 · Naturally Stealthy',
+        asi:{dex:2,cha:1}, speed:25, size:'Small',
+        traits:['Lucky — reroll 1s on attack, ability, save rolls','Brave — advantage on saves vs frightened','Halfling Nimbleness — move through larger creature\'s space','Naturally Stealthy — can hide behind larger creatures'],
+        languages:['Common','Halfling'] },
+      { id:'halfling_stout', name:'Stout Halfling', sub:'CON +1 · Poison Resistance',
+        asi:{dex:2,con:1}, speed:25, size:'Small',
+        traits:['Lucky — reroll 1s on attack, ability, save rolls','Brave — advantage on saves vs frightened','Halfling Nimbleness','Stout Resilience — advantage vs poison, poison resistance'],
+        languages:['Common','Halfling'] }
+    ]
+  },
+  { id:'gnome', name:'Gnome', icon:'🔬', sub:'INT +2 · Two subraces',
+    subraces:[
+      { id:'gnome_forest', name:'Forest Gnome', sub:'DEX +1 · Minor Illusion · Speak with Beasts',
+        asi:{int:2,dex:1}, speed:25, size:'Small',
+        traits:['Darkvision 60 ft','Gnome Cunning — advantage on INT/WIS/CHA saves vs magic','Natural Illusionist — Minor Illusion cantrip (INT)','Speak with Small Beasts — simple communication with small animals'],
+        languages:['Common','Gnomish'] },
+      { id:'gnome_rock', name:'Rock Gnome', sub:'CON +1 · Tinker · Artificer\'s Lore',
+        asi:{int:2,con:1}, speed:25, size:'Small',
+        traits:['Darkvision 60 ft','Gnome Cunning — advantage on INT/WIS/CHA saves vs magic','Artificer\'s Lore — double prof bonus on History (magic items, alchemical, tech)','Tinker — construct tiny clockwork devices with a set of tinker\'s tools'],
+        languages:['Common','Gnomish'] }
+    ]
+  },
+  { id:'halfelf', name:'Half-Elf', icon:'🌙', sub:'CHA +2 · +1 to two others · Two skills',
+    subraces:[
+      { id:'halfelf_std', name:'Half-Elf', sub:'CHA +2 · pick +1 to two stats · two free skills',
+        asi:{cha:2}, speed:30, size:'Medium', isHalfElf:true,
+        traits:['Darkvision 60 ft','Fey Ancestry — advantage vs charm, immune to magic sleep','Skill Versatility — two skill proficiencies of your choice','+1 to two ability scores of your choice (not CHA)'],
+        languages:['Common','Elvish','One of your choice'], proficiencies:['Two skills of your choice'] }
+    ]
+  },
+  { id:'halforc', name:'Half-Orc', icon:'🪓', sub:'STR +2 · CON +1 · Relentless',
+    subraces:[
+      { id:'halforc_std', name:'Half-Orc', sub:'STR +2, CON +1 · Relentless Endurance',
+        asi:{str:2,con:1}, speed:30, size:'Medium',
+        traits:['Darkvision 60 ft','Menacing — Intimidation proficiency','Relentless Endurance — 1/long rest: fall to 1 HP instead of 0','Savage Attacks — roll one extra weapon damage die on melee critical hits'],
+        languages:['Common','Orc'], proficiencies:['Intimidation'] }
+    ]
+  },
+  { id:'tiefling', name:'Tiefling', icon:'😈', sub:'CHA +2 · INT +1 · Infernal Legacy',
+    subraces:[
+      { id:'tiefling_std', name:'Tiefling', sub:'CHA +2, INT +1 · Fire Resistance · Spells',
+        asi:{cha:2,int:1}, speed:30, size:'Medium',
+        traits:['Darkvision 60 ft','Hellish Resistance — fire damage resistance','Infernal Legacy — Thaumaturgy cantrip; Hellish Rebuke (Lv.3); Darkness (Lv.5) — all CHA-based'],
+        languages:['Common','Infernal'] }
+    ]
+  },
+  { id:'dragonborn', name:'Dragonborn', icon:'🐉', sub:'STR +2 · CHA +1 · Breath Weapon',
+    subraces:[
+      { id:'dragonborn_std', name:'Dragonborn', sub:'STR +2, CHA +1 · Breath Weapon · Resistance',
+        asi:{str:2,cha:1}, speed:30, size:'Medium',
+        traits:['Draconic Ancestry — choose one dragon type (determines damage type)','Breath Weapon — exhale destructive energy (DEX/CON save, 2d6 at Lv.1)','Damage Resistance — to your ancestry\'s damage type'],
+        languages:['Common','Draconic'] }
+    ]
+  },
+];
+
+const CLASSES = [
+  { id:'barbarian', name:'Barbarian', icon:'⚔️', sub:'Rage & Unarmored Defense', hitDie:12, saves:['str','con'], skills:['Animal Handling','Athletics','Intimidation','Nature','Perception','Survival'], numSkills:2, armor:'Light, Medium, Shields', weapons:'Simple, Martial', spellcasting:false, equipment:["Greataxe or any martial melee weapon","Two handaxes or any simple weapon","Explorer's pack, 4 javelins"] },
+  { id:'bard', name:'Bard', icon:'🎵', sub:'Jack of All Trades', hitDie:8, saves:['dex','cha'], skills:['Acrobatics','Animal Handling','Arcana','Athletics','Deception','History','Insight','Intimidation','Investigation','Medicine','Nature','Perception','Performance','Persuasion','Religion','Sleight of Hand','Stealth','Survival'], numSkills:3, armor:'Light', weapons:'Simple, hand crossbows, longswords, rapiers, shortswords', spellcasting:true, spellAbility:'cha', equipment:["Rapier, longsword, or simple weapon","Diplomat's or entertainer's pack","Musical instrument, leather armor, dagger"] },
+  { id:'cleric', name:'Cleric', icon:'✨', sub:'Divine Domain', hitDie:8, saves:['wis','cha'], skills:['History','Insight','Medicine','Persuasion','Religion'], numSkills:2, armor:'Light, Medium, Shields', weapons:'Simple', spellcasting:true, spellAbility:'wis', equipment:["Mace or warhammer","Scale mail, leather, or chain mail + shield","Priest's pack or explorer's pack, holy symbol"] },
+  { id:'druid', name:'Druid', icon:'🌿', sub:'Wild Shape', hitDie:8, saves:['int','wis'], skills:['Arcana','Animal Handling','Insight','Medicine','Nature','Perception','Religion','Survival'], numSkills:2, armor:'Light, Medium, Shields (nonmetal)', weapons:'Clubs, daggers, darts, javelins, maces, quarterstaffs, scimitars, sickles, slings, spears', spellcasting:true, spellAbility:'wis', equipment:["Wooden shield or simple weapon","Scimitar or simple melee weapon","Leather armor, explorer's pack, druidic focus"] },
+  { id:'fighter', name:'Fighter', icon:'🛡️', sub:'Action Surge', hitDie:10, saves:['str','con'], skills:['Acrobatics','Animal Handling','Athletics','History','Insight','Intimidation','Perception','Survival'], numSkills:2, armor:'All armor, Shields', weapons:'Simple, Martial', spellcasting:false, equipment:["Chain mail or leather armor + longbow","Martial weapon + shield or two martial weapons","Light crossbow + 20 bolts or two handaxes","Dungeoneer's or explorer's pack"] },
+  { id:'monk', name:'Monk', icon:'👊', sub:'Ki & Flurry of Blows', hitDie:8, saves:['str','dex'], skills:['Acrobatics','Athletics','History','Insight','Religion','Stealth'], numSkills:2, armor:'None', weapons:'Simple, Shortswords', spellcasting:false, equipment:["Shortsword or any simple weapon","Dungeoneer's or explorer's pack, 10 darts"] },
+  { id:'paladin', name:'Paladin', icon:'🌟', sub:'Lay on Hands', hitDie:10, saves:['wis','cha'], skills:['Athletics','Insight','Intimidation','Medicine','Persuasion','Religion'], numSkills:2, armor:'All armor, Shields', weapons:'Simple, Martial', spellcasting:true, spellAbility:'cha', equipment:["Martial weapon + shield or two martial weapons","Five javelins or simple melee weapon","Priest's or explorer's pack, chain mail, holy symbol"] },
+  { id:'ranger', name:'Ranger', icon:'🏹', sub:'Natural Explorer', hitDie:10, saves:['str','dex'], skills:['Animal Handling','Athletics','Insight','Investigation','Nature','Perception','Stealth','Survival'], numSkills:3, armor:'Light, Medium, Shields', weapons:'Simple, Martial', spellcasting:true, spellAbility:'wis', equipment:["Scale mail or leather armor","Two shortswords or simple melee weapons","Dungeoneer's or explorer's pack, longbow + 20 arrows"] },
+  { id:'rogue', name:'Rogue', icon:'🗡️', sub:'Sneak Attack', hitDie:8, saves:['dex','int'], skills:['Acrobatics','Athletics','Deception','Insight','Intimidation','Investigation','Perception','Performance','Persuasion','Sleight of Hand','Stealth'], numSkills:4, armor:'Light', weapons:'Simple, hand crossbows, longswords, rapiers, shortswords', spellcasting:false, equipment:["Rapier or shortsword","Shortbow + 20 arrows or shortsword","Burglar's/dungeoneer's/explorer's pack, leather armor, 2 daggers, thieves' tools"] },
+  { id:'sorcerer', name:'Sorcerer', icon:'💫', sub:'Metamagic', hitDie:6, saves:['con','cha'], skills:['Arcana','Deception','Insight','Intimidation','Persuasion','Religion'], numSkills:2, armor:'None', weapons:'Daggers, darts, slings, quarterstaffs, light crossbows', spellcasting:true, spellAbility:'cha', equipment:["Light crossbow + 20 bolts or any simple weapon","Component pouch or arcane focus","Dungeoneer's or explorer's pack, two daggers"] },
+  { id:'warlock', name:'Warlock', icon:'🔮', sub:'Eldritch Blast', hitDie:8, saves:['wis','cha'], skills:['Arcana','Deception','History','Intimidation','Investigation','Nature','Religion'], numSkills:2, armor:'Light', weapons:'Simple', spellcasting:true, spellAbility:'cha', equipment:["Light crossbow + 20 bolts or any simple weapon","Component pouch or arcane focus","Scholar's or dungeoneer's pack, leather armor, simple weapon, 2 daggers"] },
+  { id:'wizard', name:'Wizard', icon:'🧙', sub:'Arcane Recovery', hitDie:6, saves:['int','wis'], skills:['Arcana','History','Insight','Investigation','Medicine','Religion'], numSkills:2, armor:'None', weapons:'Daggers, darts, slings, quarterstaffs, light crossbows', spellcasting:true, spellAbility:'int', equipment:["Quarterstaff or dagger","Component pouch or arcane focus","Scholar's or explorer's pack, spellbook"] },
+];
+
+const BACKGROUNDS = [
+  { id:'acolyte', name:'Acolyte', icon:'⛪', skills:['Insight','Religion'], tools:[], languages:2, equipment:'Holy symbol, prayer book, incense, vestments, common clothes, 15 gp', feature:'Shelter of the Faithful' },
+  { id:'charlatan', name:'Charlatan', icon:'🃏', skills:['Deception','Sleight of Hand'], tools:['Disguise Kit','Forgery Kit'], languages:0, equipment:'Fine clothes, disguise kit, con tools, 15 gp', feature:'False Identity' },
+  { id:'criminal', name:'Criminal', icon:'🔑', skills:['Deception','Stealth'], tools:["Thieves' Tools",'Gaming set'], languages:0, equipment:"Crowbar, dark hooded clothes, 15 gp", feature:'Criminal Contact' },
+  { id:'entertainer', name:'Entertainer', icon:'🎭', skills:['Acrobatics','Performance'], tools:['Disguise Kit','Musical instrument'], languages:0, equipment:'Instrument, admirer favor, costume, 15 gp', feature:'By Popular Demand' },
+  { id:'folkHero', name:'Folk Hero', icon:'🌾', skills:['Animal Handling','Survival'], tools:["Artisan's Tools",'Vehicles (land)'], languages:0, equipment:"Artisan's tools, shovel, iron pot, common clothes, 10 gp", feature:'Rustic Hospitality' },
+  { id:'guildArtisan', name:'Guild Artisan', icon:'🔨', skills:['Insight','Persuasion'], tools:["Artisan's Tools"], languages:1, equipment:"Artisan's tools, intro letter, traveler's clothes, 15 gp", feature:'Guild Membership' },
+  { id:'hermit', name:'Hermit', icon:'🏔️', skills:['Medicine','Religion'], tools:['Herbalism Kit'], languages:1, equipment:'Scroll case, blanket, common clothes, herbalism kit, 5 gp', feature:'Discovery' },
+  { id:'noble', name:'Noble', icon:'👑', skills:['History','Persuasion'], tools:['Gaming set'], languages:1, equipment:'Fine clothes, signet ring, scroll of pedigree, 25 gp', feature:'Position of Privilege' },
+  { id:'outlander', name:'Outlander', icon:'🌲', skills:['Athletics','Survival'], tools:['Musical instrument'], languages:1, equipment:"Staff, hunting trap, trophy, traveler's clothes, 10 gp", feature:'Wanderer' },
+  { id:'sage', name:'Sage', icon:'📚', skills:['Arcana','History'], tools:[], languages:2, equipment:'Ink, quill, knife, letter, common clothes, 10 gp', feature:'Researcher' },
+  { id:'sailor', name:'Sailor', icon:'⚓', skills:['Athletics','Perception'], tools:["Navigator's Tools",'Vehicles (water)'], languages:0, equipment:"Belaying pin, silk rope, lucky charm, common clothes, 10 gp", feature:"Ship's Passage" },
+  { id:'soldier', name:'Soldier', icon:'🎖️', skills:['Athletics','Intimidation'], tools:['Gaming set','Vehicles (land)'], languages:0, equipment:"Rank insignia, battle trophy, common clothes, 10 gp", feature:'Military Rank' },
+];
+
+const WEAPONS=[
+  // Simple Melee
+  {id:'club',name:'Club',profCat:'simple_melee',dmg:'1d4',dmgType:'bludgeoning',props:'Light',cost:'1 sp',weight:'2 lb'},
+  {id:'dagger',name:'Dagger',profCat:'simple_melee',dmg:'1d4',dmgType:'piercing',props:'Finesse, Light, Thrown 20/60',cost:'2 gp',weight:'1 lb'},
+  {id:'greatclub',name:'Greatclub',profCat:'simple_melee',dmg:'1d8',dmgType:'bludgeoning',props:'Two-Handed',cost:'2 sp',weight:'10 lb'},
+  {id:'handaxe',name:'Handaxe',profCat:'simple_melee',dmg:'1d6',dmgType:'slashing',props:'Light, Thrown 20/60',cost:'5 gp',weight:'2 lb'},
+  {id:'javelin',name:'Javelin',profCat:'simple_melee',dmg:'1d6',dmgType:'piercing',props:'Thrown 30/120',cost:'5 sp',weight:'2 lb'},
+  {id:'light_hammer',name:'Light Hammer',profCat:'simple_melee',dmg:'1d4',dmgType:'bludgeoning',props:'Light, Thrown 20/60',cost:'2 gp',weight:'2 lb'},
+  {id:'mace',name:'Mace',profCat:'simple_melee',dmg:'1d6',dmgType:'bludgeoning',props:'—',cost:'5 gp',weight:'4 lb'},
+  {id:'quarterstaff',name:'Quarterstaff',profCat:'simple_melee',dmg:'1d6',dmgType:'bludgeoning',props:'Versatile (1d8)',cost:'2 sp',weight:'4 lb'},
+  {id:'sickle',name:'Sickle',profCat:'simple_melee',dmg:'1d4',dmgType:'slashing',props:'Light',cost:'1 gp',weight:'2 lb'},
+  {id:'spear',name:'Spear',profCat:'simple_melee',dmg:'1d6',dmgType:'piercing',props:'Thrown 20/60, Versatile (1d8)',cost:'1 gp',weight:'3 lb'},
+  // Simple Ranged
+  {id:'xbow_light',name:'Crossbow, light',profCat:'simple_ranged',dmg:'1d8',dmgType:'piercing',props:'Range 80/320, Loading, Two-Handed',cost:'25 gp',weight:'5 lb'},
+  {id:'dart',name:'Dart',profCat:'simple_ranged',dmg:'1d4',dmgType:'piercing',props:'Finesse, Thrown 20/60',cost:'5 cp',weight:'¼ lb'},
+  {id:'shortbow',name:'Shortbow',profCat:'simple_ranged',dmg:'1d6',dmgType:'piercing',props:'Range 80/320, Two-Handed',cost:'25 gp',weight:'2 lb'},
+  {id:'sling',name:'Sling',profCat:'simple_ranged',dmg:'1d4',dmgType:'bludgeoning',props:'Range 30/120',cost:'1 sp',weight:'—'},
+  // Martial Melee
+  {id:'battleaxe',name:'Battleaxe',profCat:'martial_melee',dmg:'1d8',dmgType:'slashing',props:'Versatile (1d10)',cost:'10 gp',weight:'4 lb'},
+  {id:'flail',name:'Flail',profCat:'martial_melee',dmg:'1d8',dmgType:'bludgeoning',props:'—',cost:'10 gp',weight:'2 lb'},
+  {id:'glaive',name:'Glaive',profCat:'martial_melee',dmg:'1d10',dmgType:'slashing',props:'Heavy, Reach, Two-Handed',cost:'20 gp',weight:'6 lb'},
+  {id:'greataxe',name:'Greataxe',profCat:'martial_melee',dmg:'1d12',dmgType:'slashing',props:'Heavy, Two-Handed',cost:'30 gp',weight:'7 lb'},
+  {id:'greatsword',name:'Greatsword',profCat:'martial_melee',dmg:'2d6',dmgType:'slashing',props:'Heavy, Two-Handed',cost:'50 gp',weight:'6 lb'},
+  {id:'halberd',name:'Halberd',profCat:'martial_melee',dmg:'1d10',dmgType:'slashing',props:'Heavy, Reach, Two-Handed',cost:'20 gp',weight:'6 lb'},
+  {id:'lance',name:'Lance',profCat:'martial_melee',dmg:'1d12',dmgType:'piercing',props:'Reach, Special',cost:'10 gp',weight:'6 lb'},
+  {id:'longsword',name:'Longsword',profCat:'martial_melee',dmg:'1d8',dmgType:'slashing',props:'Versatile (1d10)',cost:'15 gp',weight:'3 lb'},
+  {id:'maul',name:'Maul',profCat:'martial_melee',dmg:'2d6',dmgType:'bludgeoning',props:'Heavy, Two-Handed',cost:'10 gp',weight:'10 lb'},
+  {id:'morningstar',name:'Morningstar',profCat:'martial_melee',dmg:'1d8',dmgType:'piercing',props:'—',cost:'15 gp',weight:'4 lb'},
+  {id:'pike',name:'Pike',profCat:'martial_melee',dmg:'1d10',dmgType:'piercing',props:'Heavy, Reach, Two-Handed',cost:'5 gp',weight:'18 lb'},
+  {id:'rapier',name:'Rapier',profCat:'martial_melee',dmg:'1d8',dmgType:'piercing',props:'Finesse',cost:'25 gp',weight:'2 lb'},
+  {id:'scimitar',name:'Scimitar',profCat:'martial_melee',dmg:'1d6',dmgType:'slashing',props:'Finesse, Light',cost:'25 gp',weight:'3 lb'},
+  {id:'shortsword',name:'Shortsword',profCat:'martial_melee',dmg:'1d6',dmgType:'piercing',props:'Finesse, Light',cost:'10 gp',weight:'2 lb'},
+  {id:'trident',name:'Trident',profCat:'martial_melee',dmg:'1d6',dmgType:'piercing',props:'Thrown 20/60, Versatile (1d8)',cost:'5 gp',weight:'4 lb'},
+  {id:'warpick',name:'War Pick',profCat:'martial_melee',dmg:'1d8',dmgType:'piercing',props:'—',cost:'5 gp',weight:'2 lb'},
+  {id:'warhammer',name:'Warhammer',profCat:'martial_melee',dmg:'1d8',dmgType:'bludgeoning',props:'Versatile (1d10)',cost:'15 gp',weight:'2 lb'},
+  {id:'whip',name:'Whip',profCat:'martial_melee',dmg:'1d4',dmgType:'slashing',props:'Finesse, Reach',cost:'2 gp',weight:'3 lb'},
+  // Martial Ranged
+  {id:'blowgun',name:'Blowgun',profCat:'martial_ranged',dmg:'1',dmgType:'piercing',props:'Range 25/100, Loading',cost:'10 gp',weight:'1 lb'},
+  {id:'xbow_hand',name:'Crossbow, hand',profCat:'martial_ranged',dmg:'1d6',dmgType:'piercing',props:'Range 30/120, Light, Loading',cost:'75 gp',weight:'3 lb'},
+  {id:'xbow_heavy',name:'Crossbow, heavy',profCat:'martial_ranged',dmg:'1d10',dmgType:'piercing',props:'Range 100/400, Heavy, Loading, Two-Handed',cost:'50 gp',weight:'18 lb'},
+  {id:'longbow',name:'Longbow',profCat:'martial_ranged',dmg:'1d8',dmgType:'piercing',props:'Range 150/600, Heavy, Two-Handed',cost:'50 gp',weight:'2 lb'},
+  {id:'net',name:'Net',profCat:'martial_ranged',dmg:'—',dmgType:'—',props:'Range 5/15, Special, Thrown',cost:'1 gp',weight:'3 lb'},
+];
+
+const ARMORS=[
+  {id:'padded',name:'Padded',cat:'light',baseAC:11,dexCap:null,strReq:0,stealthDisadv:true,cost:'5 gp',weight:'8 lb'},
+  {id:'leather',name:'Leather',cat:'light',baseAC:11,dexCap:null,strReq:0,stealthDisadv:false,cost:'10 gp',weight:'10 lb'},
+  {id:'studded_leather',name:'Studded Leather',cat:'light',baseAC:12,dexCap:null,strReq:0,stealthDisadv:false,cost:'45 gp',weight:'13 lb'},
+  {id:'hide',name:'Hide',cat:'medium',baseAC:12,dexCap:2,strReq:0,stealthDisadv:false,cost:'10 gp',weight:'12 lb'},
+  {id:'chain_shirt',name:'Chain Shirt',cat:'medium',baseAC:13,dexCap:2,strReq:0,stealthDisadv:false,cost:'50 gp',weight:'20 lb'},
+  {id:'scale_mail',name:'Scale Mail',cat:'medium',baseAC:14,dexCap:2,strReq:0,stealthDisadv:true,cost:'50 gp',weight:'45 lb'},
+  {id:'breastplate',name:'Breastplate',cat:'medium',baseAC:14,dexCap:2,strReq:0,stealthDisadv:false,cost:'400 gp',weight:'20 lb'},
+  {id:'half_plate',name:'Half Plate',cat:'medium',baseAC:15,dexCap:2,strReq:0,stealthDisadv:true,cost:'750 gp',weight:'40 lb'},
+  {id:'ring_mail',name:'Ring Mail',cat:'heavy',baseAC:14,dexCap:0,strReq:0,stealthDisadv:true,cost:'30 gp',weight:'40 lb'},
+  {id:'chain_mail',name:'Chain Mail',cat:'heavy',baseAC:16,dexCap:0,strReq:13,stealthDisadv:true,cost:'75 gp',weight:'55 lb'},
+  {id:'splint',name:'Splint',cat:'heavy',baseAC:17,dexCap:0,strReq:15,stealthDisadv:true,cost:'200 gp',weight:'60 lb'},
+  {id:'plate',name:'Plate',cat:'heavy',baseAC:18,dexCap:0,strReq:15,stealthDisadv:true,cost:'1,500 gp',weight:'65 lb'},
+];
+
+const PHB_FEATS = [
+  {id:'alert',name:'Alert',desc:'+5 initiative, not surprised, no hidden attacker adv.'},
+  {id:'athlete',name:'Athlete',desc:'+1 STR or DEX; improved climbing & jumping'},
+  {id:'actor',name:'Actor',desc:'+1 CHA; advantage to impersonate with Deception/Performance'},
+  {id:'charger',name:'Charger',desc:'After Dash: bonus attack or shove up to 10 ft'},
+  {id:'crossbow_expert',name:'Crossbow Expert',desc:'Ignore loading; no melee disadv.; bonus bolt attack'},
+  {id:'defensive_duelist',name:'Defensive Duelist',desc:'Reaction: add prof to AC with finesse weapon'},
+  {id:'dual_wielder',name:'Dual Wielder',desc:'+1 AC; dual wield non-light weapons; fast draw'},
+  {id:'dungeon_delver',name:'Dungeon Delver',desc:'Adv. detect secret doors; resist trap damage; no surprise from traps'},
+  {id:'durable',name:'Durable',desc:'+1 CON; Hit Die minimum = CON mod (min 1)'},
+  {id:'elemental_adept',name:'Elemental Adept',desc:'Choose type: ignore resistance; treat 1s as 2s'},
+  {id:'grappler',name:'Grappler',desc:'Adv. on attacks vs grappled; restrain grappled foe'},
+  {id:'great_weapon_master',name:'Great Weapon Master',desc:'Crit/kill = bonus attack; -5 hit for +10 dmg'},
+  {id:'healer',name:'Healer',desc:"Use healer's kit to stabilize & restore 1d6+4+lvl HP"},
+  {id:'heavily_armored',name:'Heavily Armored',desc:'+1 STR; heavy armor proficiency'},
+  {id:'heavy_armor_master',name:'Heavy Armor Master',desc:'+1 STR; reduce nonmagic damage by 3 in heavy armor'},
+  {id:'inspiring_leader',name:'Inspiring Leader',desc:'10 min speech: 6 creatures gain temp HP = level + CHA mod'},
+  {id:'keen_mind',name:'Keen Mind',desc:'+1 INT; know N/S/time; recall last 30 days perfectly'},
+  {id:'lightly_armored',name:'Lightly Armored',desc:'+1 STR or DEX; light armor proficiency'},
+  {id:'linguist',name:'Linguist',desc:'+1 INT; learn 3 languages; create ciphers'},
+  {id:'lucky',name:'Lucky',desc:'3 luck points/long rest; add d20 to any d20 roll'},
+  {id:'mage_slayer',name:'Mage Slayer',desc:'React to spellcast in reach; target disadv. on concentration'},
+  {id:'magic_initiate',name:'Magic Initiate',desc:'Choose class: 2 cantrips + 1 first-level spell (1×/day)'},
+  {id:'martial_adept',name:'Martial Adept',desc:'2 maneuvers + 1 superiority die (d6)'},
+  {id:'medium_armor_master',name:'Medium Armor Master',desc:'No stealth disadv.; max DEX bonus +3 in medium armor'},
+  {id:'mobile',name:'Mobile',desc:'+10 speed; Dash ignores difficult terrain; no OA from attacked foe'},
+  {id:'moderately_armored',name:'Moderately Armored',desc:'+1 STR or DEX; medium armor + shield proficiency'},
+  {id:'mounted_combatant',name:'Mounted Combatant',desc:'Adv. vs unmounted smaller foes; redirect attacks to mount'},
+  {id:'observant',name:'Observant',desc:'+1 INT or WIS; lip-reading; +5 passive Perception & Investigation'},
+  {id:'polearm_master',name:'Polearm Master',desc:'Bonus butt-end attack; OA when foes enter reach'},
+  {id:'resilient',name:'Resilient',desc:'+1 to chosen ability; proficiency in that saving throw'},
+  {id:'ritual_caster',name:'Ritual Caster',desc:'Ritual spellbook with 2 spells from chosen class list'},
+  {id:'savage_attacker',name:'Savage Attacker',desc:'Once/turn: reroll weapon damage dice, keep either result'},
+  {id:'sentinel',name:'Sentinel',desc:'OAs stop movement; react to ally attacks; Disengage ignored'},
+  {id:'sharpshooter',name:'Sharpshooter',desc:'Ignore cover & long range; -5 hit for +10 damage'},
+  {id:'shield_master',name:'Shield Master',desc:'Bonus shove; add shield to DEX saves; avoid dmg on save'},
+  {id:'skilled',name:'Skilled',desc:'Proficiency in any 3 skills or tools'},
+  {id:'skulker',name:'Skulker',desc:'Hide when lightly obscured; miss stays hidden; dim light ok'},
+  {id:'spell_sniper',name:'Spell Sniper',desc:'Double range; ignore cover; learn 1 attack cantrip'},
+  {id:'tavern_brawler',name:'Tavern Brawler',desc:'+1 STR or CON; improvised weapons; unarmed grapple bonus'},
+  {id:'tough',name:'Tough',desc:'+2 HP per level (retroactive)'},
+  {id:'war_caster',name:'War Caster',desc:'Concentration adv.; cast in armor; reaction spell on OA'},
+  {id:'weapon_master',name:'Weapon Master',desc:'+1 STR or DEX; proficiency with 4 weapons of choice'},
+];
+
+const SKILL_TIPS={
+  'Acrobatics':    'Keep your balance, escape grapples, or pull off flips and tumbles. Used when your footing is at risk or you need agility under pressure.',
+  'Animal Handling':'Calm a spooked horse, read a wild creature\'s intent, or guide a trained animal. Useful in the wild and with mounts.',
+  'Arcana':        'Recall lore about spells, magic items, planes, and supernatural creatures. Your go-to when magic is involved.',
+  'Athletics':     'Climb, swim, jump, or wrestle. Covers most feats of raw physical strength and endurance.',
+  'Deception':     'Lie convincingly, maintain a disguise, or mislead someone. Works whether you\'re bluffing or playing a long con.',
+  'History':       'Recall facts about past events, legendary figures, ancient kingdoms, and wars. Connects present circumstances to the past.',
+  'Insight':       'Read someone\'s true feelings or spot when they\'re lying. Often contested against Deception.',
+  'Intimidation':  'Coerce through threats, menace, or sheer presence. Works on those who fear consequences.',
+  'Investigation': 'Search for clues, deduce what happened, or find a hidden door. Different from Perception — you\'re actively analyzing.',
+  'Medicine':      'Stabilize a dying creature, diagnose illness, or determine a cause of death. Limited without supplies.',
+  'Nature':        'Recall lore about terrain, weather, plants, and natural creatures. Pairs well with outdoor travel.',
+  'Perception':    'Notice things with your senses — spot an ambush, hear footsteps, or see something out of place. One of the most-used skills.',
+  'Performance':   'Entertain an audience with music, acting, dance, or storytelling. Can also be used to distract or impress.',
+  'Persuasion':    'Influence others through honest appeal, diplomacy, or charm. Best when your request is reasonable and you\'re likeable.',
+  'Religion':      'Know the lore of gods, cults, rituals, holy symbols, and the undead. Essential for dealing with divine matters.',
+  'Sleight of Hand':'Pick pockets, palm objects, or perform manual trickery without being noticed. Often opposed by Perception.',
+  'Stealth':       'Move silently and stay out of sight. Opposed by passive Perception of those you\'re hiding from.',
+  'Survival':      'Track creatures, navigate wilderness, find food and water, or predict weather. Keeps you alive in the wild.',
+};
+
+const ALIGNMENTS=['Lawful Good','Neutral Good','Chaotic Good','Lawful Neutral','True Neutral','Chaotic Neutral','Lawful Evil','Neutral Evil','Chaotic Evil'];
+const SKILLS_LIST=[
+  {name:'Acrobatics',stat:'dex'},{name:'Animal Handling',stat:'wis'},{name:'Arcana',stat:'int'},
+  {name:'Athletics',stat:'str'},{name:'Deception',stat:'cha'},{name:'History',stat:'int'},
+  {name:'Insight',stat:'wis'},{name:'Intimidation',stat:'cha'},{name:'Investigation',stat:'int'},
+  {name:'Medicine',stat:'wis'},{name:'Nature',stat:'int'},{name:'Perception',stat:'wis'},
+  {name:'Performance',stat:'cha'},{name:'Persuasion',stat:'cha'},{name:'Religion',stat:'int'},
+  {name:'Sleight of Hand',stat:'dex'},{name:'Stealth',stat:'dex'},{name:'Survival',stat:'wis'},
+];
+const STAT_NAMES=['str','dex','con','int','wis','cha'];
+const STAT_LABELS={str:'STR',dex:'DEX',con:'CON',int:'INT',wis:'WIS',cha:'CHA'};
+
+// PHB Point Buy cost table: score → points spent
+const PB_COST={8:0,9:1,10:2,11:3,12:4,13:5,14:7,15:9};
+const PB_MAX=27;
+const PB_SCORE_MIN=8;
+const PB_SCORE_MAX=15;
+
+function pbCost(score){return PB_COST[score]??0;}
+function pbTotal(abs){return Object.values(abs).reduce((t,v)=>t+pbCost(Math.max(PB_SCORE_MIN,Math.min(PB_SCORE_MAX,v))),0);}
+function pbRemaining(abs){return PB_MAX-pbTotal(abs);}
+
+let state={
+  step:0,name:'',alignment:'True Neutral',appearance:'',personalityTrait:'',ideals:'',bonds:'',flaws:'',
+  race:null,subrace:null,
+  variantASI:[],halfElfASI:[],variantSkill:null,variantFeat:null,
+  halfElfSkills:[],
+  class:null,level:1,
+  abilities:{str:10,dex:10,con:10,int:10,wis:10,cha:10},
+  skillProficiencies:[],
+  abilityMode:'free', // 'free' | 'pointbuy'
+  hpOverride:null, // null = use calculated average; number = manual override
+  equipment:{armorId:null,hasShield:false,weapons:[]},
+};
+
+const steps=['Basics','Race','Class','Abilities','Background','Skills','Equipment','Sheet'];
+
+function getMod(s){const m=Math.floor((s-10)/2);return(m>=0?'+':'')+m;}
+function getModNum(s){return Math.floor((s-10)/2);}
+function getProfBonus(l){return Math.ceil(l/4)+1;}
+
+function getSubrace(){
+  if(!state.subrace)return null;
+  for(const r of RACES){const sr=r.subraces.find(s=>s.id===state.subrace);if(sr)return sr;}
+  return null;
+}
+
+function getRaceBonus(){
+  const sr=getSubrace();if(!sr)return{};
+  const b={...(sr.asi||{})};
+  if(sr.isVariant)state.variantASI.forEach(s=>{b[s]=(b[s]||0)+1;});
+  if(sr.isHalfElf)state.halfElfASI.forEach(s=>{b[s]=(b[s]||0)+1;});
+  return b;
+}
+
+function getEffectiveAbility(stat){return(state.abilities[stat]||10)+(getRaceBonus()[stat]||0);}
+function getAvgHP(){
+  // Level 1: max hit die + CON mod. Each subsequent level: floor(hitDie/2)+1 + CON mod
+  const cls=CLASSES.find(c=>c.id===state.class);
+  if(!cls)return 0;
+  const conMod=getModNum(getEffectiveAbility('con'));
+  const hd=cls.hitDie;
+  const lv1=hd+conMod;
+  const perLv=Math.floor(hd/2)+1+conMod; // average roll per level after 1st
+  return lv1+Math.max(0,state.level-1)*perLv;
+}
+function getMaxHP(){
+  if(state.hpOverride!==null&&state.hpOverride!==undefined&&state.hpOverride!=='')
+    return parseInt(state.hpOverride)||getAvgHP();
+  return getAvgHP();
+}
+function getAC(){
+  const eq=state.equipment;
+  const armor=eq&&eq.armorId?ARMORS.find(a=>a.id===eq.armorId):null;
+  const d=getModNum(getEffectiveAbility('dex'));
+  const cls=CLASSES.find(c=>c.id===state.class);
+  let ac;
+  if(armor){
+    if(armor.cat==='light') ac=armor.baseAC+d;
+    else if(armor.cat==='medium') ac=armor.baseAC+Math.min(d,2);
+    else ac=armor.baseAC; // heavy
+  } else {
+    if(cls&&cls.id==='monk') ac=10+d+getModNum(getEffectiveAbility('wis'));
+    else if(cls&&cls.id==='barbarian') ac=10+d+getModNum(getEffectiveAbility('con'));
+    else ac=10+d;
+  }
+  if(eq&&eq.hasShield) ac+=2;
+  return ac;
+}
+function getUnarmoredAC(){
+  const d=getModNum(getEffectiveAbility('dex'));
+  const cls=CLASSES.find(c=>c.id===state.class);
+  if(cls&&cls.id==='monk') return 10+d+getModNum(getEffectiveAbility('wis'));
+  if(cls&&cls.id==='barbarian') return 10+d+getModNum(getEffectiveAbility('con'));
+  return 10+d;
+}
+function getACBreakdown(){
+  const eq=state.equipment;
+  const armor=eq&&eq.armorId?ARMORS.find(a=>a.id===eq.armorId):null;
+  const d=getModNum(getEffectiveAbility('dex'));
+  const parts=[];
+  if(armor){
+    if(armor.cat==='light') parts.push(`${armor.name} (${armor.baseAC}${d>=0?'+'+d:d})`);
+    else if(armor.cat==='medium'){const dd=Math.min(d,2);parts.push(`${armor.name} (${armor.baseAC}${dd>=0?'+'+dd:dd})`);}
+    else parts.push(`${armor.name} (${armor.baseAC})`);
+  } else {
+    parts.push(`Unarmored (10${d>=0?'+'+d:d})`);
+  }
+  if(eq&&eq.hasShield) parts.push('+2 Shield');
+  return parts.join(' ');
+}
+// Lookup: weapon id → keyword(s) that grant proficiency when found in cls.weapons string
+const WEAPON_PROF_TERMS={
+  xbow_hand:['hand crossbow'],xbow_light:['light crossbow'],xbow_heavy:['heavy crossbow'],
+  longsword:['longsword'],rapier:['rapier'],shortsword:['shortsword'],
+  dagger:['dagger'],dart:['dart'],sling:['sling'],quarterstaff:['quarterstaff'],
+  scimitar:['scimitar'],club:['club'],mace:['mace'],javelin:['javelin'],
+  spear:['spear'],sickle:['sickle'],
+};
+function hasWeaponProf(weapon){
+  const cls=CLASSES.find(c=>c.id===state.class);
+  if(!cls) return false;
+  const w=cls.weapons||'';
+  if(w.includes('Martial')) return true;
+  if(w.includes('Simple')&&weapon.profCat.startsWith('simple')) return true;
+  // Specific weapon lists (Bard, Rogue, Druid, Sorcerer, Wizard, Monk, Warlock)
+  const wl=w.toLowerCase();
+  return (WEAPON_PROF_TERMS[weapon.id]||[]).some(t=>wl.includes(t));
+}
+function hasArmorProf(armor){
+  const cls=CLASSES.find(c=>c.id===state.class);
+  if(!cls) return false;
+  const a=cls.armor||'';
+  if(!a||a==='None') return false;
+  if(armor.cat==='shield') return a.includes('Shield');
+  const al=a.toLowerCase();
+  if(armor.cat==='light') return al.includes('light')||al.includes('all armor');
+  if(armor.cat==='medium') return al.includes('medium')||al.includes('all armor');
+  if(armor.cat==='heavy') return al.includes('heavy')||al.includes('all armor');
+  return false;
+}
+function equipArmor(id){state.equipment.armorId=id;render();}
+function toggleShield(){state.equipment.hasShield=!state.equipment.hasShield;render();}
+function toggleWeapon(id){
+  const idx=state.equipment.weapons.indexOf(id);
+  if(idx>=0) state.equipment.weapons.splice(idx,1);
+  else state.equipment.weapons.push(id);
+  render();
+}
+function getSpeed(){const sr=getSubrace();return sr?sr.speed:30;}
+
+function renderSteps(){
+  document.getElementById('stepsNav').innerHTML=steps.map((s,i)=>{
+    let c='step-btn';if(i===state.step)c+=' active';else if(i<state.step)c+=' done';
+    return`<button class="${c}" onclick="goStep(${i})">${i+1}. ${s}</button>`;
+  }).join('');
+}
+
+function goStep(i){state.step=i;render();}
+
+function render(){
+  renderSteps();
+  const views=[renderBasics,renderRace,renderClass,renderAbilities,renderBackground,renderSkills,renderEquipment,renderSummary];
+  document.getElementById('appContent').innerHTML=views[state.step]();
+  attachEvents();
+}
+
+function renderBasics(){
+  return`<div class="section-card">
+    <div class="section-title">Character Identity</div>
+    <div class="row cols-2">
+      <div><label>Character Name</label><input type="text" id="inp-name" value="${state.name}" placeholder="e.g. Aldric Stonebrow"/></div>
+      <div><label data-tip="Character level (1–20). Affects Hit Dice, proficiency bonus, class features, spell slots, and ability score improvements. Higher levels unlock more powerful abilities.">Level</label><select id="inp-level">${[...Array(20)].map((_,i)=>`<option value="${i+1}"${state.level===i+1?' selected':''}>Level ${i+1}</option>`).join('')}</select></div>
+    </div>
+    <div class="row cols-2">
+      <div><label data-tip="Your character's moral and ethical outlook. Lawful/Neutral/Chaotic describes attitude toward order; Good/Neutral/Evil describes moral compass. Alignment affects roleplay but has minimal mechanical impact in 5e.">Alignment</label><select id="inp-alignment">${ALIGNMENTS.map(a=>`<option value="${a}"${state.alignment===a?' selected':''}>${a}</option>`).join('')}</select></div>
+      <div><label>Age / Height / Weight</label><input type="text" id="inp-appearance" value="${state.appearance}" placeholder='30 years, 5&apos;10", 170 lbs'/></div>
+    </div>
+  </div>
+  <div class="section-card">
+    <div class="section-title">Personality</div>
+    <div class="row cols-2">
+      <div><label>Personality Traits</label><textarea id="inp-trait" placeholder="How does your character act?">${state.personalityTrait}</textarea></div>
+      <div><label>Ideals</label><textarea id="inp-ideals" placeholder="What does your character believe in?">${state.ideals}</textarea></div>
+    </div>
+    <div class="row cols-2">
+      <div><label>Bonds</label><textarea id="inp-bonds" placeholder="What keeps your character going?">${state.bonds}</textarea></div>
+      <div><label>Flaws</label><textarea id="inp-flaws" placeholder="What are your character's weaknesses?">${state.flaws}</textarea></div>
+    </div>
+  </div>
+  <div class="nav-btns"><span></span><button class="btn-primary" onclick="goStep(1)">Next: Choose Race →</button></div>`;
+}
+
+function renderRace(){
+  const selRace=state.race?RACES.find(r=>r.id===state.race):null;
+  const sr=getSubrace();
+  let srHtml='';
+  if(selRace){
+    srHtml=`<div class="subrace-label">Choose Subrace</div><div class="subrace-grid">`;
+    srHtml+=selRace.subraces.map(s=>`<div class="choice-card${state.subrace===s.id?' selected':''}" onclick="selectSubrace('${s.id}')">
+      <div class="choice-name">${s.name}</div><div class="choice-sub">${s.sub}</div></div>`).join('');
+    srHtml+='</div>';
+  }
+  let extras='';
+  if(sr){
+    const lines=[`<strong>${sr.name}</strong> — Speed: ${sr.speed} ft | Size: ${sr.size}`];
+    const asiE=Object.entries(sr.asi||{});
+    if(asiE.length)lines.push(`<strong>ASI:</strong> ${asiE.map(([k,v])=>`${STAT_LABELS[k]} +${v}`).join(', ')}`);
+    if(sr.isVariant)lines.push('<strong>ASI:</strong> +1 to two ability scores of your choice');
+    if(sr.isHalfElf)lines.push('<strong>ASI:</strong> CHA +2, then +1 to two others of your choice');
+    lines.push(`<strong>Traits:</strong> ${sr.traits.join('; ')}`);
+    lines.push(`<strong>Languages:</strong> ${sr.languages.join(', ')}`);
+    if(sr.proficiencies)lines.push(`<strong>Proficiencies:</strong> ${sr.proficiencies.join(', ')}`);
+    extras=`<div class="info-box">${lines.join('<br>')}</div>`;
+
+    if(sr.isVariant){
+      extras+=`<div style="margin-top:14px;">
+        <div class="subrace-label">+1 to Two Ability Scores</div>
+        <div class="asi-pick">${STAT_NAMES.map(s=>{const sel=state.variantASI.includes(s);const dis=!sel&&state.variantASI.length>=2;return`<button class="asi-pick-btn${sel?' selected':''}" onclick="toggleVarASI('${s}')"${dis?' disabled':''}>${STAT_LABELS[s]}</button>`;}).join('')}</div>
+        <div class="subrace-label" style="margin-top:10px;">Free Skill Proficiency</div>
+        <select id="var-skill" onchange="state.variantSkill=this.value" style="max-width:220px;">
+          <option value="">— Select a skill —</option>
+          ${SKILLS_LIST.map(sk=>`<option value="${sk.name}"${state.variantSkill===sk.name?' selected':''}>${sk.name}</option>`).join('')}
+        </select>
+        <div class="subrace-label" style="margin-top:10px;">Choose One Feat</div>
+        <div class="feat-grid">${PHB_FEATS.map(f=>`<div class="feat-card${state.variantFeat===f.id?' selected':''}" onclick="state.variantFeat='${f.id}';render();">
+          <div class="feat-card-name">${f.name}</div><div class="feat-card-desc">${f.desc}</div></div>`).join('')}</div>
+      </div>`;
+    }
+    if(sr.isHalfElf){
+      extras+=`<div style="margin-top:14px;">
+        <div class="subrace-label">+1 to Two Ability Scores (not CHA)</div>
+        <div class="asi-pick">${STAT_NAMES.filter(s=>s!=='cha').map(s=>{const sel=state.halfElfASI.includes(s);const dis=!sel&&state.halfElfASI.length>=2;return`<button class="asi-pick-btn${sel?' selected':''}" onclick="toggleHalfElfASI('${s}')"${dis?' disabled':''}>${STAT_LABELS[s]}</button>`;}).join('')}</div>
+        <div class="subrace-label" style="margin-top:10px;">Two Free Skill Proficiencies</div>
+        <div class="asi-pick" style="flex-wrap:wrap;">${SKILLS_LIST.map(sk=>{const sel=state.halfElfSkills.includes(sk.name);const dis=!sel&&state.halfElfSkills.length>=2;return`<button class="asi-pick-btn${sel?' selected':''}" onclick="toggleHalfElfSkill('${sk.name}')" style="font-size:11px;padding:4px 8px;"${dis?' disabled':''}>${sk.name}</button>`;}).join('')}</div>
+      </div>`;
+    }
+  }
+  return`<div class="section-card">
+    <div class="section-title">Choose Your Race</div>
+    <div class="race-grid">${RACES.map(r=>`<div class="choice-card${state.race===r.id?' selected':''}" onclick="selectRace('${r.id}')">
+      <div class="choice-icon">${r.icon}</div><div class="choice-name">${r.name}</div><div class="choice-sub">${r.sub}</div></div>`).join('')}</div>
+    ${srHtml}${extras}
+  </div>
+  <div class="nav-btns">
+    <button class="btn-secondary" onclick="goStep(0)">← Back</button>
+    <button class="btn-primary" onclick="goStep(2)"${!state.subrace?' disabled':''}>Next: Choose Class →</button>
+  </div>`;
+}
+
+function renderClass(){
+  const sel=state.class?CLASSES.find(c=>c.id===state.class):null;
+  return`<div class="section-card">
+    <div class="section-title">Choose Your Class</div>
+    <div class="class-grid">${CLASSES.map(c=>`<div class="choice-card${state.class===c.id?' selected':''}" onclick="selectClass('${c.id}')">
+      <div class="choice-icon">${c.icon}</div><div class="choice-name">${c.name}</div><div class="choice-sub">${c.sub}</div></div>`).join('')}</div>
+    ${sel?`<div class="info-box"><strong>${sel.name}</strong> — Hit Die: d${sel.hitDie}<br>
+      <strong>Saving Throws:</strong> ${sel.saves.map(s=>STAT_LABELS[s]).join(', ')}<br>
+      <strong>Armor:</strong> ${sel.armor}<br><strong>Weapons:</strong> ${sel.weapons}<br>
+      <strong>Skills:</strong> Choose ${sel.numSkills} from: ${sel.skills.join(', ')}<br>
+      ${sel.spellcasting?`<strong>Spellcasting:</strong> ${STAT_LABELS[sel.spellAbility]}-based<br>`:''}
+      <strong>Starting Equipment:</strong> ${sel.equipment.join('; ')}
+    </div>`:'<div class="info-box">Select a class to see details.</div>'}
+  </div>
+  <div class="nav-btns">
+    <button class="btn-secondary" onclick="goStep(1)">← Back</button>
+    <button class="btn-primary" onclick="goStep(3)"${!state.class?' disabled':''}>Next: Abilities →</button>
+  </div>`;
+}
+
+
+function renderHPSection(){
+  const cls=CLASSES.find(c=>c.id===state.class);
+  if(!cls)return '';
+  const hd=cls.hitDie;
+  const conMod=getModNum(getEffectiveAbility('con'));
+  const conStr=getMod(getEffectiveAbility('con'));
+  const lv1=hd+conMod;
+  const perLvAvg=Math.floor(hd/2)+1+conMod;
+  const avgTotal=lv1+Math.max(0,state.level-1)*perLvAvg;
+  const maxTotal=lv1+Math.max(0,state.level-1)*(hd+conMod);
+  const isOverride=state.hpOverride!==null&&state.hpOverride!==undefined&&state.hpOverride!=='';
+  const curHP=isOverride?state.hpOverride:avgTotal;
+  const lvlBreakdown=state.level>1
+    ?`<br><strong>Lv.2–${state.level}:</strong> +${perLvAvg} avg/level (d${hd} avg + CON ${conStr}), or roll 1–${hd} + CON`
+    :'';
+  return`<div class="section-card" style="margin-top:0;">
+    <div class="section-title" style="font-size:14px;" data-tip="At level 1 you get the maximum value of your Hit Die + CON modifier. Each additional level add either the average (floor(hitDie/2)+1) or your rolled value, plus CON mod.">Hit Points</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+      <div style="flex:1;min-width:200px;">
+        <div style="font-size:13px;color:var(--ink-light);margin-bottom:8px;">
+          <strong>Lv.1:</strong> d${hd} max + CON (${conStr}) = <strong>${lv1}</strong>${lvlBreakdown}
+        </div>
+        <div style="display:flex;gap:16px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border-col);border-radius:6px;">
+          <div style="text-align:center;">
+            <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--muted);margin-bottom:2px;">AVERAGE</div>
+            <div style="font-family:'Cinzel',serif;font-size:24px;font-weight:700;color:var(--spd-green);">${avgTotal}</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--muted);margin-bottom:2px;">MAX (all max rolls)</div>
+            <div style="font-family:'Cinzel',serif;font-size:24px;font-weight:700;color:var(--hp-red);">${maxTotal}</div>
+          </div>
+          ${isOverride?`<div style="text-align:center;">
+            <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--muted);margin-bottom:2px;">YOUR HP</div>
+            <div style="font-family:'Cinzel',serif;font-size:24px;font-weight:700;color:var(--gold);">${state.hpOverride}</div>
+          </div>`:''}
+        </div>
+      </div>
+      <div style="flex:1;min-width:200px;">
+        <label style="font-size:13px;margin-bottom:6px;">${isOverride?'Custom HP (overrides average):':'Enter rolled HP total (optional):'}</label>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
+          <input type="number" id="hp-override-input" min="1" max="9999"
+            placeholder="${avgTotal}"
+            value="${isOverride?state.hpOverride:''}"
+            style="width:110px;font-size:18px;font-family:'Cinzel',serif;font-weight:700;text-align:center;"/>
+          ${isOverride?`<button class="btn-secondary" style="font-size:11px;padding:4px 9px;" onclick="state.hpOverride=null;render();">✕ Use Avg (${avgTotal})</button>`:''}
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:6px;font-style:italic;">Leave blank to use average (${avgTotal}). Enter your total if you rolled HP each level.</p>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAbilities(){
+  const rb=getRaceBonus();
+  const isPB=state.abilityMode==='pointbuy';
+  const rem=pbRemaining(state.abilities);
+  const spent=PB_MAX-rem;
+
+  // Point buy counter color
+  const ctrColor=rem===0?'var(--hp-red)':rem<0?'#a00':'var(--spd-green)';
+
+  const abBoxes=STAT_NAMES.map(s=>{
+    const base=state.abilities[s];
+    const bon=rb[s]||0;
+    const tot=base+bon;
+
+    if(isPB){
+      // +/- controls; clamp 8–15 in point buy mode
+      const canDec=base>PB_SCORE_MIN;
+      // Can increment only if score < 15 AND we have enough points for the next step
+      const nextCost=(PB_COST[base+1]??999)-(PB_COST[base]??0);
+      const canInc=base<PB_SCORE_MAX&&rem>=nextCost;
+      return`<div class="ability-box" id="abbox-${s}">
+        <div class="ability-name">${STAT_LABELS[s]}</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin:6px 0;">
+          <button class="pb-btn" onclick="pbAdj('${s}',-1)"${canDec?'':' disabled'}>−</button>
+          <span style="font-family:'Cinzel',serif;font-size:22px;font-weight:700;min-width:28px;text-align:center;">${tot}</span>
+          <button class="pb-btn" onclick="pbAdj('${s}',1)"${canInc?'':' disabled'}>+</button>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">${bon?`Base ${base} + ${bon} racial · `:''}Cost: ${pbCost(base)} pts</div>
+        <div class="ability-modifier" id="mod-${s}">${getMod(tot)}</div>
+      </div>`;
+    } else {
+      return`<div class="ability-box">
+        <div class="ability-name">${STAT_LABELS[s]}</div>
+        <input class="ability-score-input" type="number" min="1" max="20" value="${base}" id="ab-${s}" oninput="updateAb('${s}',this.value)"/>
+        ${bon?`<div style="font-size:10px;color:var(--gold);margin-top:2px;">+${bon} racial → ${tot}</div>`:''}
+        <div class="ability-modifier" id="mod-${s}">${getMod(tot)}</div>
+      </div>`;
+    }
+  }).join('');
+
+  return`<div class="section-card">
+    <div class="section-title">Ability Scores</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+      <button class="btn-secondary${state.abilityMode==='standard'?' mode-active':''}" style="font-size:11px;padding:5px 10px;" onclick="setArr([15,14,13,12,10,8],'standard')">Standard Array</button>
+      <button class="btn-secondary${state.abilityMode==='balanced'?' mode-active':''}" style="font-size:11px;padding:5px 10px;" onclick="setArr([13,13,13,12,12,8],'balanced')">Balanced Array</button>
+      <button class="btn-secondary${state.abilityMode==='pointbuy'?' mode-active':''}" style="font-size:11px;padding:5px 10px;" onclick="startPointBuy()" data-tip="PHB Point Buy — start with 8 in all stats, spend 27 points. Stats 8–13 cost 1 pt each; 14 costs 7 pts total, 15 costs 9 pts total. Max 15 before racial bonuses.">Point Buy (27 pts)</button>
+      <button class="btn-secondary${state.abilityMode==='rolled'?' mode-active':''}" style="font-size:11px;padding:5px 10px;" onclick="rollAbs()">🎲 Roll 4d6 Drop Lowest</button>
+    </div>
+    ${isPB?`<div style="display:flex;align-items:center;gap:14px;padding:10px 14px;background:var(--surface2);border:1.5px solid ${ctrColor};border-radius:6px;margin-bottom:14px;">
+      <div>
+        <div style="font-family:'Cinzel',serif;font-size:26px;font-weight:700;color:${ctrColor};line-height:1;">${rem}</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:0.5px;font-family:'Cinzel',serif;">POINTS LEFT</div>
+      </div>
+      <div style="flex:1;">
+        <div style="height:8px;background:var(--border-col);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${Math.max(0,Math.min(100,(spent/PB_MAX)*100)).toFixed(1)}%;background:${rem===0?'var(--hp-red)':'var(--red-accent)'};transition:width 0.2s;border-radius:4px;"></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px;">${spent} of ${PB_MAX} points spent · scores locked to 8–15</div>
+      </div>
+      <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="startPointBuy()">Reset</button>
+    </div>`:`<p style="font-size:13px;color:var(--muted);margin-bottom:12px;font-style:italic;">Enter scores manually, pick an array, or switch to Point Buy for the balanced 27-point system. Racial bonuses apply automatically.</p>`}
+    <div class="ability-grid">${abBoxes}</div>
+    <div class="stat-strip" style="margin-top:16px;">
+      <div class="stat-badge hp"><div class="stat-badge-val" id="hp-val">${getMaxHP()}</div><div class="stat-badge-label">MAX HP</div></div>
+      <div class="stat-badge ac"><div class="stat-badge-val" id="ac-val">${getAC()}</div><div class="stat-badge-label">AC</div></div>
+      <div class="stat-badge spd"><div class="stat-badge-val">${getSpeed()}</div><div class="stat-badge-label">SPEED</div></div>
+      <div class="stat-badge"><div class="stat-badge-val">+${getProfBonus(state.level)}</div><div class="stat-badge-label">PROF</div></div>
+    </div>
+  </div>
+  ${renderHPSection()}
+  <div class="nav-btns">
+    <button class="btn-secondary" onclick="goStep(2)">← Back</button>
+    <button class="btn-primary" onclick="goStep(4)">Next: Background →</button>
+  </div>`;
+}
+
+function renderBackground(){
+  const sel=state.background?BACKGROUNDS.find(b=>b.id===state.background):null;
+  return`<div class="section-card">
+    <div class="section-title">Choose Your Background</div>
+    <div class="background-grid">${BACKGROUNDS.map(b=>`<div class="choice-card${state.background===b.id?' selected':''}" onclick="selectBg('${b.id}')">
+      <div class="choice-icon">${b.icon}</div><div class="choice-name">${b.name}</div>
+      <div class="choice-sub">${b.skills.join(', ')}</div></div>`).join('')}</div>
+    ${sel?`<div class="info-box"><strong>${sel.name}</strong><br>
+      <strong>Skills:</strong> ${sel.skills.join(', ')}<br>
+      ${sel.tools.length?`<strong>Tools:</strong> ${sel.tools.join(', ')}<br>`:''}
+      ${sel.languages?`<strong>Languages:</strong> +${sel.languages} language${sel.languages>1?'s':''}<br>`:''}
+      <strong>Equipment:</strong> ${sel.equipment}<br>
+      <strong>Feature:</strong> ${sel.feature}
+    </div>`:'<div class="info-box">Select a background to see details.</div>'}
+  </div>
+  <div class="nav-btns">
+    <button class="btn-secondary" onclick="goStep(3)">← Back</button>
+    <button class="btn-primary" onclick="goStep(5)"${!state.background?' disabled':''}>Next: Skills →</button>
+  </div>`;
+}
+
+function renderSkills(){
+  const cls=state.class?CLASSES.find(c=>c.id===state.class):null;
+  const bg=state.background?BACKGROUNDS.find(b=>b.id===state.background):null;
+  const sr=getSubrace();
+  const prof=getProfBonus(state.level);
+  const bgSk=bg?bg.skills:[];
+  const srProfs=sr?sr.proficiencies||[]:[];
+  const varSk=state.variantSkill?[state.variantSkill]:[];
+  const heSk=state.halfElfSkills||[];
+  const allGranted=[...new Set([...bgSk,...srProfs,...varSk,...heSk])];
+  const classSk=cls?cls.skills:[];
+  const numPicks=cls?cls.numSkills:2;
+  const picked=state.skillProficiencies.filter(s=>classSk.includes(s));
+  return`<div class="section-card">
+    <div class="section-title">Skill Proficiencies</div>
+    ${allGranted.length?`<p style="font-size:13px;color:var(--muted);margin-bottom:6px;"><strong>Auto-granted (★):</strong> ${allGranted.join(', ')}</p>`:''}
+    ${cls?`<p style="font-size:13px;color:var(--ink-light);margin-bottom:12px;">Choose <strong>${numPicks}</strong> from class list — ${picked.length}/${numPicks} chosen:</p>`:''}
+    <div class="skills-grid">${SKILLS_LIST.map(sk=>{
+      const granted=allGranted.includes(sk.name);
+      const isClass=classSk.includes(sk.name);
+      const isChecked=state.skillProficiencies.includes(sk.name)||granted;
+      const bon=getModNum(getEffectiveAbility(sk.stat))+(isChecked?prof:0);
+      const bonStr=(bon>=0?'+':'')+bon;
+      const clickable=isClass&&!granted;
+      return`<div class="skill-row${clickable?' clickable':''}" data-tip="${SKILL_TIPS[sk.name]||sk.name}" onclick="${clickable?`toggleSk('${sk.name}')`:''}" >
+        <span class="skill-tooltip">${SKILL_TIPS[sk.name]||''}</span>
+        <div class="skill-check${isChecked?' checked':''}"></div>
+        <div class="skill-name" style="color:${granted?'var(--gold)':isClass?'var(--ink)':'var(--muted)'}">
+          ${sk.name}${granted?' ★':''}</div>
+        <div class="skill-stat">${STAT_LABELS[sk.stat]}</div>
+        <div class="skill-bonus">${bonStr}</div>
+      </div>`;}).join('')}
+    </div>
+    <p class="prof-bonus-note">★ = Auto-granted | Class skills in full color | Prof bonus: <span data-tip="Proficiency Bonus — added to all proficient skill checks. +${prof} at your current level.">+${prof}</span></p>
+  </div>
+  <div class="nav-btns">
+    <button class="btn-secondary" onclick="goStep(4)">← Back</button>
+    <button class="btn-primary" onclick="goStep(6)">Next: Equipment →</button>
+  </div>`;
+}
+
+function renderEquipment(){
+  const cls=state.class?CLASSES.find(c=>c.id===state.class):null;
+  const eq=state.equipment;
+  const armorCats=[{key:'light',label:'Light Armor'},{key:'medium',label:'Medium Armor'},{key:'heavy',label:'Heavy Armor'}];
+  const wpnCats=[{key:'simple_melee',label:'Simple — Melee'},{key:'simple_ranged',label:'Simple — Ranged'},{key:'martial_melee',label:'Martial — Melee'},{key:'martial_ranged',label:'Martial — Ranged'}];
+  const shieldProf=cls&&(cls.armor.includes('Shield')||cls.armor.includes('Shields'));
+
+  let armorHtml=`<div class="armor-grid">
+    <div class="armor-card${!eq.armorId?' selected':''}" onclick="equipArmor(null)" style="display:flex;flex-direction:column;justify-content:center;">
+      <div class="armor-name">Unarmored</div>
+      <div class="armor-stat">AC ${getUnarmoredAC()}</div>
+    </div>`;
+  armorCats.forEach(({key,label})=>{
+    armorHtml+=`<div style="grid-column:1/-1;margin-top:4px;"><span class="eq-section-label" style="font-size:10px;">${label}</span></div>`;
+    ARMORS.filter(a=>a.cat===key).forEach(a=>{
+      const prof=hasArmorProf(a);
+      const sel=eq.armorId===a.id;
+      armorHtml+=`<div class="armor-card${sel?' selected':''}${!prof?' no-prof':''}" onclick="equipArmor('${a.id}')">
+        <span class="prof-badge" data-tip="${prof?'Proficient':'No proficiency — wearing non-proficient armor imposes disadvantage on STR/DEX checks and attack rolls, and prevents spellcasting'}">${prof?'✓':'⚠'}</span>
+        <div class="armor-name">${a.name}</div>
+        <div class="armor-stat">AC ${a.baseAC}${a.cat==='light'?'+DEX':a.cat==='medium'?'+DEX (max 2)':''}</div>
+        <div class="armor-stat">${a.cost}${a.stealthDisadv?' · Stealth ⚠':''}</div>
+      </div>`;
+    });
+  });
+  armorHtml+=`</div>
+  <div style="margin-top:8px;display:flex;align-items:center;gap:8px;">
+    <div class="wpn-check${eq.hasShield?' checked':''}" onclick="toggleShield()" style="cursor:pointer;"></div>
+    <span style="font-size:13px;cursor:pointer;" onclick="toggleShield()">Shield <span style="color:var(--muted);font-size:11px;">(+2 AC · 6 lb · 10 gp)</span></span>
+    <span data-tip="${shieldProf?'Proficient with shields':'No shield proficiency — using without proficiency imposes disadvantage on attack rolls and ability checks'}" style="font-size:11px;cursor:help;">${shieldProf?'✓':'⚠'}</span>
+  </div>`;
+
+  let wpnHtml=`<table class="wpn-table"><thead><tr>
+    <th></th><th>Weapon</th><th>Damage</th><th>Properties</th><th>Cost</th></tr></thead><tbody>`;
+  wpnCats.forEach(({key,label})=>{
+    wpnHtml+=`<tr style="pointer-events:none;"><td colspan="5" style="font-family:'Cinzel',serif;font-size:10px;color:var(--gold);letter-spacing:0.5px;padding-top:8px;padding-bottom:2px;">${label}</td></tr>`;
+    WEAPONS.filter(w=>w.profCat===key).forEach(w=>{
+      const prof=hasWeaponProf(w);
+      const sel=eq.weapons.includes(w.id);
+      wpnHtml+=`<tr class="${sel?'wpn-selected':''}${!prof?' no-prof':''}" onclick="toggleWeapon('${w.id}')">
+        <td><div class="wpn-check${sel?' checked':''}"></div></td>
+        <td>${w.name}${!prof?` <span data-tip="No proficiency — attacks with this weapon don't add your proficiency bonus" style="font-size:10px;cursor:help;">⚠</span>`:''}</td>
+        <td style="font-family:'Cinzel',serif;font-size:11px;">${w.dmg} <span style="color:var(--muted);font-style:italic;">${w.dmgType}</span></td>
+        <td style="color:var(--muted);font-style:italic;font-size:11px;">${w.props}</td>
+        <td style="color:var(--muted);font-size:11px;">${w.cost}</td>
+      </tr>`;
+    });
+  });
+  wpnHtml+=`</tbody></table>`;
+
+  return`<div class="section-card">
+    <div class="section-title">Equipment</div>
+    <div class="ac-preview">
+      <div class="ac-preview-val">${getAC()}</div>
+      <div>
+        <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:1px;color:var(--muted);margin-bottom:2px;">ARMOR CLASS</div>
+        <div style="font-size:12px;color:var(--ink-light);">${getACBreakdown()}</div>
+      </div>
+    </div>
+    <div class="eq-section">
+      <div class="eq-section-label">Armor${cls?` <span style="font-weight:400;color:var(--muted);font-size:10px;font-family:'Crimson Text',serif;letter-spacing:0;">— class proficiencies: ${cls.armor}</span>`:''}
+      </div>
+      ${armorHtml}
+    </div>
+    <div class="eq-section" style="margin-top:16px;">
+      <div class="eq-section-label">Weapons${cls?` <span style="font-weight:400;color:var(--muted);font-size:10px;font-family:'Crimson Text',serif;letter-spacing:0;">— class proficiencies: ${cls.weapons}</span>`:''}
+      </div>
+      ${wpnHtml}
+    </div>
+  </div>
+  <div class="nav-btns">
+    <button class="btn-secondary" onclick="goStep(5)">← Back</button>
+    <button class="btn-primary" onclick="goStep(7)">View Character Sheet →</button>
+  </div>`;
+}
+
+function renderSummary(){
+  const race=state.race?RACES.find(r=>r.id===state.race):null;
+  const sr=getSubrace();
+  const cls=state.class?CLASSES.find(c=>c.id===state.class):null;
+  const bg=state.background?BACKGROUNDS.find(b=>b.id===state.background):null;
+  const prof=getProfBonus(state.level);
+  const bgSk=bg?bg.skills:[];
+  const srProfs=sr?sr.proficiencies||[]:[];
+  const varSk=state.variantSkill?[state.variantSkill]:[];
+  const heSk=state.halfElfSkills||[];
+  const allGranted=[...new Set([...bgSk,...srProfs,...varSk,...heSk])];
+  const feat=state.variantFeat?PHB_FEATS.find(f=>f.id===state.variantFeat):null;
+  const raceName=sr?(race&&race.subraces.length>1?`${sr.name} ${race.name}`:race.name):(race?race.name:'?');
+  return`<div class="character-sheet">
+    <div class="sheet-header">
+      <div>
+        <div class="char-name-display">${state.name||'Unnamed Hero'}</div>
+        <div class="char-meta">${raceName} ${cls?cls.name:'?'} · Level ${state.level}<br>${bg?bg.name:''} · ${state.alignment}${state.appearance?` · ${state.appearance}`:''}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+        <div class="stat-badge hp" style="min-width:80px;" data-tip="Maximum Hit Points — Level 1: Hit Die max + CON mod. Each additional level: floor(Hit Die / 2) + 1 + CON mod (average), or your rolled value if overridden manually."><div class="stat-badge-val">${getMaxHP()}</div><div class="stat-badge-label">MAX HP</div></div>
+        <div style="display:flex;gap:6px;">
+          <div class="stat-badge ac" data-tip="Armor Class — how hard you are to hit. Attackers must roll this number or higher on a d20 to land an attack."><div class="stat-badge-val">${getAC()}</div><div class="stat-badge-label">AC</div></div>
+          <div class="stat-badge spd" data-tip="Movement Speed — feet you can move per turn. Difficult terrain costs 2 ft per 1 ft moved. The Dash action doubles your movement."><div class="stat-badge-val">${getSpeed()}</div><div class="stat-badge-label">FT</div></div>
+          <div class="stat-badge" data-tip="Proficiency Bonus — added to attack rolls, saving throws, and skill/tool checks you are proficient in. Scales with character level (+2 at Lv1, up to +6 at Lv17+)."><div class="stat-badge-val">+${prof}</div><div class="stat-badge-label">PROF</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="sheet-cols">
+      <div>
+        <div class="section-title" style="font-size:13px;margin-bottom:10px;">Ability Scores</div>
+        <div class="ability-display-grid">${STAT_NAMES.map(s=>{const t=getEffectiveAbility(s);return`
+          <div class="ability-display-box" data-tip="${{str:'Strength — melee attacks &amp; damage, Athletics, carrying capacity, STR saves.',dex:'Dexterity — ranged attacks, AC (light/unarmored), Acrobatics/Stealth, initiative, DEX saves.',con:'Constitution — HP maximum, concentration saves, CON saves.',int:'Intelligence — Arcana/History/Investigation/Nature/Religion, wizard spellcasting, INT saves.',wis:'Wisdom — Insight/Medicine/Perception/Survival, cleric &amp; druid spellcasting, WIS saves.',cha:'Charisma — Deception/Intimidation/Performance/Persuasion, bard/sorcerer/warlock spellcasting, CHA saves.'}[s]}">
+            <div class="ability-display-name">${STAT_LABELS[s]}</div>
+            <div class="ability-display-score">${t}</div>
+            <div class="ability-display-mod">${getMod(t)}</div>
+          </div>`;}).join('')}</div>
+        ${cls?`<div style="margin-top:14px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;">Saving Throws</div>
+          ${STAT_NAMES.map(s=>{const iS=cls.saves.includes(s);const m=getModNum(getEffectiveAbility(s))+(iS?prof:0);
+            return`<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px dashed var(--border-col);">
+              <span style="color:${iS?'var(--ink)':'var(--muted)'};">${iS?'●':'○'} ${STAT_LABELS[s]}</span>
+              <span style="font-family:'Cinzel',serif;font-weight:600;color:var(--red-accent);">${(m>=0?'+':'')+m}</span></div>`;}).join('')}
+        </div>`:''}
+        ${sr?`<div style="margin-top:14px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;" data-tip="Racial traits are innate abilities from your race and subrace. They are always active and require no action unless specified.">Racial Traits</div>
+          ${sr.traits.map(t=>`<p class="trait-item">• ${t}</p>`).join('')}
+          <p class="trait-item" style="margin-top:4px;"><strong>Languages:</strong> ${sr.languages.join(', ')}</p>
+        </div>`:''}
+        ${feat?`<div style="margin-top:14px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;">Feat: ${feat.name}</div>
+          <p class="trait-item">${feat.desc}</p></div>`:''}
+      </div>
+      <div>
+        <div class="section-title" style="font-size:13px;margin-bottom:8px;">Skills</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:14px;">
+          ${SKILLS_LIST.map(sk=>{const ip=state.skillProficiencies.includes(sk.name)||allGranted.includes(sk.name);const m=getModNum(getEffectiveAbility(sk.stat))+(ip?prof:0);
+            return`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 4px;${ip?'color:var(--ink);font-weight:600;':'color:var(--muted);'}">
+              <span>${ip?'●':'○'} ${sk.name}</span>
+              <span style="font-family:'Cinzel',serif;color:var(--red-accent);">${(m>=0?'+':'')+m}</span></div>`;}).join('')}
+        </div>
+        ${state.personalityTrait||state.ideals||state.bonds||state.flaws?`<div style="margin-bottom:12px;">
+          <div class="section-title" style="font-size:13px;margin-bottom:6px;">Personality</div>
+          ${state.personalityTrait?`<p class="trait-item"><strong>Traits:</strong> ${state.personalityTrait}</p>`:''}
+          ${state.ideals?`<p class="trait-item"><strong>Ideals:</strong> ${state.ideals}</p>`:''}
+          ${state.bonds?`<p class="trait-item"><strong>Bonds:</strong> ${state.bonds}</p>`:''}
+          ${state.flaws?`<p class="trait-item"><strong>Flaws:</strong> ${state.flaws}</p>`:''}
+        </div>`:''}
+        ${cls?`<div style="margin-bottom:12px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;">Class: ${cls.name}</div>
+          <p class="trait-item">• Hit Die: d${cls.hitDie} · Armor: ${cls.armor}</p>
+          <p class="trait-item">• Weapons: ${cls.weapons}</p>
+          ${cls.spellcasting?`<p class="trait-item">• Spellcasting: ${STAT_LABELS[cls.spellAbility]}-based</p>`:''}
+          ${cls.equipment.map(e=>`<p class="trait-item" style="padding-left:8px;">• ${e}</p>`).join('')}
+        </div>`:''}
+        ${bg?`<div style="margin-bottom:12px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;">Background: ${bg.name}</div>
+          <p class="trait-item"><strong>Feature:</strong> ${bg.feature}</p>
+          ${bg.tools.length?`<p class="trait-item"><strong>Tools:</strong> ${bg.tools.join(', ')}</p>`:''}
+          ${bg.languages?`<p class="trait-item"><strong>Extra Languages:</strong> ${bg.languages}</p>`:''}
+          <p class="trait-item"><strong>Equipment:</strong> ${bg.equipment}</p>
+        </div>`:''}
+        <div><div class="section-title" style="font-size:13px;margin-bottom:6px;">Equipment</div>
+          <p class="trait-item">• <strong>Armor:</strong> ${state.equipment.armorId?(ARMORS.find(a=>a.id===state.equipment.armorId)||{name:state.equipment.armorId}).name:'Unarmored'}${state.equipment.hasShield?' + Shield':''}</p>
+          ${state.equipment.weapons.length?`<p class="trait-item">• <strong>Weapons:</strong> ${state.equipment.weapons.map(id=>{const w=WEAPONS.find(ww=>ww.id===id);return w?`${w.name} (${w.dmg} ${w.dmgType})`:id;}).join(', ')}</p>`:'<p class="trait-item" style="color:var(--muted);">• No weapons selected</p>'}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-btns">
+    <button class="btn-secondary" onclick="goStep(6)">← Back</button>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-secondary" onclick="exportCharacter()" style="border-color:var(--gold);color:var(--gold-light);">⬇ Export for Tracker</button>
+      <label class="btn-secondary" style="cursor:pointer;display:inline-block;" title="Load an existing character JSON back into the builder">
+        📂 Import Character
+        <input type="file" accept=".json" onchange="importCharacter(this)" style="display:none;"/>
+      </label>
+      <button class="btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
+    </div>
+  </div>`;
+}
+
+function attachEvents(){
+  const b=(id,p)=>{const e=document.getElementById(id);if(e)e.oninput=ev=>{state[p]=ev.target.value;};};
+  b('inp-name','name');b('inp-appearance','appearance');b('inp-trait','personalityTrait');
+  b('inp-ideals','ideals');b('inp-bonds','bonds');b('inp-flaws','flaws');
+  const l=document.getElementById('inp-level');if(l)l.onchange=e=>{state.level=parseInt(e.target.value);render();};
+  const a=document.getElementById('inp-alignment');if(a)a.onchange=e=>{state.alignment=e.target.value;};
+  const hpEl=document.getElementById('hp-override-input');if(hpEl)hpEl.oninput=function(){state.hpOverride=this.value===''?null:parseInt(this.value)||null;const hv=document.getElementById('hp-val');if(hv)hv.textContent=getMaxHP();};
+}
+
+function selectRace(id){
+  if(state.race===id)return;
+  state.race=id;state.subrace=null;state.variantASI=[];state.halfElfASI=[];
+  state.variantSkill=null;state.variantFeat=null;state.halfElfSkills=[];
+  const r=RACES.find(r=>r.id===id);
+  if(r&&r.subraces.length===1)state.subrace=r.subraces[0].id;
+  render();
+}
+function selectSubrace(id){
+  state.subrace=id;state.variantASI=[];state.halfElfASI=[];
+  state.variantSkill=null;state.variantFeat=null;state.halfElfSkills=[];
+  render();
+}
+function selectClass(id){state.class=id;state.skillProficiencies=[];render();}
+function selectBg(id){state.background=id;render();}
+
+function toggleVarASI(s){
+  const i=state.variantASI.indexOf(s);
+  if(i>-1)state.variantASI.splice(i,1);
+  else if(state.variantASI.length<2)state.variantASI.push(s);
+  render();
+}
+function toggleHalfElfASI(s){
+  const i=state.halfElfASI.indexOf(s);
+  if(i>-1)state.halfElfASI.splice(i,1);
+  else if(state.halfElfASI.length<2)state.halfElfASI.push(s);
+  render();
+}
+function toggleHalfElfSkill(s){
+  const i=state.halfElfSkills.indexOf(s);
+  if(i>-1)state.halfElfSkills.splice(i,1);
+  else if(state.halfElfSkills.length<2)state.halfElfSkills.push(s);
+  render();
+}
+
+function updateAb(stat,val){
+  const v=Math.max(1,Math.min(20,parseInt(val)||1));
+  state.abilities[stat]=v;
+  const bon=getRaceBonus()[stat]||0;
+  const tot=v+bon;
+  const me=document.getElementById('mod-'+stat);if(me)me.textContent=getMod(tot);
+  const he=document.getElementById('hp-val');if(he)he.textContent=getMaxHP();
+  const ae=document.getElementById('ac-val');if(ae)ae.textContent=getAC();
+}
+
+function toggleSk(n){
+  const cls=state.class?CLASSES.find(c=>c.id===state.class):null;if(!cls)return;
+  const np=cls.numSkills;if(!cls.skills.includes(n))return;
+  const i=state.skillProficiencies.indexOf(n);
+  if(i>-1)state.skillProficiencies.splice(i,1);
+  else{const p=state.skillProficiencies.filter(s=>cls.skills.includes(s));if(p.length>=np)return;state.skillProficiencies.push(n);}
+  render();
+}
+
+function setArr(a,mode){state.abilityMode=mode||'free';STAT_NAMES.forEach((s,i)=>{state.abilities[s]=a[i]||10;});render();}
+function rollAbs(){
+  state.abilityMode='rolled';
+  function r(){const d=[0,0,0,0].map(()=>Math.floor(Math.random()*6)+1);d.sort((a,b)=>a-b);return d.slice(1).reduce((a,b)=>a+b,0);}
+  STAT_NAMES.forEach(s=>{state.abilities[s]=r();});render();
+}
+function startPointBuy(){
+  state.abilityMode='pointbuy';
+  STAT_NAMES.forEach(s=>{state.abilities[s]=8;});render();
+}
+function pbAdj(stat,dir){
+  const cur=state.abilities[stat];
+  const next=cur+dir;
+  if(next<PB_SCORE_MIN||next>PB_SCORE_MAX)return;
+  const delta=(PB_COST[next]??0)-(PB_COST[cur]??0);
+  const rem=pbRemaining(state.abilities);
+  if(delta>rem)return;
+  state.abilities[stat]=next;
+  render();
+}
+
+function exportCharacter(){
+  const sr=getSubrace();
+  const cls=CLASSES.find(c=>c.id===state.class);
+  const bg=BACKGROUNDS.find(b=>b.id===state.background);
+  const race=RACES.find(r=>r.id===state.race);
+  const bgSk=bg?bg.skills:[];
+  const srProfs=sr?sr.proficiencies||[]:[];
+  const varSk=state.variantSkill?[state.variantSkill]:[];
+  const heSk=state.halfElfSkills||[];
+  const allGranted=[...new Set([...bgSk,...srProfs,...varSk,...heSk])];
+  const allSkillProfs=[...new Set([...state.skillProficiencies,...allGranted])];
+  const feat=state.variantFeat?PHB_FEATS.find(f=>f.id===state.variantFeat):null;
+  const exportData={
+    version:1,
+    meta:{exportedAt:new Date().toISOString()},
+    identity:{name:state.name||'Unnamed Hero',alignment:state.alignment,appearance:state.appearance,personalityTrait:state.personalityTrait,ideals:state.ideals,bonds:state.bonds,flaws:state.flaws},
+    race:{id:state.race,subraceId:state.subrace,name:sr?sr.name:'',raceName:race?race.name:''},
+    class:{id:state.class,name:cls?cls.name:'',hitDie:cls?cls.hitDie:8,spellcasting:cls?cls.spellcasting:false,spellAbility:cls?cls.spellAbility:null,saves:cls?cls.saves:[]},
+    background:{id:state.background,name:bg?bg.name:''},
+    level:state.level,
+    abilityMode:state.abilityMode,
+    baseAbilities:{...state.abilities},
+    racialBonuses:getRaceBonus(),
+    effectiveAbilities:Object.fromEntries(STAT_NAMES.map(s=>[s,getEffectiveAbility(s)])),
+    skillProficiencies:allSkillProfs,
+    variantSkill:state.variantSkill||null,
+    halfElfSkills:state.halfElfSkills||[],
+    feats:feat?[{id:feat.id,name:feat.name,desc:feat.desc}]:[],
+    hp:{max:getMaxHP(),current:getMaxHP(),override:state.hpOverride??null},
+    ac:getAC(),
+    speed:getSpeed(),
+    proficiencyBonus:getProfBonus(state.level),
+    equipment:{
+      armorId:state.equipment.armorId,
+      armorName:state.equipment.armorId?(ARMORS.find(a=>a.id===state.equipment.armorId)||{name:state.equipment.armorId}).name:null,
+      hasShield:state.equipment.hasShield,
+      weapons:[...state.equipment.weapons],
+      weaponDetails:state.equipment.weapons.map(id=>{const w=WEAPONS.find(ww=>ww.id===id);return w?{id:w.id,name:w.name,dmg:w.dmg,dmgType:w.dmgType,props:w.props,profCat:w.profCat,proficient:hasWeaponProf(w)}:{id,name:id};}),
+    },
+    tracker:{currentHP:getMaxHP(),tempHP:0,deathSaves:{successes:0,failures:0},conditions:[],exhaustion:0,currency:{cp:0,sp:0,gp:0,pp:0},inventory:[],notes:[],sessionLog:[],asiChoices:[],featChoices:[],subclass:null,classFeatures:[]}
+  };
+  const blob=new Blob([JSON.stringify(exportData,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`${(state.name||'character').replace(/\s+/g,'_').toLowerCase()}_dnd5e.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+function importCharacter(input){
+  if(!input||!input.files||!input.files[0]) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    input.value=''; // reset so same file can be re-selected
+    var data;
+    try{ data=JSON.parse(e.target.result); }
+    catch(err){ alert('Could not read file — make sure it is a valid JSON file.'); return; }
+
+    try{
+      // ── Map exported JSON back into builder state ──────────────────────────
+      const d=data;
+
+      // Identity
+      if(d.identity){
+        state.name            = d.identity.name            || '';
+        state.alignment       = d.identity.alignment       || 'True Neutral';
+        state.appearance      = d.identity.appearance      || '';
+        state.personalityTrait= d.identity.personalityTrait|| '';
+        state.ideals          = d.identity.ideals          || '';
+        state.bonds           = d.identity.bonds           || '';
+        state.flaws           = d.identity.flaws           || '';
+      }
+
+      // Level
+      if(d.level) state.level = Math.max(1, Math.min(20, parseInt(d.level)||1));
+
+      // Race + subrace
+      if(d.race){
+        state.race    = d.race.id     || null;
+        state.subrace = d.race.subraceId || null;
+
+        // Reconstruct variant human ASI choices from racialBonuses
+        if(d.race.subraceId==='human_var' && d.racialBonuses){
+          // Variant human gets +1 to two chosen stats
+          state.variantASI = Object.entries(d.racialBonuses)
+            .filter(([,v])=> v>0)
+            .map(([k])=>k);
+        }
+
+        // Reconstruct half-elf ASI choices (+2 CHA is auto; other two are chosen)
+        if(d.race.subraceId==='halfelf_std' && d.racialBonuses){
+          state.halfElfASI = Object.entries(d.racialBonuses)
+            .filter(([k,v])=> k!=='cha' && v>0)
+            .map(([k])=>k);
+        }
+      }
+
+      // Class
+      if(d.class) state.class = d.class.id || null;
+
+      // Background
+      if(d.background) state.background = d.background.id || null;
+
+      // Base abilities
+      if(d.baseAbilities){
+        state.abilities = {
+          str: d.baseAbilities.str||10,
+          dex: d.baseAbilities.dex||10,
+          con: d.baseAbilities.con||10,
+          int: d.baseAbilities.int||10,
+          wis: d.baseAbilities.wis||10,
+          cha: d.baseAbilities.cha||10,
+        };
+        // Restore abilityMode — use stored value if present, otherwise auto-detect
+        if(d.abilityMode==='pointbuy'){
+          state.abilityMode='pointbuy';
+        } else if(['standard','balanced','rolled','free'].includes(d.abilityMode)){
+          state.abilityMode=d.abilityMode;
+        } else {
+          // Auto-detect: if all base scores are 8-15 and total cost fits in 27pts, treat as point buy
+          const abs=state.abilities;
+          const inRange=Object.values(abs).every(v=>v>=8&&v<=15);
+          const cost=Object.values(abs).reduce((t,v)=>t+(PB_COST[v]??0),0);
+          state.abilityMode=(inRange&&cost<=PB_MAX)?'pointbuy':'free';
+        }
+      }
+
+      // Skills — always start fresh so the Skills step re-derives from class/race/background
+      state.skillProficiencies = [];
+
+      // Variant human free skill — now stored directly in export
+      state.variantSkill = d.variantSkill || null;
+
+      // Half-elf bonus skills — now stored directly in export
+      state.halfElfSkills = Array.isArray(d.halfElfSkills) ? d.halfElfSkills : [];
+
+      // Variant human feat
+      if(Array.isArray(d.feats)&&d.feats.length>0){
+        state.variantFeat = d.feats[0].id || null;
+      } else {
+        state.variantFeat = null;
+      }
+
+      // Restore HP override
+      state.hpOverride=d.hp&&d.hp.override!=null?d.hp.override:null;
+
+      // Restore equipment
+      if(d.equipment){
+        state.equipment={
+          armorId:d.equipment.armorId||null,
+          hasShield:!!d.equipment.hasShield,
+          weapons:Array.isArray(d.equipment.weapons)?[...d.equipment.weapons]:[],
+        };
+      } else {
+        state.equipment={armorId:null,hasShield:false,weapons:[]};
+      }
+
+      // Navigate to step 0 and re-render
+      state.step=0;
+      render();
+      alert('Character imported successfully! Review any choices, then re-export when ready.');
+    }catch(err){
+      alert('Error loading character: '+err.message);
+    }
+  };
+  reader.readAsText(input.files[0]);
+}
+
+render();
+</script>
+</body>
+</html>

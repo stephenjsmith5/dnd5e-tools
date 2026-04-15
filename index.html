@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>D&D 5e Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{--parchment:#fdf8f0;--surface:#fff;--border:#d4c5a0;--ink:#2c2416;--ink-light:#5a4a2a;--gold:#8b6914;--red:#8b1a1a;--muted:#9a8a6a;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Crimson Text',Georgia,serif;background:var(--parchment);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;}
+  .crest{font-size:3rem;margin-bottom:1rem;}
+  h1{font-family:'Cinzel',serif;font-size:2rem;font-weight:700;color:var(--ink);letter-spacing:1px;margin-bottom:.4rem;text-align:center;}
+  .subtitle{font-size:1.1rem;color:var(--ink-light);font-style:italic;margin-bottom:2.5rem;text-align:center;}
+  .divider{width:200px;height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent);margin:0 auto 2.5rem;}
+  .cards{display:flex;gap:1.5rem;flex-wrap:wrap;justify-content:center;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2rem 2.5rem;text-align:center;text-decoration:none;color:var(--ink);transition:border-color .2s,box-shadow .2s;max-width:260px;}
+  .card:hover{border-color:var(--gold);box-shadow:0 4px 16px rgba(139,105,20,.15);}
+  .card-icon{font-size:2.5rem;margin-bottom:.75rem;}
+  .card-title{font-family:'Cinzel',serif;font-size:1.1rem;font-weight:600;margin-bottom:.5rem;}
+  .card-desc{font-size:.95rem;color:var(--ink-light);line-height:1.5;}
+  footer{margin-top:3rem;font-size:.8rem;color:var(--muted);text-align:center;}
+</style>
+</head>
+<body>
+  <div class="crest">⚔️</div>
+  <h1>D&D 5e Tools</h1>
+  <p class="subtitle">Character Builder &amp; Session Tracker</p>
+  <div class="divider"></div>
+  <div class="cards">
+    <a class="card" href="builder.html">
+      <div class="card-icon">📜</div>
+      <div class="card-title">Character Builder</div>
+      <div class="card-desc">Build a character step by step — race, class, abilities, background, skills, and equipment. Export to the tracker when ready.</div>
+    </a>
+    <a class="card" href="tracker.html">
+      <div class="card-icon">🎲</div>
+      <div class="card-title">Session Tracker</div>
+      <div class="card-desc">Track HP, conditions, spell slots, resources, attacks, and encounter initiative during a live session. Import your built character to get started.</div>
+    </a>
+  </div>
+  <footer>D&D 5e · Player's Handbook 2014 rules</footer>
+</body>
+</html>
