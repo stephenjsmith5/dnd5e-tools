@@ -163,7 +163,50 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .wpn-check.checked::after{content:'';width:7px;height:5px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) translate(1px,-1px);display:block;}
 .ac-preview{background:var(--surface2);border:1.5px solid var(--ac-blue);border-radius:8px;padding:8px 14px;display:inline-flex;align-items:center;gap:12px;margin-bottom:12px;}
 .ac-preview-val{font-family:'Cinzel',serif;font-size:26px;font-weight:700;color:var(--ac-blue);}
-@media print { .steps-nav, .nav-btns { display: none !important; } body { background: white; } }
+/* ── Print-ready Character Sheet ─────────────────────────────────────── */
+.cs-sheet{font-family:'Crimson Text',serif;color:var(--ink);font-size:12px;line-height:1.45;}
+.cs-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--red-accent);padding-bottom:8px;margin-bottom:10px;gap:16px;}
+.cs-name{font-family:'Cinzel',serif;font-size:24px;font-weight:700;color:var(--ink);line-height:1.1;}
+.cs-meta{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6;}
+.cs-badges{display:flex;gap:6px;flex-shrink:0;align-items:flex-start;}
+.cs-badge{text-align:center;border:1.5px solid var(--border-col);border-radius:5px;padding:3px 8px;min-width:44px;background:var(--surface2);}
+.cs-badge-val{display:block;font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:var(--ink);}
+.cs-badge-val.hp{color:var(--hp-red);} .cs-badge-val.ac{color:var(--ac-blue);} .cs-badge-val.spd{color:var(--spd-green);}
+.cs-badge-lbl{display:block;font-family:'Cinzel',serif;font-size:7px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;}
+.cs-body{display:grid;grid-template-columns:22fr 29fr 29fr;gap:14px;}
+.cs-sec{margin-bottom:9px;}
+.cs-sec-title{font-family:'Cinzel',serif;font-size:8.5px;letter-spacing:1.2px;text-transform:uppercase;color:var(--red-accent);border-bottom:1px solid var(--border-col);padding-bottom:2px;margin-bottom:5px;}
+.cs-ab-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:2px;}
+.cs-ab{text-align:center;border:1px solid var(--border-col);border-radius:4px;padding:4px 2px;background:var(--surface2);}
+.cs-ab-name{font-family:'Cinzel',serif;font-size:7.5px;letter-spacing:0.5px;color:var(--muted);}
+.cs-ab-score{font-family:'Cinzel',serif;font-size:16px;font-weight:700;color:var(--ink);}
+.cs-ab-mod{font-size:11px;font-weight:600;color:var(--red-accent);}
+.cs-save{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:2px 0;border-bottom:1px dotted var(--border-col);}
+.cs-save-bonus{font-family:'Cinzel',serif;font-size:10px;font-weight:700;color:var(--red-accent);}
+.cs-sk-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 4px;}
+.cs-sk{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;padding:1.5px 2px;}
+.cs-sk.prof{font-weight:700;}
+.cs-sk-bonus{font-family:'Cinzel',serif;font-size:10px;color:var(--red-accent);}
+.cs-line{font-size:11px;color:var(--ink-light);line-height:1.55;margin-bottom:2px;}
+.cs-divider{border:none;border-top:1px solid var(--border-col);margin:8px 0;}
+@media print{
+  @page{size:letter portrait;margin:0.4in;}
+  .steps-nav,.nav-btns{display:none!important;}
+  body{background:white!important;}
+  .character-sheet{border:none!important;background:white!important;padding:0!important;box-shadow:none!important;}
+  .cs-sheet{font-size:10px;}
+  .cs-name{font-size:19px;}
+  .cs-meta{font-size:10px;}
+  .cs-badge-val{font-size:15px;}
+  .cs-badge{padding:2px 5px;min-width:38px;}
+  .cs-ab-score{font-size:13px;}
+  .cs-ab-mod{font-size:9px;}
+  .cs-sec{margin-bottom:6px;}
+  .cs-body{gap:9px;}
+  .cs-sk{font-size:9.5px;}
+  .cs-line{font-size:10px;}
+  .cs-save{font-size:10px;}
+}
 @media (max-width: 600px) {
   .ability-grid { grid-template-columns: repeat(2, 1fr); }
   .row.cols-2 { grid-template-columns: 1fr; }
@@ -1092,76 +1135,120 @@ function renderSummary(){
   const allGranted=[...new Set([...bgSk,...srProfs,...varSk,...heSk])];
   const feat=state.variantFeat?PHB_FEATS.find(f=>f.id===state.variantFeat):null;
   const raceName=sr?(race&&race.subraces.length>1?`${sr.name} ${race.name}`:race.name):(race?race.name:'?');
+  const dexMod=getModNum(getEffectiveAbility('dex'));
+  const allLanguages=getAllKnownLanguages();
+  const armorName=state.equipment.armorId?(ARMORS.find(a=>a.id===state.equipment.armorId)||{name:state.equipment.armorId}).name:'Unarmored';
+  const weaponList=state.equipment.weapons.map(id=>{const w=WEAPONS.find(ww=>ww.id===id);return w?`${w.name} (${w.dmg} ${w.dmgType})`:id;});
+
   return`<div class="character-sheet">
-    <div class="sheet-header">
+  <div class="cs-sheet">
+
+    <!-- ── HEADER ── -->
+    <div class="cs-head">
       <div>
-        <div class="char-name-display">${state.name||'Unnamed Hero'}</div>
-        <div class="char-meta">${raceName} ${cls?cls.name:'?'} · Level ${state.level}<br>${bg?bg.name:''} · ${state.alignment}${state.appearance?` · ${state.appearance}`:''}</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
-        <div class="stat-badge hp" style="min-width:80px;" data-tip="Maximum Hit Points — Level 1: Hit Die max + CON mod. Each additional level: floor(Hit Die / 2) + 1 + CON mod (average), or your rolled value if overridden manually."><div class="stat-badge-val">${getMaxHP()}</div><div class="stat-badge-label">MAX HP</div></div>
-        <div style="display:flex;gap:6px;">
-          <div class="stat-badge ac" data-tip="Armor Class — how hard you are to hit. Attackers must roll this number or higher on a d20 to land an attack."><div class="stat-badge-val">${getAC()}</div><div class="stat-badge-label">AC</div></div>
-          <div class="stat-badge spd" data-tip="Movement Speed — feet you can move per turn. Difficult terrain costs 2 ft per 1 ft moved. The Dash action doubles your movement."><div class="stat-badge-val">${getSpeed()}</div><div class="stat-badge-label">FT</div></div>
-          <div class="stat-badge" data-tip="Proficiency Bonus — added to attack rolls, saving throws, and skill/tool checks you are proficient in. Scales with character level (+2 at Lv1, up to +6 at Lv17+)."><div class="stat-badge-val">+${prof}</div><div class="stat-badge-label">PROF</div></div>
+        <div class="cs-name">${state.name||'Unnamed Hero'}</div>
+        <div class="cs-meta">
+          ${raceName}${cls?` ${cls.name}`:''} · Level ${state.level}${bg?` · ${bg.name}`:''}${state.alignment?` · ${state.alignment}`:''}${state.appearance?` · ${state.appearance}`:''}
         </div>
       </div>
+      <div class="cs-badges">
+        <div class="cs-badge"><span class="cs-badge-val hp">${getMaxHP()}</span><span class="cs-badge-lbl">Max HP</span></div>
+        <div class="cs-badge"><span class="cs-badge-val ac">${getAC()}</span><span class="cs-badge-lbl">AC</span></div>
+        <div class="cs-badge"><span class="cs-badge-val spd">${getSpeed()}</span><span class="cs-badge-lbl">Speed</span></div>
+        <div class="cs-badge"><span class="cs-badge-val">+${prof}</span><span class="cs-badge-lbl">Prof</span></div>
+        <div class="cs-badge"><span class="cs-badge-val">${(dexMod>=0?'+':'')+dexMod}</span><span class="cs-badge-lbl">Init</span></div>
+        ${cls&&cls.spellcasting?`<div class="cs-badge"><span class="cs-badge-val">${8+prof+getModNum(getEffectiveAbility(cls.spellAbility))}</span><span class="cs-badge-lbl">Spell DC</span></div>`:''}
+      </div>
     </div>
-    <div class="sheet-cols">
+
+    <!-- ── 3-COLUMN BODY ── -->
+    <div class="cs-body">
+
+      <!-- COL 1: Abilities + Saves -->
       <div>
-        <div class="section-title" style="font-size:13px;margin-bottom:10px;">Ability Scores</div>
-        <div class="ability-display-grid">${STAT_NAMES.map(s=>{const t=getEffectiveAbility(s);return`
-          <div class="ability-display-box" data-tip="${{str:'Strength — melee attacks &amp; damage, Athletics, carrying capacity, STR saves.',dex:'Dexterity — ranged attacks, AC (light/unarmored), Acrobatics/Stealth, initiative, DEX saves.',con:'Constitution — HP maximum, concentration saves, CON saves.',int:'Intelligence — Arcana/History/Investigation/Nature/Religion, wizard spellcasting, INT saves.',wis:'Wisdom — Insight/Medicine/Perception/Survival, cleric &amp; druid spellcasting, WIS saves.',cha:'Charisma — Deception/Intimidation/Performance/Persuasion, bard/sorcerer/warlock spellcasting, CHA saves.'}[s]}">
-            <div class="ability-display-name">${STAT_LABELS[s]}</div>
-            <div class="ability-display-score">${t}</div>
-            <div class="ability-display-mod">${getMod(t)}</div>
-          </div>`;}).join('')}</div>
-        ${cls?`<div style="margin-top:14px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;">Saving Throws</div>
-          ${STAT_NAMES.map(s=>{const iS=cls.saves.includes(s);const m=getModNum(getEffectiveAbility(s))+(iS?prof:0);
-            return`<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0;border-bottom:1px dashed var(--border-col);">
+        <div class="cs-sec">
+          <div class="cs-sec-title">Ability Scores</div>
+          <div class="cs-ab-grid">
+            ${STAT_NAMES.map(s=>{const v=getEffectiveAbility(s);return`<div class="cs-ab">
+              <div class="cs-ab-name">${STAT_LABELS[s]}</div>
+              <div class="cs-ab-score">${v}</div>
+              <div class="cs-ab-mod">${getMod(v)}</div>
+            </div>`;}).join('')}
+          </div>
+        </div>
+        <div class="cs-sec">
+          <div class="cs-sec-title">Saving Throws</div>
+          ${STAT_NAMES.map(s=>{const iS=cls&&cls.saves.includes(s);const m=getModNum(getEffectiveAbility(s))+(iS?prof:0);
+            return`<div class="cs-save">
               <span style="color:${iS?'var(--ink)':'var(--muted)'};">${iS?'●':'○'} ${STAT_LABELS[s]}</span>
-              <span style="font-family:'Cinzel',serif;font-weight:600;color:var(--red-accent);">${(m>=0?'+':'')+m}</span></div>`;}).join('')}
-        </div>`:''}
-        ${sr?`<div style="margin-top:14px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;" data-tip="Racial traits are innate abilities from your race and subrace. They are always active and require no action unless specified.">Racial Traits</div>
-          ${sr.traits.map(t=>`<p class="trait-item">• ${t}</p>`).join('')}
-          <p class="trait-item" style="margin-top:4px;"><strong>Languages:</strong> ${sr.languages.join(', ')}</p>
-        </div>`:''}
-        ${feat?`<div style="margin-top:14px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;">Feat: ${feat.name}</div>
-          <p class="trait-item">${feat.desc}</p></div>`:''}
+              <span class="cs-save-bonus">${(m>=0?'+':'')+m}</span>
+            </div>`;}).join('')}
+        </div>
       </div>
+
+      <!-- COL 2: Skills + Equipment -->
       <div>
-        <div class="section-title" style="font-size:13px;margin-bottom:8px;">Skills</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-bottom:14px;">
-          ${SKILLS_LIST.map(sk=>{const ip=state.skillProficiencies.includes(sk.name)||allGranted.includes(sk.name);const m=getModNum(getEffectiveAbility(sk.stat))+(ip?prof:0);
-            return`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 4px;${ip?'color:var(--ink);font-weight:600;':'color:var(--muted);'}">
-              <span>${ip?'●':'○'} ${sk.name}</span>
-              <span style="font-family:'Cinzel',serif;color:var(--red-accent);">${(m>=0?'+':'')+m}</span></div>`;}).join('')}
+        <div class="cs-sec">
+          <div class="cs-sec-title">Skills</div>
+          <div class="cs-sk-grid">
+            ${SKILLS_LIST.map(sk=>{const ip=state.skillProficiencies.includes(sk.name)||allGranted.includes(sk.name);const m=getModNum(getEffectiveAbility(sk.stat))+(ip?prof:0);
+              return`<div class="cs-sk${ip?' prof':''}">
+                <span style="color:${ip?'var(--ink)':'var(--muted)'};">${ip?'●':'○'} ${sk.name}</span>
+                <span class="cs-sk-bonus">${(m>=0?'+':'')+m}</span>
+              </div>`;}).join('')}
+          </div>
         </div>
-        ${state.personalityTrait||state.ideals||state.bonds||state.flaws?`<div style="margin-bottom:12px;">
-          <div class="section-title" style="font-size:13px;margin-bottom:6px;">Personality</div>
-          ${state.personalityTrait?`<p class="trait-item"><strong>Traits:</strong> ${state.personalityTrait}</p>`:''}
-          ${state.ideals?`<p class="trait-item"><strong>Ideals:</strong> ${state.ideals}</p>`:''}
-          ${state.bonds?`<p class="trait-item"><strong>Bonds:</strong> ${state.bonds}</p>`:''}
-          ${state.flaws?`<p class="trait-item"><strong>Flaws:</strong> ${state.flaws}</p>`:''}
-        </div>`:''}
-        ${cls?`<div style="margin-bottom:12px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;">Class: ${cls.name}</div>
-          <p class="trait-item">• Hit Die: d${cls.hitDie} · Armor: ${cls.armor}</p>
-          <p class="trait-item">• Weapons: ${cls.weapons}</p>
-          ${cls.spellcasting?`<p class="trait-item">• Spellcasting: ${STAT_LABELS[cls.spellAbility]}-based</p>`:''}
-          ${cls.equipment.map(e=>`<p class="trait-item" style="padding-left:8px;">• ${e}</p>`).join('')}
-        </div>`:''}
-        ${bg?`<div style="margin-bottom:12px;"><div class="section-title" style="font-size:13px;margin-bottom:6px;">Background: ${bg.name}</div>
-          <p class="trait-item"><strong>Feature:</strong> ${bg.feature}</p>
-          ${bg.tools.length?`<p class="trait-item"><strong>Tools:</strong> ${bg.tools.join(', ')}</p>`:''}
-          ${bg.languages?`<p class="trait-item"><strong>Extra Languages:</strong> ${bg.languages}</p>`:''}
-          <p class="trait-item"><strong>Equipment:</strong> ${bg.equipment}</p>
-        </div>`:''}
-        <div><div class="section-title" style="font-size:13px;margin-bottom:6px;">Equipment</div>
-          <p class="trait-item">• <strong>Armor:</strong> ${state.equipment.armorId?(ARMORS.find(a=>a.id===state.equipment.armorId)||{name:state.equipment.armorId}).name:'Unarmored'}${state.equipment.hasShield?' + Shield':''}</p>
-          ${state.equipment.weapons.length?`<p class="trait-item">• <strong>Weapons:</strong> ${state.equipment.weapons.map(id=>{const w=WEAPONS.find(ww=>ww.id===id);return w?`${w.name} (${w.dmg} ${w.dmgType})`:id;}).join(', ')}</p>`:'<p class="trait-item" style="color:var(--muted);">• No weapons selected</p>'}
+        <div class="cs-sec">
+          <div class="cs-sec-title">Equipment</div>
+          <div class="cs-line"><strong>Armor:</strong> ${armorName}${state.equipment.hasShield?' + Shield':''} (AC ${getAC()})</div>
+          ${weaponList.length?`<div class="cs-line"><strong>Weapons:</strong> ${weaponList.join('; ')}</div>`:''}
+          ${state.equipmentPack?`<div class="cs-line"><strong>Pack:</strong> ${state.equipmentPack}</div>`:''}
+          ${bg?`<div class="cs-line"><strong>Bg gear:</strong> ${bg.equipment}</div>`:''}
+          ${cls&&cls.equipment.length?`<div class="cs-line"><strong>Class gear:</strong> ${cls.equipment.join('; ')}</div>`:''}
         </div>
+        ${state.personalityTrait||state.ideals||state.bonds||state.flaws?`<div class="cs-sec">
+          <div class="cs-sec-title">Personality</div>
+          ${state.personalityTrait?`<div class="cs-line"><strong>Traits:</strong> ${state.personalityTrait}</div>`:''}
+          ${state.ideals?`<div class="cs-line"><strong>Ideals:</strong> ${state.ideals}</div>`:''}
+          ${state.bonds?`<div class="cs-line"><strong>Bonds:</strong> ${state.bonds}</div>`:''}
+          ${state.flaws?`<div class="cs-line"><strong>Flaws:</strong> ${state.flaws}</div>`:''}
+        </div>`:''}
+      </div>
+
+      <!-- COL 3: Class · Background · Traits · Feat -->
+      <div>
+        ${cls?`<div class="cs-sec">
+          <div class="cs-sec-title">Class — ${cls.name}</div>
+          <div class="cs-line">Hit Die: d${cls.hitDie} · Saves: ${cls.saves.map(s=>STAT_LABELS[s]).join(', ')}</div>
+          <div class="cs-line">Armor: ${cls.armor}</div>
+          <div class="cs-line">Weapons: ${cls.weapons}</div>
+          ${cls.spellcasting?`<div class="cs-line">Spellcasting: ${STAT_LABELS[cls.spellAbility]}-based · DC ${8+prof+getModNum(getEffectiveAbility(cls.spellAbility))} · +${prof+getModNum(getEffectiveAbility(cls.spellAbility))} to hit</div>`:''}
+        </div>`:''}
+        ${bg?`<div class="cs-sec">
+          <div class="cs-sec-title">Background — ${bg.name}</div>
+          <div class="cs-line"><strong>Feature:</strong> ${bg.feature}</div>
+          ${bg.tools.length?`<div class="cs-line"><strong>Tools:</strong> ${bg.tools.join(', ')}${state.backgroundToolChoice?` · Chose: ${state.backgroundToolChoice}`:''}</div>`:''}
+          ${state.backgroundToolChoice&&!bg.tools.length?`<div class="cs-line"><strong>${bg.toolChoiceLabel}:</strong> ${state.backgroundToolChoice}</div>`:''}
+        </div>`:''}
+        ${sr?`<div class="cs-sec">
+          <div class="cs-sec-title">Racial Traits — ${raceName}</div>
+          ${sr.traits.map(t=>`<div class="cs-line">• ${t}</div>`).join('')}
+          <div class="cs-line" style="margin-top:3px;"><strong>Languages:</strong> ${allLanguages.length?allLanguages.join(', '):sr.languages.join(', ')}</div>
+        </div>`:''}
+        ${feat?`<div class="cs-sec">
+          <div class="cs-sec-title">Feat — ${feat.name}</div>
+          <div class="cs-line">${feat.desc}</div>
+        </div>`:''}
       </div>
     </div>
+
+    <!-- ── BACKSTORY (full-width) ── -->
+    ${state.backstory?`<hr class="cs-divider"><div class="cs-sec">
+      <div class="cs-sec-title">Backstory</div>
+      <div class="cs-line" style="white-space:pre-wrap;">${state.backstory}</div>
+    </div>`:''}
+
+  </div>
   </div>
   <div class="nav-btns">
     <button class="btn-secondary" onclick="goStep(6)">← Back</button>
