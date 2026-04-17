@@ -1066,7 +1066,8 @@ function renderSummary(){
   <div class="nav-btns">
     <button class="btn-secondary" onclick="goStep(6)">← Back</button>
     <div style="display:flex;gap:8px;">
-      <button class="btn-secondary" onclick="exportCharacter()" style="border-color:var(--gold);color:var(--gold-light);">⬇ Export for Tracker</button>
+      <button class="btn-primary" onclick="openInTracker()" style="background:var(--gold);color:#1a0a00;border-color:var(--gold);">▶ Open in Tracker</button>
+      <button class="btn-secondary" onclick="exportCharacter()" style="border-color:var(--gold);color:var(--gold-light);">⬇ Export JSON</button>
       <label class="btn-secondary" style="cursor:pointer;display:inline-block;" title="Load an existing character JSON back into the builder">
         📂 Import Character
         <input type="file" accept=".json" onchange="importCharacter(this)" style="display:none;"/>
@@ -1160,7 +1161,7 @@ function pbAdj(stat,dir){
   render();
 }
 
-function exportCharacter(){
+function buildExportData(){
   const sr=getSubrace();
   const cls=CLASSES.find(c=>c.id===state.class);
   const bg=BACKGROUNDS.find(b=>b.id===state.background);
@@ -1172,7 +1173,7 @@ function exportCharacter(){
   const allGranted=[...new Set([...bgSk,...srProfs,...varSk,...heSk])];
   const allSkillProfs=[...new Set([...state.skillProficiencies,...allGranted])];
   const feat=state.variantFeat?PHB_FEATS.find(f=>f.id===state.variantFeat):null;
-  const exportData={
+  return {
     version:1,
     meta:{exportedAt:new Date().toISOString()},
     identity:{name:state.name||'Unnamed Hero',alignment:state.alignment,appearance:state.appearance,personalityTrait:state.personalityTrait,ideals:state.ideals,bonds:state.bonds,flaws:state.flaws},
@@ -1201,6 +1202,10 @@ function exportCharacter(){
     },
     tracker:{currentHP:getMaxHP(),tempHP:0,deathSaves:{successes:0,failures:0},conditions:[],exhaustion:0,currency:{cp:0,sp:0,gp:0,pp:0},inventory:[],notes:[],sessionLog:[],asiChoices:[],featChoices:[],subclass:null,classFeatures:[]}
   };
+}
+
+function exportCharacter(){
+  const exportData=buildExportData();
   const blob=new Blob([JSON.stringify(exportData,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -1208,6 +1213,16 @@ function exportCharacter(){
   a.download=`${(state.name||'character').replace(/\s+/g,'_').toLowerCase()}_dnd5e.json`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function openInTracker(){
+  try{
+    const data=buildExportData();
+    localStorage.setItem('dnd5e_pending_import',JSON.stringify(data));
+    window.location.href='tracker.html';
+  }catch(e){
+    alert('Could not open tracker: '+e.message);
+  }
 }
 
 

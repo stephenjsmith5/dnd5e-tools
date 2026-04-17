@@ -4351,6 +4351,94 @@ function exportJSON(){
   URL.revokeObjectURL(url);
 }
 
+function applyCharData(data){
+  // ── Normalise identity ────────────────────────────────────────────────
+  if(!data.identity){
+    if(data.name||data.character_name){
+      data.identity={name:data.name||data.character_name||'Unknown',alignment:data.alignment||'True Neutral',appearance:data.appearance||'',personalityTrait:data.personalityTrait||'',ideals:data.ideals||'',bonds:data.bonds||'',flaws:data.flaws||''};
+    } else {
+      throw new Error('Missing "identity" block. Keys found: '+Object.keys(data).slice(0,10).join(', '));
+    }
+  }
+
+  // ── Normalise class ───────────────────────────────────────────────────
+  if(!data.class){
+    var raw=data.charClass||data.classData||null;
+    if(raw){ data.class=raw; }
+    else {
+      var cid=data.classId||data.class_id||null;
+      if(cid){ data.class={id:cid,name:cid.charAt(0).toUpperCase()+cid.slice(1),hitDie:8,spellcasting:false,spellAbility:null,saves:[]}; }
+      else { throw new Error('Missing "class" block. Keys found: '+Object.keys(data).slice(0,10).join(', ')); }
+    }
+  }
+  if(!data.class.saves) data.class.saves=[];
+  if(data.class.spellcasting===undefined) data.class.spellcasting=false;
+
+  // ── Normalise race ────────────────────────────────────────────────────
+  if(!data.race) data.race={id:'human',subraceId:null,name:'Human',raceName:'Human'};
+
+  // ── Normalise abilities ───────────────────────────────────────────────
+  if(!data.effectiveAbilities) data.effectiveAbilities=data.abilities||data.stats||{str:10,dex:10,con:10,int:10,wis:10,cha:10};
+  ['str','dex','con','int','wis','cha'].forEach(function(s){ if(!data.effectiveAbilities[s]) data.effectiveAbilities[s]=10; });
+
+  // ── Other top-level fields ────────────────────────────────────────────
+  if(!data.level) data.level=1;
+  if(!data.speed) data.speed=30;
+  if(!data.ac){ data.ac=10+Math.floor(((data.effectiveAbilities.dex||10)-10)/2); }
+  if(!data.proficiencyBonus) data.proficiencyBonus=Math.ceil(data.level/4)+1;
+  if(!data.skillProficiencies) data.skillProficiencies=[];
+  if(!data.feats||!Array.isArray(data.feats)) data.feats=[];
+  if(!data.background) data.background={id:'',name:''};
+  if(!data.hp){ var con=Math.floor(((data.effectiveAbilities.con||10)-10)/2); data.hp={max:(data.class.hitDie||8)+con,current:(data.class.hitDie||8)+con}; }
+
+  // ── Tracker fields ────────────────────────────────────────────────────
+  if(!data.tracker) data.tracker={};
+  var t=data.tracker;
+  t.currentHP    = (typeof t.currentHP==='number')   ? t.currentHP   : (data.hp.current||data.hp.max||8);
+  t.tempHP       = (typeof t.tempHP==='number')       ? t.tempHP      : 0;
+  t.deathSaves   = t.deathSaves   || {successes:0,failures:0};
+  t.conditions   = Array.isArray(t.conditions)   ? t.conditions   : [];
+  t.exhaustion   = (typeof t.exhaustion==='number')   ? t.exhaustion  : 0;
+  t.currency     = t.currency     || {cp:0,sp:0,gp:0,pp:0};
+  t.inventory    = Array.isArray(t.inventory)    ? t.inventory    : [];
+  // Seed inventory from builder equipment choices on first load (only when inventory is empty)
+  if(t.inventory.length===0 && data.equipment){
+    var eq=data.equipment;
+    if(eq.armorName) t.inventory.push({name:eq.armorName,qty:1});
+    if(eq.hasShield) t.inventory.push({name:'Shield',qty:1});
+    if(Array.isArray(eq.weaponDetails)&&eq.weaponDetails.length){
+      eq.weaponDetails.forEach(function(w){ t.inventory.push({name:w.name,qty:1}); });
+    } else if(Array.isArray(eq.weapons)&&eq.weapons.length){
+      eq.weapons.forEach(function(id){ t.inventory.push({name:id.replace(/_/g,' '),qty:1}); });
+    }
+  }
+  t.notes        = (typeof t.notes==='string')        ? t.notes       : '';
+  t.sessionLog   = Array.isArray(t.sessionLog)   ? t.sessionLog   : [];
+  t.asiChoices   = Array.isArray(t.asiChoices)   ? t.asiChoices   : [];
+  t.featChoices  = Array.isArray(t.featChoices)  ? t.featChoices  : [];
+  t.subclass     = t.subclass     || null;
+  t.classFeatures= Array.isArray(t.classFeatures)? t.classFeatures: [];
+  t.hpGains      = Array.isArray(t.hpGains)      ? t.hpGains      : [];
+  t.expertiseSkills=Array.isArray(t.expertiseSkills)?t.expertiseSkills:[];
+  t.resources    = t.resources    || {};
+  if(!t.spells||typeof t.spells!=='object') t.spells={cantrips:[],spellbook:[],prepared:[],known:[]};
+  if(!Array.isArray(t.spells.cantrips))  t.spells.cantrips=[];
+  if(!Array.isArray(t.spells.spellbook)) t.spells.spellbook=[];
+  if(!Array.isArray(t.spells.prepared))  t.spells.prepared=[];
+  if(!Array.isArray(t.spells.known))     t.spells.known=[];
+  if(!Array.isArray(t.attacks))   t.attacks=[];
+  if(!Array.isArray(t.maneuvers)) t.maneuvers=[];
+
+  // Apply
+  data=migrateChar(data);
+  char=data;
+  syncResources(char);
+  syncSpells(char);
+  store.set('dnd5e_tracker_char',JSON.stringify(char));
+  activeTab='combat';
+  render();
+}
+
 function loadFile(file){
   const reader=new FileReader();
   reader.onload=function(e){
@@ -4362,107 +4450,26 @@ function loadFile(file){
     catch(parseErr){ alert('File is not valid JSON. Please export again from the Character Builder.'); return; }
 
     try{
-      // ── Normalise identity ────────────────────────────────────────────────
-      if(!data.identity){
-        if(data.name||data.character_name){
-          data.identity={name:data.name||data.character_name||'Unknown',alignment:data.alignment||'True Neutral',appearance:data.appearance||'',personalityTrait:data.personalityTrait||'',ideals:data.ideals||'',bonds:data.bonds||'',flaws:data.flaws||''};
-        } else {
-          throw new Error('Missing "identity" block. Keys found: '+Object.keys(data).slice(0,10).join(', '));
-        }
-      }
-
-      // ── Normalise class ───────────────────────────────────────────────────
-      if(!data.class){
-        var raw=data.charClass||data.classData||null;
-        if(raw){ data.class=raw; }
-        else {
-          var cid=data.classId||data.class_id||null;
-          if(cid){ data.class={id:cid,name:cid.charAt(0).toUpperCase()+cid.slice(1),hitDie:8,spellcasting:false,spellAbility:null,saves:[]}; }
-          else { throw new Error('Missing "class" block. Keys found: '+Object.keys(data).slice(0,10).join(', ')); }
-        }
-      }
-      // Ensure class has required fields
-      if(!data.class.saves) data.class.saves=[];
-      if(data.class.spellcasting===undefined) data.class.spellcasting=false;
-
-      // ── Normalise race ────────────────────────────────────────────────────
-      if(!data.race) data.race={id:'human',subraceId:null,name:'Human',raceName:'Human'};
-
-      // ── Normalise abilities ───────────────────────────────────────────────
-      if(!data.effectiveAbilities) data.effectiveAbilities=data.abilities||data.stats||{str:10,dex:10,con:10,int:10,wis:10,cha:10};
-      // Make sure all 6 stats exist
-      ['str','dex','con','int','wis','cha'].forEach(function(s){ if(!data.effectiveAbilities[s]) data.effectiveAbilities[s]=10; });
-
-      // ── Other top-level fields ────────────────────────────────────────────
-      if(!data.level) data.level=1;
-      if(!data.speed) data.speed=30;
-      if(!data.ac){ data.ac=10+Math.floor(((data.effectiveAbilities.dex||10)-10)/2); }
-      if(!data.proficiencyBonus) data.proficiencyBonus=Math.ceil(data.level/4)+1;
-      if(!data.skillProficiencies) data.skillProficiencies=[];
-      if(!data.feats||!Array.isArray(data.feats)) data.feats=[];
-      if(!data.background) data.background={id:'',name:''};
-      if(!data.hp){ var con=Math.floor(((data.effectiveAbilities.con||10)-10)/2); data.hp={max:(data.class.hitDie||8)+con,current:(data.class.hitDie||8)+con}; }
-
-      // ── Tracker fields ────────────────────────────────────────────────────
-      if(!data.tracker) data.tracker={};
-      var t=data.tracker;
-      t.currentHP    = (typeof t.currentHP==='number')   ? t.currentHP   : (data.hp.current||data.hp.max||8);
-      t.tempHP       = (typeof t.tempHP==='number')       ? t.tempHP      : 0;
-      t.deathSaves   = t.deathSaves   || {successes:0,failures:0};
-      t.conditions   = Array.isArray(t.conditions)   ? t.conditions   : [];
-      t.exhaustion   = (typeof t.exhaustion==='number')   ? t.exhaustion  : 0;
-      t.currency     = t.currency     || {cp:0,sp:0,gp:0,pp:0};
-      t.inventory    = Array.isArray(t.inventory)    ? t.inventory    : [];
-      // Seed inventory from builder equipment choices on first load (only when inventory is empty)
-      if(t.inventory.length===0 && data.equipment){
-        var eq=data.equipment;
-        if(eq.armorName) t.inventory.push({name:eq.armorName,qty:1});
-        if(eq.hasShield) t.inventory.push({name:'Shield',qty:1});
-        if(Array.isArray(eq.weaponDetails)&&eq.weaponDetails.length){
-          eq.weaponDetails.forEach(function(w){ t.inventory.push({name:w.name,qty:1}); });
-        } else if(Array.isArray(eq.weapons)&&eq.weapons.length){
-          eq.weapons.forEach(function(id){ t.inventory.push({name:id.replace(/_/g,' '),qty:1}); });
-        }
-      }
-      // notes: force to string (older versions exported as array)
-      t.notes        = (typeof t.notes==='string')        ? t.notes       : '';
-      t.sessionLog   = Array.isArray(t.sessionLog)   ? t.sessionLog   : [];
-      t.asiChoices   = Array.isArray(t.asiChoices)   ? t.asiChoices   : [];
-      t.featChoices  = Array.isArray(t.featChoices)  ? t.featChoices  : [];
-      t.subclass     = t.subclass     || null;
-      t.classFeatures= Array.isArray(t.classFeatures)? t.classFeatures: [];
-      t.hpGains      = Array.isArray(t.hpGains)      ? t.hpGains      : [];
-      t.expertiseSkills=Array.isArray(t.expertiseSkills)?t.expertiseSkills:[];
-      t.resources    = t.resources    || {};
-      if(!t.spells||typeof t.spells!=='object') t.spells={cantrips:[],spellbook:[],prepared:[],known:[]};
-      if(!Array.isArray(t.spells.cantrips))  t.spells.cantrips=[];
-      if(!Array.isArray(t.spells.spellbook)) t.spells.spellbook=[];
-      if(!Array.isArray(t.spells.prepared))  t.spells.prepared=[];
-      if(!Array.isArray(t.spells.known))     t.spells.known=[];
-      if(!Array.isArray(t.attacks))   t.attacks=[];
-      if(!Array.isArray(t.maneuvers)) t.maneuvers=[];
-
-    }catch(setupErr){
-      alert('Error reading character data:\n'+setupErr.message+'\n\nTry exporting again from the Character Builder.');
-      return;
-    }
-
-    // Apply — separated from setup so render errors don't show a misleading "wrong file" message
-    try{
-      data=migrateChar(data);
-      char=data;
-      syncResources(char);
-      syncSpells(char);
-      store.set('dnd5e_tracker_char',JSON.stringify(char));
-      activeTab='combat';
-      render();
-    }catch(renderErr){
-      console.error('Tracker render error:',renderErr);
-      // char is set; try a safe fallback render
-      try{ activeTab='combat'; render(); }catch(e2){ alert('Character loaded but tracker failed to display. Error: '+renderErr.message); }
+      applyCharData(data);
+    }catch(err){
+      console.error('Tracker load error:',err);
+      alert('Error reading character data:\n'+err.message+'\n\nTry exporting again from the Character Builder.');
     }
   };
   reader.readAsText(file);
+}
+
+function loadPendingImport(){
+  const raw=store.get('dnd5e_pending_import');
+  if(!raw) return false;
+  store.remove('dnd5e_pending_import');
+  try{
+    applyCharData(JSON.parse(raw));
+    return true;
+  }catch(e){
+    console.error('Pending import failed:',e);
+    return false;
+  }
 }
 
 function attachTrackerEvents(){
@@ -4504,8 +4511,8 @@ function loadSaved(){
   }catch(e){store.remove('dnd5e_tracker_char');render();}
 }
 
-// Initialize
-render();
+// Initialize — check for a character passed directly from the builder before falling through to the upload screen
+if(!loadPendingImport()) render();
 
 // File input handled via handleFileInput() defined at top of script
 </script>
