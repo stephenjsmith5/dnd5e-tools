@@ -3462,15 +3462,17 @@ function renderNotes(){
   const backstory=(char.identity&&char.identity.backstory)||'';
   const langs=Array.isArray(char.languages)&&char.languages.length?char.languages:null;
   const toolProf=char.toolProficiency||null;
+  const pack=char.equipmentPack||null;
   return`
   ${backstory?`<div class="card">
     <div class="card-title">Backstory</div>
     <p style="font-size:14px;line-height:1.7;color:var(--ink-light);white-space:pre-wrap;">${backstory}</p>
   </div>`:''}
-  ${langs||toolProf?`<div class="card">
+  ${langs||toolProf||pack?`<div class="card">
     <div class="card-title">Proficiencies & Languages</div>
     ${langs?`<p style="font-size:13px;margin-bottom:6px;"><strong style="color:var(--gold);">Languages:</strong> ${langs.join(', ')}</p>`:''}
-    ${toolProf?`<p style="font-size:13px;"><strong style="color:var(--gold);">Tool Proficiency:</strong> ${toolProf}</p>`:''}
+    ${toolProf?`<p style="font-size:13px;margin-bottom:6px;"><strong style="color:var(--gold);">Tool Proficiency:</strong> ${toolProf}</p>`:''}
+    ${pack?`<p style="font-size:13px;"><strong style="color:var(--gold);">Starting Pack:</strong> ${pack}</p>`:''}
   </div>`:''}
   <div class="card">
     <div class="card-title">Session Notes</div>
@@ -4427,6 +4429,7 @@ function applyCharData(data){
   if(!data.background) data.background={id:'',name:''};
   if(!Array.isArray(data.languages)) data.languages=[];
   if(data.toolProficiency===undefined) data.toolProficiency=null;
+  if(data.equipmentPack===undefined) data.equipmentPack=null;
   if(!data.hp){ var con=Math.floor(((data.effectiveAbilities.con||10)-10)/2); data.hp={max:(data.class.hitDie||8)+con,current:(data.class.hitDie||8)+con}; }
 
   // ── Tracker fields ────────────────────────────────────────────────────

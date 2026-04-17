@@ -296,24 +296,33 @@ const RACES = [
 ];
 
 const CLASSES = [
-  { id:'barbarian', name:'Barbarian', icon:'⚔️', sub:'Rage & Unarmored Defense', hitDie:12, saves:['str','con'], skills:['Animal Handling','Athletics','Intimidation','Nature','Perception','Survival'], numSkills:2, armor:'Light, Medium, Shields', weapons:'Simple, Martial', spellcasting:false, equipment:["Greataxe or any martial melee weapon","Two handaxes or any simple weapon","Explorer's pack, 4 javelins"] },
-  { id:'bard', name:'Bard', icon:'🎵', sub:'Jack of All Trades', hitDie:8, saves:['dex','cha'], skills:['Acrobatics','Animal Handling','Arcana','Athletics','Deception','History','Insight','Intimidation','Investigation','Medicine','Nature','Perception','Performance','Persuasion','Religion','Sleight of Hand','Stealth','Survival'], numSkills:3, armor:'Light', weapons:'Simple, hand crossbows, longswords, rapiers, shortswords', spellcasting:true, spellAbility:'cha', equipment:["Rapier, longsword, or simple weapon","Diplomat's or entertainer's pack","Musical instrument, leather armor, dagger"] },
-  { id:'cleric', name:'Cleric', icon:'✨', sub:'Divine Domain', hitDie:8, saves:['wis','cha'], skills:['History','Insight','Medicine','Persuasion','Religion'], numSkills:2, armor:'Light, Medium, Shields', weapons:'Simple', spellcasting:true, spellAbility:'wis', equipment:["Mace or warhammer","Scale mail, leather, or chain mail + shield","Priest's pack or explorer's pack, holy symbol"] },
-  { id:'druid', name:'Druid', icon:'🌿', sub:'Wild Shape', hitDie:8, saves:['int','wis'], skills:['Arcana','Animal Handling','Insight','Medicine','Nature','Perception','Religion','Survival'], numSkills:2, armor:'Light, Medium, Shields (nonmetal)', weapons:'Clubs, daggers, darts, javelins, maces, quarterstaffs, scimitars, sickles, slings, spears', spellcasting:true, spellAbility:'wis', equipment:["Wooden shield or simple weapon","Scimitar or simple melee weapon","Leather armor, explorer's pack, druidic focus"] },
-  { id:'fighter', name:'Fighter', icon:'🛡️', sub:'Action Surge', hitDie:10, saves:['str','con'], skills:['Acrobatics','Animal Handling','Athletics','History','Insight','Intimidation','Perception','Survival'], numSkills:2, armor:'All armor, Shields', weapons:'Simple, Martial', spellcasting:false, equipment:["Chain mail or leather armor + longbow","Martial weapon + shield or two martial weapons","Light crossbow + 20 bolts or two handaxes","Dungeoneer's or explorer's pack"] },
-  { id:'monk', name:'Monk', icon:'👊', sub:'Ki & Flurry of Blows', hitDie:8, saves:['str','dex'], skills:['Acrobatics','Athletics','History','Insight','Religion','Stealth'], numSkills:2, armor:'None', weapons:'Simple, Shortswords', spellcasting:false, equipment:["Shortsword or any simple weapon","Dungeoneer's or explorer's pack, 10 darts"] },
-  { id:'paladin', name:'Paladin', icon:'🌟', sub:'Lay on Hands', hitDie:10, saves:['wis','cha'], skills:['Athletics','Insight','Intimidation','Medicine','Persuasion','Religion'], numSkills:2, armor:'All armor, Shields', weapons:'Simple, Martial', spellcasting:true, spellAbility:'cha', equipment:["Martial weapon + shield or two martial weapons","Five javelins or simple melee weapon","Priest's or explorer's pack, chain mail, holy symbol"] },
-  { id:'ranger', name:'Ranger', icon:'🏹', sub:'Natural Explorer', hitDie:10, saves:['str','dex'], skills:['Animal Handling','Athletics','Insight','Investigation','Nature','Perception','Stealth','Survival'], numSkills:3, armor:'Light, Medium, Shields', weapons:'Simple, Martial', spellcasting:true, spellAbility:'wis', equipment:["Scale mail or leather armor","Two shortswords or simple melee weapons","Dungeoneer's or explorer's pack, longbow + 20 arrows"] },
-  { id:'rogue', name:'Rogue', icon:'🗡️', sub:'Sneak Attack', hitDie:8, saves:['dex','int'], skills:['Acrobatics','Athletics','Deception','Insight','Intimidation','Investigation','Perception','Performance','Persuasion','Sleight of Hand','Stealth'], numSkills:4, armor:'Light', weapons:'Simple, hand crossbows, longswords, rapiers, shortswords', spellcasting:false, equipment:["Rapier or shortsword","Shortbow + 20 arrows or shortsword","Burglar's/dungeoneer's/explorer's pack, leather armor, 2 daggers, thieves' tools"] },
-  { id:'sorcerer', name:'Sorcerer', icon:'💫', sub:'Metamagic', hitDie:6, saves:['con','cha'], skills:['Arcana','Deception','Insight','Intimidation','Persuasion','Religion'], numSkills:2, armor:'None', weapons:'Daggers, darts, slings, quarterstaffs, light crossbows', spellcasting:true, spellAbility:'cha', equipment:["Light crossbow + 20 bolts or any simple weapon","Component pouch or arcane focus","Dungeoneer's or explorer's pack, two daggers"] },
-  { id:'warlock', name:'Warlock', icon:'🔮', sub:'Eldritch Blast', hitDie:8, saves:['wis','cha'], skills:['Arcana','Deception','History','Intimidation','Investigation','Nature','Religion'], numSkills:2, armor:'Light', weapons:'Simple', spellcasting:true, spellAbility:'cha', equipment:["Light crossbow + 20 bolts or any simple weapon","Component pouch or arcane focus","Scholar's or dungeoneer's pack, leather armor, simple weapon, 2 daggers"] },
-  { id:'wizard', name:'Wizard', icon:'🧙', sub:'Arcane Recovery', hitDie:6, saves:['int','wis'], skills:['Arcana','History','Insight','Investigation','Medicine','Religion'], numSkills:2, armor:'None', weapons:'Daggers, darts, slings, quarterstaffs, light crossbows', spellcasting:true, spellAbility:'int', equipment:["Quarterstaff or dagger","Component pouch or arcane focus","Scholar's or explorer's pack, spellbook"] },
+  { id:'barbarian', name:'Barbarian', icon:'⚔️', sub:'Rage & Unarmored Defense', hitDie:12, saves:['str','con'], skills:['Animal Handling','Athletics','Intimidation','Nature','Perception','Survival'], numSkills:2, armor:'Light, Medium, Shields', weapons:'Simple, Martial', spellcasting:false, packChoices:["Explorer's Pack"], equipment:["Greataxe or any martial melee weapon","Two handaxes or any simple weapon","4 javelins"] },
+  { id:'bard',      name:'Bard',      icon:'🎵', sub:'Jack of All Trades',        hitDie:8,  saves:['dex','cha'], skills:['Acrobatics','Animal Handling','Arcana','Athletics','Deception','History','Insight','Intimidation','Investigation','Medicine','Nature','Perception','Performance','Persuasion','Religion','Sleight of Hand','Stealth','Survival'], numSkills:3, armor:'Light', weapons:'Simple, hand crossbows, longswords, rapiers, shortswords', spellcasting:true, spellAbility:'cha', packChoices:["Diplomat's Pack","Entertainer's Pack"], equipment:["Rapier, longsword, or any simple weapon","Musical instrument, leather armor, dagger"] },
+  { id:'cleric',    name:'Cleric',    icon:'✨', sub:'Divine Domain',              hitDie:8,  saves:['wis','cha'], skills:['History','Insight','Medicine','Persuasion','Religion'], numSkills:2, armor:'Light, Medium, Shields', weapons:'Simple', spellcasting:true, spellAbility:'wis', packChoices:["Priest's Pack","Explorer's Pack"], equipment:["Mace or warhammer","Scale mail, leather, or chain mail + shield","Holy symbol"] },
+  { id:'druid',     name:'Druid',     icon:'🌿', sub:'Wild Shape',                 hitDie:8,  saves:['int','wis'], skills:['Arcana','Animal Handling','Insight','Medicine','Nature','Perception','Religion','Survival'], numSkills:2, armor:'Light, Medium, Shields (nonmetal)', weapons:'Clubs, daggers, darts, javelins, maces, quarterstaffs, scimitars, sickles, slings, spears', spellcasting:true, spellAbility:'wis', packChoices:["Explorer's Pack"], equipment:["Wooden shield or simple weapon","Scimitar or simple melee weapon","Leather armor, druidic focus"] },
+  { id:'fighter',   name:'Fighter',   icon:'🛡️', sub:'Action Surge',               hitDie:10, saves:['str','con'], skills:['Acrobatics','Animal Handling','Athletics','History','Insight','Intimidation','Perception','Survival'], numSkills:2, armor:'All armor, Shields', weapons:'Simple, Martial', spellcasting:false, packChoices:["Dungeoneer's Pack","Explorer's Pack"], equipment:["Chain mail or leather armor + longbow","Martial weapon + shield or two martial weapons","Light crossbow + 20 bolts or two handaxes"] },
+  { id:'monk',      name:'Monk',      icon:'👊', sub:'Ki & Flurry of Blows',       hitDie:8,  saves:['str','dex'], skills:['Acrobatics','Athletics','History','Insight','Religion','Stealth'], numSkills:2, armor:'None', weapons:'Simple, Shortswords', spellcasting:false, packChoices:["Dungeoneer's Pack","Explorer's Pack"], equipment:["Shortsword or any simple weapon","10 darts"] },
+  { id:'paladin',   name:'Paladin',   icon:'🌟', sub:'Lay on Hands',               hitDie:10, saves:['wis','cha'], skills:['Athletics','Insight','Intimidation','Medicine','Persuasion','Religion'], numSkills:2, armor:'All armor, Shields', weapons:'Simple, Martial', spellcasting:true, spellAbility:'cha', packChoices:["Priest's Pack","Explorer's Pack"], equipment:["Martial weapon + shield or two martial weapons","Five javelins or simple melee weapon","Chain mail, holy symbol"] },
+  { id:'ranger',    name:'Ranger',    icon:'🏹', sub:'Natural Explorer',            hitDie:10, saves:['str','dex'], skills:['Animal Handling','Athletics','Insight','Investigation','Nature','Perception','Stealth','Survival'], numSkills:3, armor:'Light, Medium, Shields', weapons:'Simple, Martial', spellcasting:true, spellAbility:'wis', packChoices:["Dungeoneer's Pack","Explorer's Pack"], equipment:["Scale mail or leather armor","Two shortswords or two simple melee weapons","Longbow + 20 arrows"] },
+  { id:'rogue',     name:'Rogue',     icon:'🗡️', sub:'Sneak Attack',               hitDie:8,  saves:['dex','int'], skills:['Acrobatics','Athletics','Deception','Insight','Intimidation','Investigation','Perception','Performance','Persuasion','Sleight of Hand','Stealth'], numSkills:4, armor:'Light', weapons:'Simple, hand crossbows, longswords, rapiers, shortswords', spellcasting:false, packChoices:["Burglar's Pack","Dungeoneer's Pack","Explorer's Pack"], equipment:["Rapier or shortsword","Shortbow + 20 arrows or second shortsword","Leather armor, 2 daggers, thieves' tools"] },
+  { id:'sorcerer',  name:'Sorcerer',  icon:'💫', sub:'Metamagic',                  hitDie:6,  saves:['con','cha'], skills:['Arcana','Deception','Insight','Intimidation','Persuasion','Religion'], numSkills:2, armor:'None', weapons:'Daggers, darts, slings, quarterstaffs, light crossbows', spellcasting:true, spellAbility:'cha', packChoices:["Dungeoneer's Pack","Explorer's Pack"], equipment:["Light crossbow + 20 bolts or any simple weapon","Component pouch or arcane focus","Two daggers"] },
+  { id:'warlock',   name:'Warlock',   icon:'🔮', sub:'Eldritch Blast',              hitDie:8,  saves:['wis','cha'], skills:['Arcana','Deception','History','Intimidation','Investigation','Nature','Religion'], numSkills:2, armor:'Light', weapons:'Simple', spellcasting:true, spellAbility:'cha', packChoices:["Scholar's Pack","Dungeoneer's Pack"], equipment:["Light crossbow + 20 bolts or any simple weapon","Component pouch or arcane focus","Leather armor, simple weapon, 2 daggers"] },
+  { id:'wizard',    name:'Wizard',    icon:'🧙', sub:'Arcane Recovery',             hitDie:6,  saves:['int','wis'], skills:['Arcana','History','Insight','Investigation','Medicine','Religion'], numSkills:2, armor:'None', weapons:'Daggers, darts, slings, quarterstaffs, light crossbows', spellcasting:true, spellAbility:'int', packChoices:["Scholar's Pack","Explorer's Pack"], equipment:["Quarterstaff or dagger","Component pouch or arcane focus","Spellbook"] },
 ];
 
 const LANGUAGES=['Abyssal','Celestial','Deep Speech','Draconic','Dwarvish','Elvish','Giant','Gnomish','Goblin','Halfling','Infernal','Orc','Primordial','Sylvan',"Thieves' Cant",'Undercommon'];
 const GAMING_SETS=['Dice Set','Dragonchess Set','Playing Card Set','Three-Dragon Ante Set'];
 const ARTISAN_TOOLS=["Alchemist's Supplies","Brewer's Supplies","Calligrapher's Supplies","Carpenter's Tools","Cartographer's Tools","Cobbler's Tools","Cook's Utensils","Glassblower's Tools","Jeweler's Tools","Leatherworker's Tools","Mason's Tools","Painter's Supplies","Potter's Tools","Smith's Tools","Tinker's Tools","Weaver's Tools","Woodcarver's Tools"];
 const MUSICAL_INSTRUMENTS=['Bagpipes','Drum','Dulcimer','Flute','Lute','Lyre','Horn','Pan Flute','Shawm','Viol'];
+const EQUIPMENT_PACKS={
+  "Burglar's Pack":    "Backpack, ball bearings (1,000), string (10 ft), bell, 5 candles, crowbar, hammer, 10 pitons, hooded lantern, 2 flasks of oil, 5 days' rations, tinderbox, waterskin, 50 ft hempen rope (total ~16 gp)",
+  "Diplomat's Pack":   "Chest, 2 scroll cases, fine clothes, ink bottle, ink pen, lamp, 2 flasks of oil, 5 sheets of paper, perfume, sealing wax, soap (total ~39 gp)",
+  "Dungeoneer's Pack": "Backpack, crowbar, hammer, 10 pitons, 10 torches, tinderbox, 10 days' rations, waterskin, 50 ft hempen rope (total ~12 gp)",
+  "Entertainer's Pack":"Backpack, bedroll, 2 costumes, 5 candles, 5 days' rations, waterskin, disguise kit (total ~40 gp)",
+  "Explorer's Pack":   "Backpack, bedroll, mess kit, tinderbox, 10 torches, 10 days' rations, waterskin, 50 ft hempen rope (total ~10 gp)",
+  "Priest's Pack":     "Backpack, blanket, 10 candles, tinderbox, alms box, 2 blocks of incense, censer, vestments, 2 days' rations, waterskin (total ~19 gp)",
+  "Scholar's Pack":    "Backpack, book of lore, ink bottle, ink pen, 10 sheets of parchment, bag of sand, small knife (total ~40 gp)",
+};
 
 const BACKGROUNDS = [
   { id:'acolyte',     name:'Acolyte',      icon:'⛪', skills:['Insight','Religion'],              tools:[], languages:2, equipment:'Holy symbol, prayer book, incense, vestments, common clothes, 15 gp', feature:'Shelter of the Faithful' },
@@ -493,6 +502,7 @@ let state={
   equipment:{armorId:null,hasShield:false,weapons:[]},
   bonusLanguages:[],
   backgroundToolChoice:null,
+  equipmentPack:null,
 };
 
 const steps=['Basics','Race','Class','Abilities','Background','Skills','Equipment','Sheet'];
@@ -1029,7 +1039,21 @@ function renderEquipment(){
   });
   wpnHtml+=`</tbody></table>`;
 
-  return`<div class="section-card">
+  const packChoices=cls?cls.packChoices||[]:[];
+  const otherEquip=cls?cls.equipment||[]:[];
+  const packSection=packChoices.length?`<div class="section-card" style="margin-bottom:16px;">
+    <div class="section-title" style="font-size:14px;">Starting Equipment Pack</div>
+    ${otherEquip.length?`<div class="info-box" style="margin-bottom:12px;"><strong>Also included:</strong><ul style="margin:4px 0 0 0;padding-left:18px;">${otherEquip.map(e=>`<li style="font-size:13px;">${e}</li>`).join('')}</ul></div>`:''}
+    <p style="font-size:13px;margin-bottom:10px;">Choose one pack:</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">
+      ${packChoices.map(pack=>`<div class="choice-card${state.equipmentPack===pack?' selected':''}" onclick="state.equipmentPack='${pack.replace(/'/g,"\\'")}';render();" style="padding:12px;text-align:left;">
+        <div style="font-family:'Cinzel',serif;font-size:13px;margin-bottom:6px;">${pack}</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">${EQUIPMENT_PACKS[pack]||''}</div>
+      </div>`).join('')}
+    </div>
+  </div>`:'';
+
+  return`${packSection}<div class="section-card">
     <div class="section-title">Equipment</div>
     <div class="ac-preview">
       <div class="ac-preview-val">${getAC()}</div>
@@ -1203,7 +1227,7 @@ function selectSubrace(id){
   state.bonusLanguages=[];
   render();
 }
-function selectClass(id){state.class=id;state.skillProficiencies=[];render();}
+function selectClass(id){state.class=id;state.skillProficiencies=[];state.equipmentPack=null;render();}
 function selectBg(id){state.background=id;state.bonusLanguages=[];state.backgroundToolChoice=null;render();}
 
 function toggleVarASI(s){
@@ -1296,6 +1320,7 @@ function buildExportData(){
     halfElfSkills:state.halfElfSkills||[],
     feats:feat?[{id:feat.id,name:feat.name,desc:feat.desc}]:[],
     toolProficiency:state.backgroundToolChoice||null,
+    equipmentPack:state.equipmentPack||null,
     hp:{max:getMaxHP(),current:getMaxHP(),override:state.hpOverride??null},
     ac:getAC(),
     speed:getSpeed(),
