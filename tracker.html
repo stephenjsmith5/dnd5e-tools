@@ -259,6 +259,17 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .enc-form-field input{font-size:13px;padding:5px 7px;}
 .enc-empty{text-align:center;padding:2rem 1rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;}
 @media(max-width:700px){.two-col{grid-template-columns:1fr;}.skill-list{grid-template-columns:1fr;}.currency-grid{grid-template-columns:repeat(2,1fr);}}
+/* Toast notifications */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,.5);pointer-events:none;animation:toastIn .25s ease,toastOut .3s ease 2.2s forwards;}
+.toast.success{border-color:#5a9e5a;color:#7ecf7e;}
+.toast.warning{border-color:var(--gold);color:var(--gold-light);}
+.toast.info{border-color:var(--ac-blue);color:var(--ac-blue);}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-8px)}}
+/* Dice roll animation */
+@keyframes diceRoll{0%{transform:scale(0.3) rotate(-15deg);opacity:0}55%{transform:scale(1.2) rotate(6deg)}100%{transform:scale(1) rotate(0);opacity:1}}
+.dice-number{animation:diceRoll .35s ease;}
 </style>
 </head>
 <body>
@@ -1837,6 +1848,16 @@ function adjustResPool(key, dir, max){
   saveAndRender();
 }
 
+function showToast(msg,type='info'){
+  let c=document.getElementById('toast-container');
+  if(!c){c=document.createElement('div');c.id='toast-container';document.body.appendChild(c);}
+  const t=document.createElement('div');
+  t.className='toast'+(type?` ${type}`:'');
+  t.textContent=msg;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(),2600);
+}
+
 function doShortRest(){
   syncResources(char);
   const res=char.tracker.resources;
@@ -1861,6 +1882,7 @@ function doShortRest(){
   if(cls==='bard'&&res.bardicShortRest) res.bardicInspiration=res.bardicInspirationMax||0;
 
   saveAndRender();
+  showToast('Short rest taken — some resources restored.','warning');
 }
 
 function doLongRest(){
@@ -1909,6 +1931,7 @@ function doLongRest(){
   char.tracker.deathSaves={successes:0,failures:0};
 
   saveAndRender();
+  showToast('Long rest complete — HP and all resources restored.','success');
 }
 
 
@@ -2809,12 +2832,12 @@ function renderRollResult(){
     </div>
     <div style="display:flex;gap:16px;margin-top:6px;">
       <div style="text-align:center;">
-        <div style="font-family:'Cinzel',serif;font-size:32px;font-weight:700;color:${color};">${r.isMiss?'Miss':r.atkTotal}</div>
+        <div class="dice-number" style="font-family:'Cinzel',serif;font-size:32px;font-weight:700;color:${color};">${r.isMiss?'Miss':r.atkTotal}</div>
         <div style="font-size:10px;color:var(--muted);">d20(${r.atkRoll})${r.atkBonus>=0?'+':''}${r.atkBonus||0}${r.isCrit?' CRITICAL!':r.isMiss?' FUMBLE!':''}</div>
         <div style="font-size:10px;color:var(--gold);">${rollLabel}</div>
       </div>
       ${!r.isCheck&&!r.isMiss&&r.dmgTotal!=null?`<div style="text-align:center;border-left:1px solid var(--border);padding-left:16px;">
-        <div style="font-family:'Cinzel',serif;font-size:32px;font-weight:700;color:var(--ac-blue);">${r.dmgTotal}</div>
+        <div class="dice-number" style="font-family:'Cinzel',serif;font-size:32px;font-weight:700;color:var(--ac-blue);">${r.dmgTotal}</div>
         <div style="font-size:10px;color:var(--muted);">${r.dmgDice}${r.dmgBonus>=0?'+':''}${r.dmgBonus||0}${r.isCrit?' ×2':''}</div>
         <div style="font-size:10px;color:var(--gold);">DAMAGE</div>
       </div>`:''}
@@ -3436,8 +3459,21 @@ function renderLog(){
 
 // ── NOTES TAB ──
 function renderNotes(){
-  return`<div class="card">
-    <div class="card-title">Character Notes</div>
+  const backstory=(char.identity&&char.identity.backstory)||'';
+  const langs=Array.isArray(char.languages)&&char.languages.length?char.languages:null;
+  const toolProf=char.toolProficiency||null;
+  return`
+  ${backstory?`<div class="card">
+    <div class="card-title">Backstory</div>
+    <p style="font-size:14px;line-height:1.7;color:var(--ink-light);white-space:pre-wrap;">${backstory}</p>
+  </div>`:''}
+  ${langs||toolProf?`<div class="card">
+    <div class="card-title">Proficiencies & Languages</div>
+    ${langs?`<p style="font-size:13px;margin-bottom:6px;"><strong style="color:var(--gold);">Languages:</strong> ${langs.join(', ')}</p>`:''}
+    ${toolProf?`<p style="font-size:13px;"><strong style="color:var(--gold);">Tool Proficiency:</strong> ${toolProf}</p>`:''}
+  </div>`:''}
+  <div class="card">
+    <div class="card-title">Session Notes</div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:8px;font-style:italic;">Use this for anything — NPC names, quest hooks, spell lists, house rules, reminders.</p>
     <textarea class="notes-area" id="notes-area" onchange="saveNotes(this.value)">${typeof char.tracker.notes==='string'?char.tracker.notes:''}</textarea>
   </div>`;
@@ -4389,6 +4425,8 @@ function applyCharData(data){
   if(!data.skillProficiencies) data.skillProficiencies=[];
   if(!data.feats||!Array.isArray(data.feats)) data.feats=[];
   if(!data.background) data.background={id:'',name:''};
+  if(!Array.isArray(data.languages)) data.languages=[];
+  if(data.toolProficiency===undefined) data.toolProficiency=null;
   if(!data.hp){ var con=Math.floor(((data.effectiveAbilities.con||10)-10)/2); data.hp={max:(data.class.hitDie||8)+con,current:(data.class.hitDie||8)+con}; }
 
   // ── Tracker fields ────────────────────────────────────────────────────
@@ -4437,6 +4475,7 @@ function applyCharData(data){
   store.set('dnd5e_tracker_char',JSON.stringify(char));
   activeTab='combat';
   render();
+  showToast(`${char.identity.name} loaded successfully.`,'success');
 }
 
 function loadFile(file){

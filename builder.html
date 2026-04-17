@@ -170,6 +170,14 @@ button[data-tip],label[data-tip]{cursor:pointer;}
   .sheet-cols { grid-template-columns: 1fr; }
   .sheet-header { grid-template-columns: 1fr; }
 }
+/* Toast notifications */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;font-family:'Crimson Text',serif;box-shadow:0 4px 12px rgba(0,0,0,.5);pointer-events:none;animation:toastIn .25s ease,toastOut .3s ease 2.2s forwards;}
+.toast.success{border-color:#5a9e5a;color:#7ecf7e;}
+.toast.warning{border-color:var(--gold);color:var(--gold-light);}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-8px)}}
+.ruleset-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--gold);color:var(--gold-light);font-family:'Cinzel',serif;background:rgba(212,175,55,.08);}
 </style>
 </head>
 <body>
@@ -302,19 +310,25 @@ const CLASSES = [
   { id:'wizard', name:'Wizard', icon:'🧙', sub:'Arcane Recovery', hitDie:6, saves:['int','wis'], skills:['Arcana','History','Insight','Investigation','Medicine','Religion'], numSkills:2, armor:'None', weapons:'Daggers, darts, slings, quarterstaffs, light crossbows', spellcasting:true, spellAbility:'int', equipment:["Quarterstaff or dagger","Component pouch or arcane focus","Scholar's or explorer's pack, spellbook"] },
 ];
 
+const LANGUAGES=['Abyssal','Celestial','Deep Speech','Draconic','Dwarvish','Elvish','Giant','Gnomish','Goblin','Halfling','Infernal','Orc','Primordial','Sylvan',"Thieves' Cant",'Undercommon'];
+const GAMING_SETS=['Dice Set','Dragonchess Set','Playing Card Set','Three-Dragon Ante Set'];
+const ARTISAN_TOOLS=["Alchemist's Supplies","Brewer's Supplies","Calligrapher's Supplies","Carpenter's Tools","Cartographer's Tools","Cobbler's Tools","Cook's Utensils","Glassblower's Tools","Jeweler's Tools","Leatherworker's Tools","Mason's Tools","Painter's Supplies","Potter's Tools","Smith's Tools","Tinker's Tools","Weaver's Tools","Woodcarver's Tools"];
+const MUSICAL_INSTRUMENTS=['Bagpipes','Drum','Dulcimer','Flute','Lute','Lyre','Horn','Pan Flute','Shawm','Viol'];
+
 const BACKGROUNDS = [
-  { id:'acolyte', name:'Acolyte', icon:'⛪', skills:['Insight','Religion'], tools:[], languages:2, equipment:'Holy symbol, prayer book, incense, vestments, common clothes, 15 gp', feature:'Shelter of the Faithful' },
-  { id:'charlatan', name:'Charlatan', icon:'🃏', skills:['Deception','Sleight of Hand'], tools:['Disguise Kit','Forgery Kit'], languages:0, equipment:'Fine clothes, disguise kit, con tools, 15 gp', feature:'False Identity' },
-  { id:'criminal', name:'Criminal', icon:'🔑', skills:['Deception','Stealth'], tools:["Thieves' Tools",'Gaming set'], languages:0, equipment:"Crowbar, dark hooded clothes, 15 gp", feature:'Criminal Contact' },
-  { id:'entertainer', name:'Entertainer', icon:'🎭', skills:['Acrobatics','Performance'], tools:['Disguise Kit','Musical instrument'], languages:0, equipment:'Instrument, admirer favor, costume, 15 gp', feature:'By Popular Demand' },
-  { id:'folkHero', name:'Folk Hero', icon:'🌾', skills:['Animal Handling','Survival'], tools:["Artisan's Tools",'Vehicles (land)'], languages:0, equipment:"Artisan's tools, shovel, iron pot, common clothes, 10 gp", feature:'Rustic Hospitality' },
-  { id:'guildArtisan', name:'Guild Artisan', icon:'🔨', skills:['Insight','Persuasion'], tools:["Artisan's Tools"], languages:1, equipment:"Artisan's tools, intro letter, traveler's clothes, 15 gp", feature:'Guild Membership' },
-  { id:'hermit', name:'Hermit', icon:'🏔️', skills:['Medicine','Religion'], tools:['Herbalism Kit'], languages:1, equipment:'Scroll case, blanket, common clothes, herbalism kit, 5 gp', feature:'Discovery' },
-  { id:'noble', name:'Noble', icon:'👑', skills:['History','Persuasion'], tools:['Gaming set'], languages:1, equipment:'Fine clothes, signet ring, scroll of pedigree, 25 gp', feature:'Position of Privilege' },
-  { id:'outlander', name:'Outlander', icon:'🌲', skills:['Athletics','Survival'], tools:['Musical instrument'], languages:1, equipment:"Staff, hunting trap, trophy, traveler's clothes, 10 gp", feature:'Wanderer' },
-  { id:'sage', name:'Sage', icon:'📚', skills:['Arcana','History'], tools:[], languages:2, equipment:'Ink, quill, knife, letter, common clothes, 10 gp', feature:'Researcher' },
-  { id:'sailor', name:'Sailor', icon:'⚓', skills:['Athletics','Perception'], tools:["Navigator's Tools",'Vehicles (water)'], languages:0, equipment:"Belaying pin, silk rope, lucky charm, common clothes, 10 gp", feature:"Ship's Passage" },
-  { id:'soldier', name:'Soldier', icon:'🎖️', skills:['Athletics','Intimidation'], tools:['Gaming set','Vehicles (land)'], languages:0, equipment:"Rank insignia, battle trophy, common clothes, 10 gp", feature:'Military Rank' },
+  { id:'acolyte',     name:'Acolyte',      icon:'⛪', skills:['Insight','Religion'],              tools:[], languages:2, equipment:'Holy symbol, prayer book, incense, vestments, common clothes, 15 gp', feature:'Shelter of the Faithful' },
+  { id:'charlatan',   name:'Charlatan',    icon:'🃏', skills:['Deception','Sleight of Hand'],     tools:['Disguise Kit','Forgery Kit'], languages:0, equipment:'Fine clothes, disguise kit, con tools, 15 gp', feature:'False Identity' },
+  { id:'criminal',    name:'Criminal',     icon:'🔑', skills:['Deception','Stealth'],             tools:["Thieves' Tools"], languages:0, toolChoices:GAMING_SETS, toolChoiceLabel:'Gaming Set', equipment:"Crowbar, dark hooded clothes, 15 gp", feature:'Criminal Contact' },
+  { id:'entertainer', name:'Entertainer',  icon:'🎭', skills:['Acrobatics','Performance'],        tools:['Disguise Kit'], languages:0, toolChoices:MUSICAL_INSTRUMENTS, toolChoiceLabel:'Musical Instrument', equipment:'Instrument, admirer favor, costume, 15 gp', feature:'By Popular Demand' },
+  { id:'folkHero',    name:'Folk Hero',    icon:'🌾', skills:['Animal Handling','Survival'],      tools:['Vehicles (Land)'], languages:0, toolChoices:ARTISAN_TOOLS, toolChoiceLabel:"Artisan's Tools", equipment:"Artisan's tools, shovel, iron pot, common clothes, 10 gp", feature:'Rustic Hospitality' },
+  { id:'guildArtisan',name:'Guild Artisan',icon:'🔨', skills:['Insight','Persuasion'],            tools:[], languages:1, toolChoices:ARTISAN_TOOLS, toolChoiceLabel:"Artisan's Tools", equipment:"Artisan's tools, intro letter, traveler's clothes, 15 gp", feature:'Guild Membership' },
+  { id:'hermit',      name:'Hermit',       icon:'🏔️', skills:['Medicine','Religion'],             tools:['Herbalism Kit'], languages:1, equipment:'Scroll case, blanket, common clothes, herbalism kit, 5 gp', feature:'Discovery' },
+  { id:'noble',       name:'Noble',        icon:'👑', skills:['History','Persuasion'],            tools:[], languages:1, toolChoices:GAMING_SETS, toolChoiceLabel:'Gaming Set', equipment:'Fine clothes, signet ring, scroll of pedigree, 25 gp', feature:'Position of Privilege' },
+  { id:'outlander',   name:'Outlander',    icon:'🌲', skills:['Athletics','Survival'],            tools:[], languages:1, toolChoices:MUSICAL_INSTRUMENTS, toolChoiceLabel:'Musical Instrument', equipment:"Staff, hunting trap, trophy, traveler's clothes, 10 gp", feature:'Wanderer' },
+  { id:'sage',        name:'Sage',         icon:'📚', skills:['Arcana','History'],                tools:[], languages:2, equipment:'Ink, quill, knife, letter, common clothes, 10 gp', feature:'Researcher' },
+  { id:'sailor',      name:'Sailor',       icon:'⚓', skills:['Athletics','Perception'],          tools:["Navigator's Tools",'Vehicles (Water)'], languages:0, equipment:"Belaying pin, silk rope, lucky charm, common clothes, 10 gp", feature:"Ship's Passage" },
+  { id:'soldier',     name:'Soldier',      icon:'🎖️', skills:['Athletics','Intimidation'],        tools:['Vehicles (Land)'], languages:0, toolChoices:GAMING_SETS, toolChoiceLabel:'Gaming Set', equipment:"Rank insignia, battle trophy, common clothes, 10 gp", feature:'Military Rank' },
+  { id:'urchin',      name:'Urchin',       icon:'🐀', skills:['Sleight of Hand','Stealth'],       tools:['Disguise Kit',"Thieves' Tools"], languages:0, equipment:"Small knife, city map, pet mouse, token, common clothes, 10 gp", feature:'City Secrets' },
 ];
 
 const WEAPONS=[
@@ -466,15 +480,19 @@ function pbRemaining(abs){return PB_MAX-pbTotal(abs);}
 
 let state={
   step:0,name:'',alignment:'True Neutral',appearance:'',personalityTrait:'',ideals:'',bonds:'',flaws:'',
+  backstory:'',
+  ruleset:'phb2014',
   race:null,subrace:null,
   variantASI:[],halfElfASI:[],variantSkill:null,variantFeat:null,
   halfElfSkills:[],
   class:null,level:1,
   abilities:{str:10,dex:10,con:10,int:10,wis:10,cha:10},
   skillProficiencies:[],
-  abilityMode:'free', // 'free' | 'pointbuy'
-  hpOverride:null, // null = use calculated average; number = manual override
+  abilityMode:'free',
+  hpOverride:null,
   equipment:{armorId:null,hasShield:false,weapons:[]},
+  bonusLanguages:[],
+  backgroundToolChoice:null,
 };
 
 const steps=['Basics','Race','Class','Abilities','Background','Skills','Equipment','Sheet'];
@@ -610,7 +628,17 @@ function render(){
 }
 
 function renderBasics(){
-  return`<div class="section-card">
+  return`
+  <div class="section-card" style="padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+    <span style="font-family:'Cinzel',serif;font-size:12px;color:var(--gold);">Ruleset</span>
+    <select id="inp-ruleset" onchange="state.ruleset=this.value;render();" style="max-width:220px;">
+      <option value="phb2014"${state.ruleset==='phb2014'?' selected':''}>PHB 2014 (5th Edition)</option>
+      <option value="phb2024"${state.ruleset==='phb2024'?' selected':''}>PHB 2024 — Coming Soon</option>
+      <option value="homebrew"${state.ruleset==='homebrew'?' selected':''}>Homebrew — Coming Soon</option>
+    </select>
+    ${state.ruleset!=='phb2014'?'<span style="font-size:12px;color:var(--muted);font-style:italic;">2024 and homebrew support is planned for a future update. Content below uses PHB 2014.</span>':'<span class="ruleset-badge">PHB 2014</span>'}
+  </div>
+  <div class="section-card">
     <div class="section-title">Character Identity</div>
     <div class="row cols-2">
       <div><label>Character Name</label><input type="text" id="inp-name" value="${state.name}" placeholder="e.g. Aldric Stonebrow"/></div>
@@ -631,6 +659,11 @@ function renderBasics(){
       <div><label>Bonds</label><textarea id="inp-bonds" placeholder="What keeps your character going?">${state.bonds}</textarea></div>
       <div><label>Flaws</label><textarea id="inp-flaws" placeholder="What are your character's weaknesses?">${state.flaws}</textarea></div>
     </div>
+  </div>
+  <div class="section-card">
+    <div class="section-title">Character Backstory</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Your character's history, origin, and motivation. This travels with your character to the tracker.</p>
+    <textarea id="inp-backstory" style="min-height:120px;width:100%;resize:vertical;" placeholder="Where did your character come from? What drives them? What secrets do they carry?">${state.backstory}</textarea>
   </div>
   <div class="nav-btns"><span></span><button class="btn-primary" onclick="goStep(1)">Next: Choose Race →</button></div>`;
 }
@@ -843,6 +876,46 @@ function renderAbilities(){
 
 function renderBackground(){
   const sel=state.background?BACKGROUNDS.find(b=>b.id===state.background):null;
+  const totalBonusLangs=getTotalBonusLangCount();
+  const grantedLangs=getRaceGrantedLanguages();
+  const availLangs=LANGUAGES.filter(l=>!grantedLangs.includes(l));
+  const raceBonus=getRaceBonusLangCount();
+  const bgBonus=sel?sel.languages:0;
+
+  let langSection='';
+  if(sel&&totalBonusLangs>0){
+    const parts=[];
+    if(raceBonus>0) parts.push(`${raceBonus} from race`);
+    if(bgBonus>0) parts.push(`${bgBonus} from background`);
+    langSection=`<div class="section-card" style="margin-top:12px;">
+      <div class="section-title" style="font-size:14px;">Language Proficiencies</div>
+      <div class="info-box" style="margin-bottom:10px;"><strong>Already known:</strong> ${grantedLangs.join(', ')}</div>
+      <p style="font-size:13px;margin-bottom:10px;">Choose <strong>${totalBonusLangs}</strong> additional language${totalBonusLangs>1?'s':''} (${parts.join(' + ')}) — ${state.bonusLanguages.length}/${totalBonusLangs} chosen:</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;">
+        ${availLangs.map(lang=>{
+          const isSel=state.bonusLanguages.includes(lang);
+          const dis=!isSel&&state.bonusLanguages.length>=totalBonusLangs;
+          return`<div class="choice-card${isSel?' selected':''}" onclick="${!dis||isSel?`toggleLanguage('${lang.replace(/'/g,"\\'")}')`:''}" style="${dis?'opacity:0.4;cursor:default;':''};padding:8px 10px;text-align:center;">
+            <div style="font-size:13px;">${lang}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  let toolSection='';
+  if(sel&&sel.toolChoices){
+    toolSection=`<div class="section-card" style="margin-top:12px;">
+      <div class="section-title" style="font-size:14px;">Tool Proficiency — ${sel.toolChoiceLabel}</div>
+      <p style="font-size:13px;margin-bottom:10px;">Choose one:</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;">
+        ${sel.toolChoices.map(tool=>`<div class="choice-card${state.backgroundToolChoice===tool?' selected':''}" onclick="state.backgroundToolChoice='${tool.replace(/'/g,"\\'")}';render();" style="padding:8px 10px;text-align:center;">
+          <div style="font-size:13px;">${tool}</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
   return`<div class="section-card">
     <div class="section-title">Choose Your Background</div>
     <div class="background-grid">${BACKGROUNDS.map(b=>`<div class="choice-card${state.background===b.id?' selected':''}" onclick="selectBg('${b.id}')">
@@ -851,11 +924,14 @@ function renderBackground(){
     ${sel?`<div class="info-box"><strong>${sel.name}</strong><br>
       <strong>Skills:</strong> ${sel.skills.join(', ')}<br>
       ${sel.tools.length?`<strong>Tools:</strong> ${sel.tools.join(', ')}<br>`:''}
-      ${sel.languages?`<strong>Languages:</strong> +${sel.languages} language${sel.languages>1?'s':''}<br>`:''}
+      ${sel.toolChoices?`<strong>Tool Choice:</strong> ${state.backgroundToolChoice||'— not yet chosen'}<br>`:''}
+      ${totalBonusLangs>0?`<strong>Bonus Languages:</strong> +${totalBonusLangs} (${state.bonusLanguages.length} chosen)<br>`:''}
       <strong>Equipment:</strong> ${sel.equipment}<br>
       <strong>Feature:</strong> ${sel.feature}
     </div>`:'<div class="info-box">Select a background to see details.</div>'}
   </div>
+  ${langSection}
+  ${toolSection}
   <div class="nav-btns">
     <button class="btn-secondary" onclick="goStep(3)">← Back</button>
     <button class="btn-primary" onclick="goStep(5)"${!state.background?' disabled':''}>Next: Skills →</button>
@@ -1080,16 +1156,43 @@ function renderSummary(){
 function attachEvents(){
   const b=(id,p)=>{const e=document.getElementById(id);if(e)e.oninput=ev=>{state[p]=ev.target.value;};};
   b('inp-name','name');b('inp-appearance','appearance');b('inp-trait','personalityTrait');
-  b('inp-ideals','ideals');b('inp-bonds','bonds');b('inp-flaws','flaws');
+  b('inp-ideals','ideals');b('inp-bonds','bonds');b('inp-flaws','flaws');b('inp-backstory','backstory');
   const l=document.getElementById('inp-level');if(l)l.onchange=e=>{state.level=parseInt(e.target.value);render();};
   const a=document.getElementById('inp-alignment');if(a)a.onchange=e=>{state.alignment=e.target.value;};
   const hpEl=document.getElementById('hp-override-input');if(hpEl)hpEl.oninput=function(){state.hpOverride=this.value===''?null:parseInt(this.value)||null;const hv=document.getElementById('hp-val');if(hv)hv.textContent=getMaxHP();};
+}
+
+function getRaceGrantedLanguages(){
+  const sr=getSubrace();
+  if(!sr||!sr.languages) return ['Common'];
+  return sr.languages.filter(l=>!l.toLowerCase().includes('choice'));
+}
+function getRaceBonusLangCount(){
+  const sr=getSubrace();
+  if(!sr||!sr.languages) return 0;
+  return sr.languages.filter(l=>l.toLowerCase().includes('choice')).length;
+}
+function getTotalBonusLangCount(){
+  const bg=state.background?BACKGROUNDS.find(b=>b.id===state.background):null;
+  return getRaceBonusLangCount()+(bg?bg.languages:0);
+}
+function getAllKnownLanguages(){
+  const granted=getRaceGrantedLanguages();
+  const chosen=state.bonusLanguages.slice(0,getTotalBonusLangCount());
+  return [...new Set([...granted,...chosen])];
+}
+function toggleLanguage(lang){
+  const i=state.bonusLanguages.indexOf(lang);
+  if(i>=0){state.bonusLanguages.splice(i,1);}
+  else if(state.bonusLanguages.length<getTotalBonusLangCount()){state.bonusLanguages.push(lang);}
+  render();
 }
 
 function selectRace(id){
   if(state.race===id)return;
   state.race=id;state.subrace=null;state.variantASI=[];state.halfElfASI=[];
   state.variantSkill=null;state.variantFeat=null;state.halfElfSkills=[];
+  state.bonusLanguages=[];
   const r=RACES.find(r=>r.id===id);
   if(r&&r.subraces.length===1)state.subrace=r.subraces[0].id;
   render();
@@ -1097,10 +1200,11 @@ function selectRace(id){
 function selectSubrace(id){
   state.subrace=id;state.variantASI=[];state.halfElfASI=[];
   state.variantSkill=null;state.variantFeat=null;state.halfElfSkills=[];
+  state.bonusLanguages=[];
   render();
 }
 function selectClass(id){state.class=id;state.skillProficiencies=[];render();}
-function selectBg(id){state.background=id;render();}
+function selectBg(id){state.background=id;state.bonusLanguages=[];state.backgroundToolChoice=null;render();}
 
 function toggleVarASI(s){
   const i=state.variantASI.indexOf(s);
@@ -1175,8 +1279,10 @@ function buildExportData(){
   const feat=state.variantFeat?PHB_FEATS.find(f=>f.id===state.variantFeat):null;
   return {
     version:1,
+    ruleset:state.ruleset||'phb2014',
     meta:{exportedAt:new Date().toISOString()},
-    identity:{name:state.name||'Unnamed Hero',alignment:state.alignment,appearance:state.appearance,personalityTrait:state.personalityTrait,ideals:state.ideals,bonds:state.bonds,flaws:state.flaws},
+    identity:{name:state.name||'Unnamed Hero',alignment:state.alignment,appearance:state.appearance,personalityTrait:state.personalityTrait,ideals:state.ideals,bonds:state.bonds,flaws:state.flaws,backstory:state.backstory||''},
+    languages:getAllKnownLanguages(),
     race:{id:state.race,subraceId:state.subrace,name:sr?sr.name:'',raceName:race?race.name:''},
     class:{id:state.class,name:cls?cls.name:'',hitDie:cls?cls.hitDie:8,spellcasting:cls?cls.spellcasting:false,spellAbility:cls?cls.spellAbility:null,saves:cls?cls.saves:[]},
     background:{id:state.background,name:bg?bg.name:''},
@@ -1189,6 +1295,7 @@ function buildExportData(){
     variantSkill:state.variantSkill||null,
     halfElfSkills:state.halfElfSkills||[],
     feats:feat?[{id:feat.id,name:feat.name,desc:feat.desc}]:[],
+    toolProficiency:state.backgroundToolChoice||null,
     hp:{max:getMaxHP(),current:getMaxHP(),override:state.hpOverride??null},
     ac:getAC(),
     speed:getSpeed(),
@@ -1204,6 +1311,16 @@ function buildExportData(){
   };
 }
 
+function showToast(msg,type='info'){
+  let c=document.getElementById('toast-container');
+  if(!c){c=document.createElement('div');c.id='toast-container';document.body.appendChild(c);}
+  const t=document.createElement('div');
+  t.className='toast'+(type?` ${type}`:'');
+  t.textContent=msg;
+  c.appendChild(t);
+  setTimeout(()=>t.remove(),2600);
+}
+
 function exportCharacter(){
   const exportData=buildExportData();
   const blob=new Blob([JSON.stringify(exportData,null,2)],{type:'application/json'});
@@ -1213,6 +1330,7 @@ function exportCharacter(){
   a.download=`${(state.name||'character').replace(/\s+/g,'_').toLowerCase()}_dnd5e.json`;
   a.click();
   URL.revokeObjectURL(url);
+  showToast(`${exportData.identity.name} exported successfully.`,'success');
 }
 
 function openInTracker(){
