@@ -6,6 +6,7 @@
 <title>Seabass' DnD Character Builder</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzJjMWEwZSIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTYsMiAyOCwxMCAyOCwyMiAxNiwzMCA0LDIyIDQsMTAiIGZpbGw9IiM4YjFhMWEiIHN0cm9rZT0iI2M5YTg0YyIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMTYiIHkxPSIyIiB4Mj0iMTYiIHkyPSIzMCIgc3Ryb2tlPSIjYzlhODRjIiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjQiIHkxPSIxMCIgeDI9IjI4IiB5Mj0iMTAiIHN0cm9rZT0iI2M5YTg0YyIgc3Ryb2tlLXdpZHRoPSIwLjgiIG9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSI0IiB5MT0iMjIiIHgyPSIyOCIgeTI9IjIyIiBzdHJva2U9IiNjOWE4NGMiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjYiLz4KICA8bGluZSB4MT0iNCIgeTE9IjEwIiB4Mj0iMTYiIHkyPSIzMCIgc3Ryb2tlPSIjYzlhODRjIiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC40Ii8+CiAgPGxpbmUgeDE9IjI4IiB5MT0iMTAiIHgyPSIxNiIgeTI9IjMwIiBzdHJva2U9IiNjOWE4NGMiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjQiLz4KICA8bGluZSB4MT0iNCIgeTE9IjIyIiB4Mj0iMTYiIHkyPSIyIiBzdHJva2U9IiNjOWE4NGMiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjQiLz4KICA8bGluZSB4MT0iMjgiIHkxPSIyMiIgeDI9IjE2IiB5Mj0iMiIgc3Ryb2tlPSIjYzlhODRjIiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC40Ii8+CiAgPHRleHQgeD0iMTYiIHk9IjE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjVlZGQ2Ij4yMDwvdGV4dD4KPC9zdmc+">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -221,6 +222,31 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 @keyframes toastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 @keyframes toastOut{to{opacity:0;transform:translateY(-8px)}}
 .ruleset-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--gold);color:var(--gold-light);font-family:'Cinzel',serif;background:rgba(212,175,55,.08);}
+/* Character bar */
+.char-bar{display:flex;gap:6px;flex-wrap:wrap;padding:8px 0 10px;border-bottom:1px solid var(--border-col);margin-bottom:12px;align-items:center;}
+.char-tab{background:var(--surface2);border:1.5px solid var(--border-col);border-radius:6px;padding:6px 10px 5px;cursor:pointer;transition:all .15s;min-width:90px;max-width:160px;text-align:center;position:relative;flex-shrink:0;}
+.char-tab:hover{border-color:var(--gold-light);background:var(--parchment);}
+.char-tab.active{border-color:var(--red-accent);background:#f9e8e8;}
+.char-tab-name{display:block;font-family:'Cinzel',serif;font-size:11px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.char-tab-sub{display:block;font-size:10px;color:var(--muted);font-style:italic;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.char-tab-del{position:absolute;top:3px;right:4px;font-size:13px;color:var(--muted);line-height:1;cursor:pointer;width:16px;height:16px;display:flex;align-items:center;justify-content:center;border-radius:3px;}
+.char-tab-del:hover{color:var(--hp-red);background:rgba(192,57,43,.12);}
+.char-tab-new{font-family:'Cinzel',serif;font-size:11px;padding:6px 14px;background:var(--surface);border:1.5px dashed var(--border-col);border-radius:6px;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.char-tab-new:hover{border-color:var(--gold-light);color:var(--ink-light);}
+/* Auth bar */
+.auth-bar{display:flex;align-items:center;gap:10px;justify-content:flex-end;padding:4px 0 8px;font-size:12px;color:var(--muted);}
+.auth-email{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);}
+/* Auth modal */
+.auth-overlay{position:fixed;inset:0;background:rgba(44,26,14,.7);z-index:10000;display:flex;align-items:center;justify-content:center;}
+.auth-modal{background:var(--surface);border:2px solid var(--border-col);border-radius:10px;padding:2rem;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.6);}
+.auth-modal h3{font-family:'Cinzel',serif;font-size:18px;color:var(--red-accent);margin-bottom:16px;}
+.auth-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border-col);}
+.auth-tab{font-family:'Cinzel',serif;font-size:12px;padding:6px 16px;background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;color:var(--muted);margin-bottom:-1px;}
+.auth-tab.active{color:var(--red-accent);border-bottom-color:var(--red-accent);}
+.auth-field{margin-bottom:12px;}
+.auth-field label{font-size:13px;color:var(--ink-light);display:block;margin-bottom:4px;}
+.auth-error{font-size:12px;color:var(--hp-red);margin:8px 0;}
+.auth-success{font-size:12px;color:#5a9e5a;margin:8px 0;}
 </style>
 </head>
 <body>
@@ -229,6 +255,8 @@ button[data-tip],label[data-tip]{cursor:pointer;}
     <h1>Seabass' DnD Character Builder</h1>
     <p>Player's Handbook — Fifth Edition (2014) · PHB Strict</p>
   </div>
+  <div id="authBarBuilder"></div>
+  <div id="charBar"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;">
     <div class="steps-nav" id="stepsNav" style="margin-bottom:0;flex:1;justify-content:flex-start;"></div>
     <label style="font-family:'Cinzel',serif;font-size:11px;padding:5px 12px;background:var(--surface2);border:1px solid var(--border-col);border-radius:4px;cursor:pointer;color:var(--ink-light);letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;" title="Load an existing character JSON to edit">
@@ -530,11 +558,125 @@ function pbCost(score){return PB_COST[score]??0;}
 function pbTotal(abs){return Object.values(abs).reduce((t,v)=>t+pbCost(Math.max(PB_SCORE_MIN,Math.min(PB_SCORE_MAX,v))),0);}
 function pbRemaining(abs){return PB_MAX-pbTotal(abs);}
 
+// ─── CHAR STORE ────────────────────────────────────────────────────────────────
+const CharStore={
+  _idx(){try{return JSON.parse(localStorage.getItem('dnd5e_chars')||'[]');}catch(e){return[];}},
+  _saveIdx(arr){try{localStorage.setItem('dnd5e_chars',JSON.stringify(arr));}catch(e){}},
+  genId(){return'char_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);},
+  index(){return this._idx();},
+  getActive(){try{return localStorage.getItem('dnd5e_active')||null;}catch(e){return null;}},
+  setActive(id){try{if(id)localStorage.setItem('dnd5e_active',id);else localStorage.removeItem('dnd5e_active');}catch(e){}},
+  upsertMeta(meta){
+    const arr=this._idx();const i=arr.findIndex(c=>c.id===meta.id);
+    if(i>=0)arr[i]={...arr[i],...meta};else arr.push(meta);
+    this._saveIdx(arr);
+  },
+  savePart(id,part,data){
+    const key='dnd5e_char_'+id;let rec={};
+    try{rec=JSON.parse(localStorage.getItem(key)||'{}');}catch(e){}
+    rec[part]=data;rec.updatedAt=new Date().toISOString();
+    try{localStorage.setItem(key,JSON.stringify(rec));}catch(e){}
+  },
+  loadPart(id,part){
+    try{const raw=localStorage.getItem('dnd5e_char_'+id);if(!raw)return null;return JSON.parse(raw)[part]??null;}catch(e){return null;}
+  },
+  delete(id){
+    this._saveIdx(this._idx().filter(c=>c.id!==id));
+    try{localStorage.removeItem('dnd5e_char_'+id);}catch(e){}
+    if(this.getActive()===id)this.setActive(null);
+  }
+};
+
+// ─── SUPABASE (set SUPABASE_URL + SUPABASE_KEY to enable cloud sync) ──────────
+const SUPABASE_URL='https://vjwefnkgclkczfwkvqis.supabase.co';
+const SUPABASE_KEY='sb_publishable_pDMmhqzBWnSYqNYC9m0KaA_2R3haySF';
+let _sb=null;
+function _sbEnabled(){return SUPABASE_URL!=='YOUR_SUPABASE_URL';}
+function initSupabase(){
+  if(!_sbEnabled())return;
+  try{_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){console.warn('Supabase init failed:',e);}
+}
+async function getSession(){if(!_sb)return null;try{const{data:{session}}=await _sb.auth.getSession();return session;}catch(e){return null;}}
+async function signIn(email,pass){if(!_sb)return{error:{message:'Cloud sync not configured.'}};return await _sb.auth.signInWithPassword({email,password:pass});}
+async function signUp(email,pass){if(!_sb)return{error:{message:'Cloud sync not configured.'}};return await _sb.auth.signUp({email,password:pass});}
+async function signOut(){if(_sb)await _sb.auth.signOut();updateAuthBar();}
+async function pushToCloud(charId){
+  if(!_sb)return;const session=await getSession();if(!session)return;
+  const meta=CharStore.index().find(c=>c.id===charId);const data=CharStore.loadPart(charId,'builder');
+  if(!meta||!data)return;
+  await _sb.from('characters').upsert({local_id:charId,user_id:session.user.id,name:meta.name,class_id:meta.classId,level:meta.level,builder_data:data,updated_at:new Date().toISOString()},{onConflict:'user_id,local_id'});
+}
+async function pullFromCloud(){
+  if(!_sb)return;const session=await getSession();if(!session)return;
+  const{data,error}=await _sb.from('characters').select('*').eq('user_id',session.user.id);
+  if(error||!data)return;
+  data.forEach(row=>{
+    if(!row.builder_data)return;
+    const existing=CharStore.loadPart(row.local_id,'builder');
+    const rowUpdated=new Date(row.updated_at||0);
+    const localUpdated=existing?new Date(CharStore._idx().find(c=>c.id===row.local_id)?.updatedAt||0):new Date(0);
+    if(!existing||rowUpdated>localUpdated){
+      CharStore.savePart(row.local_id,'builder',row.builder_data);
+      CharStore.upsertMeta({id:row.local_id,name:row.name,classId:row.class_id,level:row.level,updatedAt:row.updated_at});
+    }
+  });
+  render();
+  showToast('Characters synced from cloud.','success');
+}
+function updateAuthBar(){
+  const el=document.getElementById('authBarBuilder');if(!el)return;
+  if(!_sbEnabled()){el.innerHTML='';return;}
+  getSession().then(session=>{
+    if(session){
+      el.innerHTML=`<div class="auth-bar"><span class="auth-email">${session.user.email}</span><button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button></div>`;
+    }else{
+      el.innerHTML=`<div class="auth-bar"><button class="btn btn-gold btn-sm" onclick="openAuthModal()">☁ Sign In</button></div>`;
+    }
+  });
+}
+let _authMode='signin';
+function openAuthModal(){
+  let el=document.getElementById('auth-modal-root');
+  if(!el){el=document.createElement('div');el.id='auth-modal-root';document.body.appendChild(el);}
+  renderAuthModal();
+}
+function renderAuthModal(){
+  const el=document.getElementById('auth-modal-root');if(!el)return;
+  el.innerHTML=`<div class="auth-overlay" onclick="if(event.target===this)closeAuthModal()">
+    <div class="auth-modal">
+      <h3>☁ Cloud Sync</h3>
+      <div class="auth-tabs">
+        <button class="auth-tab${_authMode==='signin'?' active':''}" onclick="_authMode='signin';renderAuthModal()">Sign In</button>
+        <button class="auth-tab${_authMode==='signup'?' active':''}" onclick="_authMode='signup';renderAuthModal()">Create Account</button>
+      </div>
+      <div class="auth-field"><label>Email</label><input type="email" id="auth-email" placeholder="you@example.com"/></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="auth-pass" placeholder="••••••••"/></div>
+      <div id="auth-msg"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn btn-red" style="flex:1;" onclick="doAuth()">${_authMode==='signin'?'Sign In':'Create Account'}</button>
+        <button class="btn btn-ghost" onclick="closeAuthModal()">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+}
+function closeAuthModal(){const el=document.getElementById('auth-modal-root');if(el)el.innerHTML='';}
+async function doAuth(){
+  const email=document.getElementById('auth-email')?.value?.trim();
+  const pass=document.getElementById('auth-pass')?.value;
+  const msg=document.getElementById('auth-msg');
+  if(!email||!pass){if(msg)msg.innerHTML='<div class="auth-error">Email and password required.</div>';return;}
+  const{error}=await(_authMode==='signin'?signIn(email,pass):signUp(email,pass));
+  if(error){if(msg)msg.innerHTML=`<div class="auth-error">${error.message}</div>`;}
+  else{closeAuthModal();updateAuthBar();showToast(_authMode==='signin'?'Signed in! Syncing...':'Account created — check your email.','success');if(_authMode==='signin')pullFromCloud();}
+}
+
 let state={
+  charId:null,
   step:0,name:'',alignment:'True Neutral',appearance:'',personalityTrait:'',ideals:'',bonds:'',flaws:'',
   backstory:'',
   ruleset:'phb2014',
   race:null,subrace:null,
+  background:null,
   variantASI:[],halfElfASI:[],variantSkill:null,variantFeat:null,
   halfElfSkills:[],
   class:null,level:1,
@@ -674,10 +816,93 @@ function renderSteps(){
 function goStep(i){state.step=i;render();}
 
 function render(){
+  renderCharBar();
   renderSteps();
   const views=[renderBasics,renderRace,renderClass,renderAbilities,renderBackground,renderSkills,renderEquipment,renderSummary];
   document.getElementById('appContent').innerHTML=views[state.step]();
   attachEvents();
+  autoSaveBuilder();
+}
+
+function autoSaveBuilder(){
+  if(!state.charId||!state.name.trim())return;
+  const{charId,...rest}=state;
+  CharStore.savePart(charId,'builder',rest);
+  CharStore.upsertMeta({id:charId,name:state.name.trim(),classId:state.class||null,level:state.level||1,updatedAt:new Date().toISOString()});
+  if(_sbEnabled())pushToCloud(charId).catch(()=>{});
+}
+
+function renderCharBar(){
+  const el=document.getElementById('charBar');if(!el)return;
+  const chars=CharStore.index();
+  if(!chars.length){el.innerHTML='';return;}
+  const activeId=state.charId;
+  el.innerHTML=`<div class="char-bar">${
+    chars.sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0)).map(c=>{
+      const cls=CLASSES.find(cl=>cl.id===c.classId);
+      const sub=cls?`${cls.name} Lv ${c.level||1}`:'—';
+      const isActive=c.id===activeId;
+      return`<div class="char-tab${isActive?' active':''}" onclick="switchChar('${c.id}')">
+        ${isActive?`<span class="char-tab-del" onclick="event.stopPropagation();deleteChar('${c.id}')">×</span>`:''}
+        <span class="char-tab-name">${c.name||'Unnamed'}</span>
+        <span class="char-tab-sub">${sub}</span>
+      </div>`;
+    }).join('')
+  }<button class="char-tab-new" onclick="newCharacter()">+ New</button></div>`;
+}
+
+function initBuilder(){
+  initSupabase();
+  const activeId=CharStore.getActive();
+  if(activeId){
+    const saved=CharStore.loadPart(activeId,'builder');
+    if(saved){Object.assign(state,saved);}
+    state.charId=activeId;
+  }else{
+    state.charId=CharStore.genId();
+    CharStore.setActive(state.charId);
+  }
+  updateAuthBar();
+  render();
+}
+
+function newCharacter(){
+  const id=CharStore.genId();
+  CharStore.setActive(id);
+  Object.assign(state,{
+    charId:id,step:0,name:'',alignment:'True Neutral',appearance:'',
+    personalityTrait:'',ideals:'',bonds:'',flaws:'',backstory:'',
+    ruleset:'phb2014',background:null,race:null,subrace:null,
+    variantASI:[],halfElfASI:[],variantSkill:null,variantFeat:null,
+    halfElfSkills:[],class:null,level:1,
+    abilities:{str:10,dex:10,con:10,int:10,wis:10,cha:10},
+    skillProficiencies:[],abilityMode:'free',hpOverride:null,
+    equipment:{armorId:null,hasShield:false,weapons:[]},
+    bonusLanguages:[],backgroundToolChoice:null,equipmentPack:null,
+  });
+  render();
+}
+
+function switchChar(id){
+  if(id===state.charId)return;
+  const saved=CharStore.loadPart(id,'builder');
+  if(!saved){showToast('Character data not found.','warning');return;}
+  CharStore.setActive(id);
+  Object.assign(state,saved);
+  state.charId=id;
+  render();
+}
+
+function deleteChar(id){
+  const chars=CharStore.index();
+  const c=chars.find(x=>x.id===id);
+  if(!confirm('Delete '+(c?.name||'this character')+'? This cannot be undone.'))return;
+  CharStore.delete(id);
+  if(state.charId===id){
+    const remaining=CharStore.index();
+    if(remaining.length)switchChar(remaining[0].id);
+    else newCharacter();
+  }else renderCharBar();
 }
 
 function renderBasics(){
@@ -1390,6 +1615,7 @@ function buildExportData(){
   const feat=state.variantFeat?PHB_FEATS.find(f=>f.id===state.variantFeat):null;
   return {
     version:1,
+    charId:state.charId||null,
     ruleset:state.ruleset||'phb2014',
     meta:{exportedAt:new Date().toISOString()},
     identity:{name:state.name||'Unnamed Hero',alignment:state.alignment,appearance:state.appearance,personalityTrait:state.personalityTrait,ideals:state.ideals,bonds:state.bonds,flaws:state.flaws,backstory:state.backstory||''},
@@ -1575,7 +1801,7 @@ function importCharacter(input){
   reader.readAsText(input.files[0]);
 }
 
-render();
+document.addEventListener('DOMContentLoaded', initBuilder);
 </script>
 </body>
 </html>
