@@ -611,12 +611,32 @@ let _sb=null;
 function _sbEnabled(){return SUPABASE_URL!=='YOUR_SUPABASE_URL';}
 function initSupabase(){
   if(!_sbEnabled())return;
-  try{_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){console.warn('Supabase init failed:',e);}
+  try{
+    _sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    _sb.auth.onAuthStateChange((event)=>{
+      if(event==='SIGNED_OUT'){
+        if(_campaign||_isDM){
+          if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
+          location.href='campaigns.html';
+        } else {
+          renderTrackerAuthBar();
+        }
+      }
+    });
+  }catch(e){console.warn('Supabase init failed:',e);}
 }
 async function getSession(){if(!_sb)return null;try{const{data:{session}}=await _sb.auth.getSession();return session;}catch(e){return null;}}
 async function signIn(email,pass){if(!_sb)return{error:{message:'Cloud sync not configured.'}};return await _sb.auth.signInWithPassword({email,password:pass});}
 async function signUp(email,pass){if(!_sb)return{error:{message:'Cloud sync not configured.'}};return await _sb.auth.signUp({email,password:pass});}
-async function signOut(){if(_sb)await _sb.auth.signOut();renderTrackerAuthBar();}
+async function signOut(){
+  if(_sb)await _sb.auth.signOut();
+  if(_campaign||_isDM){
+    if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
+    location.href='campaigns.html';
+  } else {
+    renderTrackerAuthBar();
+  }
+}
 async function pushToCloud(charId){
   if(!_sb)return;const session=await getSession();if(!session)return;
   const meta=CharStore.index().find(c=>c.id===charId);const data=CharStore.loadPart(charId,'tracker');

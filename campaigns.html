@@ -592,7 +592,12 @@ document.addEventListener('click',()=>{
 document.addEventListener('DOMContentLoaded',()=>{
   initTheme();
   if(_sbEnabled()){
-    try{_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){console.warn('Supabase init failed:',e);}
+    try{
+      _sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+      _sb.auth.onAuthStateChange((event)=>{
+        if(event==='SIGNED_OUT'){renderAuthBar();render();}
+      });
+    }catch(e){console.warn('Supabase init failed:',e);}
   }
   renderAuthBar();
   render();
