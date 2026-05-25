@@ -6117,7 +6117,24 @@ async function _initCampaignMode(campaignId,isDM,session){
   }
 }
 
+function _migrateLegacyCharIfNeeded(){
+  // If CharStore is empty but the old dnd5e_tracker_char key exists, migrate it in
+  if(CharStore.index().length>0) return;
+  try{
+    const raw=store.get('dnd5e_tracker_char');
+    if(!raw) return;
+    const c=migrateChar(JSON.parse(raw));
+    if(!c) return;
+    const id=c._charId||CharStore.genId();
+    c._charId=id;
+    CharStore.savePart(id,'tracker',c);
+    CharStore.upsertMeta({id,name:c.identity?.name||'Unnamed',classId:c.class?.id||null,level:c.level||1,updatedAt:new Date().toISOString()});
+    CharStore.setActive(id);
+  }catch(e){}
+}
+
 function renderCharacterInit(){
+  _migrateLegacyCharIfNeeded();
   const chars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
   return`<div style="max-width:640px;margin:4rem auto;padding:1.5rem;">
     ${_renderSessionBarHTML()}
@@ -6143,23 +6160,29 @@ function renderCharacterInit(){
 }
 
 async function initCampaignCharacter(charId){
-  const saved=CharStore.loadPart(charId,'tracker');
-  if(!saved){showToast('Character not found.','warning');return;}
+  // Try tracker part first (character has been played before), then builder part (fresh build)
+  const trackerData=CharStore.loadPart(charId,'tracker');
+  const builderData=CharStore.loadPart(charId,'builder');
+  const rawData=trackerData||builderData;
+  if(!rawData){showToast('Character data not found — try rebuilding in the Character Builder.','warning');return;}
   try{
-    char=migrateChar(saved);
-    // Don't carry the CharStore _charId into campaign mode — campaign identity is (campaign_id, user_id)
+    if(trackerData){
+      char=migrateChar(trackerData);
+    } else {
+      // Builder-only character: run through applyCharData to seed tracker fields
+      applyCharData(builderData);
+      // applyCharData sets the global char — now normalize it
+    }
     delete char._charId;
     syncResources(char);syncSpells(char);
     activeTab='combat';
-    // Immediately persist to campaign state
     if(_campaignSaveTimer) clearTimeout(_campaignSaveTimer);
     await _saveCampaignChar();
-    // Cache locally
     if(_campaign) store.set('dnd5e_camp_'+_campaign.id,JSON.stringify(char));
     await logActivity('join','entered the campaign as '+char.identity?.name);
     showToast((char.identity?.name||'Character')+' is now in this campaign!','success');
     render();
-  }catch(e){showToast('Error loading character: '+e.message,'warning');}
+  }catch(e){showToast('Error loading character: '+e.message,'warning');console.error(e);}
 }
 
 // ── URL ROUTING ────────────────────────────────────────────────────────────────

@@ -297,28 +297,26 @@ async function createCampaign(name){
   showToast('Campaign created! Invite code: '+invite_code,'success');
 }
 
-async function joinCampaign(code,charId){
+async function joinCampaign(code){
   if(!code?.trim()){showToast('Enter an invite code.','warning');return;}
   code=code.trim().toUpperCase();
   const session=await getSession();
   if(!session){showToast('Sign in first.','warning');openAuthModal();return;}
   const{data:camp,error}=await _sb.from('campaigns').select('*').eq('invite_code',code).single();
   if(error||!camp){showToast('Campaign not found — check the invite code.','warning');return;}
-  const charMeta=charId?getLocalChars().find(c=>c.id===charId):null;
+  if(camp.deleted_at){showToast('That campaign has been deleted.','warning');return;}
   await _sb.from('campaign_members').upsert(
-    {campaign_id:camp.id,user_id:session.user.id,char_name:charMeta?.name||null},
+    {campaign_id:camp.id,user_id:session.user.id,char_name:null},
     {onConflict:'campaign_id,user_id'}
   );
-  const isDM=(camp.created_by===session.user.id);
   saveCampaignToRegistry({
-    id:camp.id,name:camp.name,invite_code:camp.invite_code,isDM,
-    charId:charId||null,charName:charMeta?.name||null,
-    charClass:charMeta?.classId||null,charLevel:charMeta?.level||null,
+    id:camp.id,name:camp.name,invite_code:camp.invite_code,isDM:false,
+    charId:null,charName:null,charClass:null,charLevel:null,
   });
   localStorage.setItem('dnd5e_campaign_id',camp.id);
   closeModal();
-  render();
-  showToast('Joined '+camp.name+'!','success');
+  // Go straight into the campaign — character selection happens in tracker
+  window.location.href='tracker.html?campaign='+camp.id;
 }
 
 async function deleteCampaign(id,name){
@@ -372,19 +370,14 @@ function openCreateModal(){
 }
 
 function openJoinModal(){
-  const chars=getLocalChars().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
-  const charOptions=chars.length
-    ?chars.map(c=>`<option value="${c.id}">${c.name||'Unnamed'}${c.classId?' · '+c.classId:''}${c.level?' Lv '+c.level:''}</option>`).join('')
-    :'<option value="">No characters found — build one first in the Tracker</option>';
   const el=document.getElementById('modal-root');
   el.innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
     <div class="modal">
       <h3>⚔ Join a Campaign</h3>
-      <p>Enter the 6-character invite code from your DM, then select the character you'll play.</p>
-      <div class="modal-field"><label>Invite Code</label><input type="text" id="join-code-input" placeholder="e.g. XK7M2P" maxlength="6" style="text-transform:uppercase;font-family:'Cinzel',serif;letter-spacing:4px;font-size:22px;text-align:center;" onkeydown="if(event.key==='Enter')document.getElementById('join-char-select').focus()"/></div>
-      <div class="modal-field"><label>Your Character</label><select id="join-char-select">${charOptions}</select></div>
+      <p>Enter the 6-character invite code from your DM. You'll pick which character to bring in once you enter the campaign.</p>
+      <div class="modal-field"><label>Invite Code</label><input type="text" id="join-code-input" placeholder="e.g. XK7M2P" maxlength="6" style="text-transform:uppercase;font-family:'Cinzel',serif;letter-spacing:4px;font-size:22px;text-align:center;" onkeydown="if(event.key==='Enter')joinCampaign(this.value)"/></div>
       <div class="modal-actions">
-        <button class="btn btn-red" style="flex:1;" onclick="joinCampaign(document.getElementById('join-code-input').value,document.getElementById('join-char-select').value)">Join Campaign</button>
+        <button class="btn btn-red" style="flex:1;" onclick="joinCampaign(document.getElementById('join-code-input').value)">Join Campaign</button>
         <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       </div>
     </div>
