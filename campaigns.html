@@ -433,11 +433,18 @@ async function render(){
       _sb.from('campaigns').select('id,deleted_at').in('id',ids),
       _sb.from('campaign_members').select('campaign_id').in('campaign_id',ids)
     ]);
-    if(campData) campData.forEach(c=>{deletedAtMap[c.id]=c.deleted_at||null;});
+    if(campData){
+      campData.forEach(c=>{deletedAtMap[c.id]=c.deleted_at||null;});
+      // Prune any registry entries that no longer exist in Supabase (hard-deleted)
+      const returnedIds=new Set(campData.map(c=>c.id));
+      ids.forEach(id=>{if(!returnedIds.has(id))removeCampaignFromRegistry(id);});
+    }
     if(memberData) memberData.forEach(m=>{memberCountMap[m.campaign_id]=(memberCountMap[m.campaign_id]||0)+1;});
   }
 
-  const cards=campaigns.map(c=>{
+  // Use the post-prune registry so hard-deleted campaigns don't render
+  const activeCampaigns=_sb?getCampaignRegistry():campaigns;
+  const cards=activeCampaigns.map(c=>{
     const safeName=c.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
     const deletedAt=deletedAtMap[c.id]??null;
     const isDeleted=!!deletedAt;
@@ -508,7 +515,7 @@ async function render(){
   }).join('');
 
   root.innerHTML=`
-    ${campaigns.length
+    ${activeCampaigns.length
       ?`<div class="campaign-list">${cards}</div><div class="divider"></div>`
       :`<div class="empty-state"><p>You haven't joined any campaigns yet. Create one as DM or join an existing one below.</p></div>`}
     <div class="action-row" style="margin-bottom:1rem;">

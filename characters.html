@@ -54,8 +54,9 @@
   .char-card-actions{display:flex;gap:.5rem;margin-top:.25rem;}
   .char-btn{font-family:'Cinzel',serif;font-size:11px;padding:5px 12px;border-radius:4px;text-decoration:none;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--ink);transition:background .15s;}
   .char-btn:hover{background:var(--border);}
-  .char-btn-del{border-color:transparent;background:transparent;color:var(--muted);margin-left:auto;padding:5px 8px;}
+  .char-btn-del{border-color:transparent;background:transparent;color:var(--muted);margin-left:auto;padding:5px 8px;line-height:0;}
   .char-btn-del:hover{color:var(--red);background:rgba(139,26,26,.06);}
+  .char-btn-del svg{display:block;}
   /* Empty state */
   .empty{text-align:center;padding:4rem 2rem;}
   .empty-icon{font-size:3rem;margin-bottom:1rem;}
@@ -149,7 +150,7 @@ function render(){
       <div class="char-card-actions">
         <a class="char-btn" href="builder.html?char=${c.id}">Edit</a>
         <a class="char-btn" href="tracker.html?sandbox=true&char=${c.id}">Sandbox</a>
-        <button class="char-btn char-btn-del" onclick="deleteChar('${c.id}','${(c.name||'Unnamed').replace(/'/g,"\\'")}')" title="Delete character">🗑</button>
+        <button class="char-btn char-btn-del" onclick="deleteChar('${c.id}','${(c.name||'Unnamed').replace(/'/g,"\\'")}')" title="Delete character"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="5" x2="15" y2="5"/><path d="M7 5V3.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V5"/><path d="M4.5 5l.8 9.5a1 1 0 0 0 1 .9h5.4a1 1 0 0 0 1-.9L13.5 5"/><line x1="7" y1="8.5" x2="7" y2="12"/><line x1="11" y1="8.5" x2="11" y2="12"/></svg></button>
       </div>
     </div>
   `).join('')}</div>`;
