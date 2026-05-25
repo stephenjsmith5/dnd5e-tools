@@ -519,6 +519,8 @@ let _sessionCode=null;
 let _sessionPresence={};  // { userId: presencePayload }
 let _sessionFeed=[];      // [{ charName, label, formula, total, isCrit, isMiss, dmgTotal, ts }]
 let _sessionModalMode=null; // 'create' | 'join' | null
+let _campaign=null;       // { id, name, invite_code, created_by } when in a campaign
+let _isDM=false;          // true if current user created the active campaign
 let encounterCondExpanded=new Set(); // combatant IDs with condition panel open
 
 // ─── FILE INPUT HANDLER (defined first so it's always available) ─────────────
@@ -732,6 +734,10 @@ async function _joinChannel(code){
         const dmg=payload.dmgTotal!=null?' · '+payload.dmgTotal+' dmg':'';
         showToast(payload.charName+': '+payload.label+' → '+(payload.isMiss?'Miss':payload.total)+dmg,payload.isCrit?'success':'info');
       }
+    })
+    .on('broadcast',{event:'dm_announce'},({payload})=>{
+      if(payload.type==='long_rest'){showToast('📯 DM called a Long Rest — resources restored!','info');}
+      else if(payload.type==='short_rest'){showToast('📯 DM called a Short Rest.','info');}
     });
   await _sessionChannel.subscribe(async(status)=>{
     if(status==='SUBSCRIBED') await trackPresence();
@@ -813,51 +819,65 @@ function _renderSessionModalEl(){
   if(_sessionModalMode==='create'){
     el.innerHTML=`<div class="session-overlay" onclick="if(event.target===this){_sessionModalMode=null;_renderSessionModalEl();}">
       <div class="session-modal">
-        <h3>⚡ Start a Session</h3>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Creates a room code to share with your party. Everyone joins the same session to see live HP, conditions, and rolls.</p>
+        <h3>⚔ Create a Campaign</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">As DM, you'll get a shareable invite code for your players. The campaign persists across sessions — players can rejoin anytime.</p>
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px;font-weight:600;color:var(--ink-light);display:block;margin-bottom:4px;">Campaign Name</label>
+          <input type="text" id="campaign-name-input" placeholder="e.g. Curse of Strahd" style="width:100%;font-size:15px;" onkeydown="if(event.key==='Enter')createCampaign(this.value)"/>
+        </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-red" style="flex:1;" onclick="createSession()">Create Session</button>
+          <button class="btn btn-red" style="flex:1;" onclick="createCampaign(document.getElementById('campaign-name-input').value)">Create Campaign</button>
           <button class="btn btn-ghost" onclick="_sessionModalMode=null;_renderSessionModalEl()">Cancel</button>
         </div>
       </div>
     </div>`;
+    setTimeout(()=>{const i=document.getElementById('campaign-name-input');if(i)i.focus();},50);
   } else {
     el.innerHTML=`<div class="session-overlay" onclick="if(event.target===this){_sessionModalMode=null;_renderSessionModalEl();}">
       <div class="session-modal">
-        <h3>⚡ Join a Session</h3>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Enter the room code from your DM or party member.</p>
+        <h3>⚔ Join a Campaign</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">Enter the 6-character invite code from your DM.</p>
         <div style="margin-bottom:16px;">
-          <label>Room Code</label>
-          <input type="text" id="join-code-input" placeholder="e.g. STORM-42" style="width:100%;text-transform:uppercase;font-family:'Cinzel',serif;letter-spacing:2px;font-size:18px;text-align:center;" onkeydown="if(event.key==='Enter')joinSession(this.value)"/>
+          <label style="font-size:12px;font-weight:600;color:var(--ink-light);display:block;margin-bottom:4px;">Invite Code</label>
+          <input type="text" id="join-code-input" placeholder="e.g. XK7M2P" maxlength="6" style="width:100%;text-transform:uppercase;font-family:'Cinzel',serif;letter-spacing:4px;font-size:22px;text-align:center;" onkeydown="if(event.key==='Enter')joinCampaign(this.value)"/>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-red" style="flex:1;" onclick="joinSession(document.getElementById('join-code-input').value)">Join</button>
+          <button class="btn btn-red" style="flex:1;" onclick="joinCampaign(document.getElementById('join-code-input').value)">Join Campaign</button>
           <button class="btn btn-ghost" onclick="_sessionModalMode=null;_renderSessionModalEl()">Cancel</button>
         </div>
       </div>
     </div>`;
+    setTimeout(()=>{const i=document.getElementById('join-code-input');if(i)i.focus();},50);
   }
 }
 
 function _renderSessionBarHTML(){
   if(!char) return '';
   const playerCount=Object.keys(_sessionPresence).length;
-  if(_sessionCode){
+  if(_campaign&&_sessionCode){
+    const dmControls=_isDM
+      ?`<button class="btn btn-ghost btn-sm" onclick="setTab('dm')">⚔ DM Panel</button>`
+      :'';
+    const codeDisplay=_isDM
+      ?`<span style="font-size:11px;color:var(--muted);">Invite: <strong style="font-family:'Cinzel',serif;color:var(--gold);letter-spacing:2px;">${_campaign.invite_code}</strong></span>`
+      :'';
     return`<div class="session-bar">
       <span class="session-dot"></span>
-      <span class="session-code">${_sessionCode}</span>
+      <span class="session-code" style="font-size:13px;">${_campaign.name}</span>
+      ${_isDM?`<span style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--gold);background:var(--chip-bg);border:1px solid var(--gold);border-radius:3px;padding:1px 5px;">DM</span>`:''}
       <span style="font-size:12px;color:var(--muted);">${playerCount} online</span>
+      ${dmControls}
       <button class="btn btn-ghost btn-sm" onclick="setTab('party')">Party View</button>
       <div style="flex:1;"></div>
-      <span style="font-size:11px;color:var(--muted);">Share: <strong style="font-family:'Cinzel',serif;color:var(--gold);">${_sessionCode}</strong></span>
-      <button class="btn btn-danger btn-sm" onclick="leaveSession()">Leave</button>
+      ${codeDisplay}
+      <button class="btn btn-danger btn-sm" onclick="leaveCampaign()">Leave</button>
     </div>`;
   }
   if(!_sbEnabled()) return '';
   return`<div class="session-bar" style="justify-content:flex-end;">
-    <span style="font-size:12px;color:var(--muted);">Play with your group →</span>
-    <button class="btn btn-gold btn-sm" onclick="_sessionModalMode='create';_renderSessionModalEl()">⚡ Start Session</button>
-    <button class="btn btn-ghost btn-sm" onclick="_sessionModalMode='join';_renderSessionModalEl()">Join Session</button>
+    <span style="font-size:12px;color:var(--muted);">Join or create a campaign →</span>
+    <button class="btn btn-gold btn-sm" onclick="_sessionModalMode='create';_renderSessionModalEl()">⚔ Create Campaign</button>
+    <button class="btn btn-ghost btn-sm" onclick="_sessionModalMode='join';_renderSessionModalEl()">Join Campaign</button>
   </div>`;
 }
 
@@ -2090,9 +2110,10 @@ function render(){
   const root=document.getElementById('root');
   if(!char){root.innerHTML=renderUpload();return;}
   const _allTabs=['combat','encounter','resources','spells','skills','levelup','inventory','log','notes'];
-  const _tabs=_sessionCode?['party',..._allTabs]:_allTabs;
-  const _tabLabels={party:'⚡ Party',combat:'Combat',encounter:'⚔ Encounter',resources:'Resources',spells:'Spells',skills:'Skills & Saves',levelup:'Level Up',inventory:'Inventory',log:'Session Log',notes:'Notes'};
-  const _tabContent=activeTab==='party'?renderPartyTab():activeTab==='combat'?renderCombat():activeTab==='encounter'?renderEncounter():activeTab==='resources'?renderResources():activeTab==='spells'?renderSpells():activeTab==='skills'?renderSkills():activeTab==='levelup'?renderLevelUp():activeTab==='inventory'?renderInventory():activeTab==='log'?renderLog():renderNotes();
+  let _tabs=_sessionCode?['party',..._allTabs]:_allTabs;
+  if(_isDM&&_sessionCode&&!_tabs.includes('dm'))_tabs=['dm',..._tabs];
+  const _tabLabels={dm:'⚔ DM',party:'Party',combat:'Combat',encounter:'Encounter',resources:'Resources',spells:'Spells',skills:'Skills & Saves',levelup:'Level Up',inventory:'Inventory',log:'Session Log',notes:'Notes'};
+  const _tabContent=activeTab==='dm'?renderDMTab():activeTab==='party'?renderPartyTab():activeTab==='combat'?renderCombat():activeTab==='encounter'?renderEncounter():activeTab==='resources'?renderResources():activeTab==='spells'?renderSpells():activeTab==='skills'?renderSkills():activeTab==='levelup'?renderLevelUp():activeTab==='inventory'?renderInventory():activeTab==='log'?renderLog():renderNotes();
   root.innerHTML=`
     <div class="tracker-layout">
       ${renderSidebar()}
@@ -5207,7 +5228,7 @@ function loadCharById(id){
     CharStore.setActive(id);
     syncResources(char);syncSpells(char);
     activeTab='combat';render();
-    autoRejoinSession();
+    loadActiveCampaign();
   }catch(e){showToast('Error loading character: '+e.message,'warning');}
 }
 
@@ -5230,15 +5251,156 @@ function deleteTrackerChar(id){
   render();
 }
 
-async function autoRejoinSession(){
-  const code=store.get('dnd5e_session_code');
-  if(!code||!char||!_sbEnabled()) return;
+// ── CAMPAIGN FUNCTIONS ────────────────────────────────────────────────────────
+
+function _genInviteCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='';
+  for(let i=0;i<6;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+async function createCampaign(name){
+  if(!name||!name.trim()){showToast('Enter a campaign name.','warning');return;}
+  if(!_sbEnabled()){showToast('Sign in to create a campaign.','warning');return;}
+  const session=await getSession();
+  if(!session){showToast('Sign in first.','warning');openAuthModal();return;}
+  if(!char){showToast('Load a character before creating a campaign.','warning');return;}
+  let invite_code=_genInviteCode();
+  // Retry if code collision (extremely rare)
+  const{error}=await _sb.from('campaigns').insert({created_by:session.user.id,name:name.trim(),invite_code});
+  if(error&&error.code==='23505'){
+    invite_code=_genInviteCode();
+    const{error:e2}=await _sb.from('campaigns').insert({created_by:session.user.id,name:name.trim(),invite_code});
+    if(e2){showToast('Could not create campaign: '+e2.message,'warning');return;}
+  } else if(error){showToast('Could not create campaign: '+error.message,'warning');return;}
+  const{data:camp}=await _sb.from('campaigns').select('*').eq('invite_code',invite_code).single();
+  _campaign=camp;_isDM=true;
+  store.set('dnd5e_campaign_id',camp.id);
+  _sessionModalMode=null;_renderSessionModalEl();
+  await _joinChannel(camp.id);
+  showToast('Campaign created! Invite code: '+invite_code,'success');
+}
+
+async function joinCampaign(code){
+  if(!code||!code.trim()){showToast('Enter an invite code.','warning');return;}
+  code=code.trim().toUpperCase();
+  if(!_sbEnabled()){showToast('Sign in to join a campaign.','warning');return;}
+  const session=await getSession();
+  if(!session){showToast('Sign in first.','warning');openAuthModal();return;}
+  if(!char){showToast('Load a character before joining a campaign.','warning');return;}
+  const{data:camp,error}=await _sb.from('campaigns').select('*').eq('invite_code',code).single();
+  if(error||!camp){showToast('Campaign not found. Check the invite code.','warning');return;}
+  // Upsert membership
+  await _sb.from('campaign_members').upsert({campaign_id:camp.id,user_id:session.user.id,char_name:char.identity?.name||'Unknown'},{onConflict:'campaign_id,user_id'});
+  _campaign=camp;_isDM=(camp.created_by===session.user.id);
+  store.set('dnd5e_campaign_id',camp.id);
+  _sessionModalMode=null;_renderSessionModalEl();
+  await _joinChannel(camp.id);
+  showToast('Joined campaign: '+camp.name,'success');
+}
+
+async function leaveCampaign(){
+  if(_sessionChannel){_sessionChannel.unsubscribe();_sessionChannel=null;}
+  _sessionCode=null;_sessionPresence={};_sessionFeed=[];
+  _campaign=null;_isDM=false;
+  store.remove('dnd5e_campaign_id');
+  activeTab='combat';
+  render();
+  showToast('Left campaign.','info');
+}
+
+async function loadActiveCampaign(){
+  const campId=store.get('dnd5e_campaign_id');
+  if(!campId||!char||!_sbEnabled()) return;
   const session=await getSession();
   if(!session) return;
-  const{data,error}=await _sb.from('sessions').select('id').eq('id',code).single();
-  if(error||!data){store.remove('dnd5e_session_code');return;}
-  await _joinChannel(code);
-  showToast('Rejoined session '+code,'info');
+  const{data:camp,error}=await _sb.from('campaigns').select('*').eq('id',campId).single();
+  if(error||!camp){store.remove('dnd5e_campaign_id');return;}
+  _campaign=camp;_isDM=(camp.created_by===session.user.id);
+  await _joinChannel(camp.id);
+  showToast('Rejoined campaign: '+camp.name,'info');
+}
+
+function dmAnnounce(type){
+  if(!_sessionChannel||!_isDM) return;
+  _sessionChannel.send({type:'broadcast',event:'dm_announce',payload:{type}});
+  if(type==='long_rest') showToast('Long Rest announced to party.','success');
+  else if(type==='short_rest') showToast('Short Rest announced to party.','success');
+}
+
+async function deleteCampaign(){
+  if(!_campaign||!_isDM) return;
+  if(!confirm('Delete campaign "'+_campaign.name+'"? Players will be disconnected and the campaign cannot be restored.')) return;
+  const{error}=await _sb.from('campaigns').delete().eq('id',_campaign.id);
+  if(error){showToast('Could not delete campaign: '+error.message,'warning');return;}
+  await leaveCampaign();
+  showToast('Campaign deleted.','info');
+}
+
+function renderDMTab(){
+  const players=Object.values(_sessionPresence);
+  const camp=_campaign;
+  return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;">
+    <div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div class="card-title">Campaign</div>
+        <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px;">${camp?.name||'Unknown'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Invite code for players:</div>
+        <div style="font-family:'Cinzel',serif;font-size:26px;letter-spacing:6px;color:var(--gold);font-weight:700;background:var(--chip-bg);border:1px solid var(--gold);border-radius:6px;padding:10px 16px;text-align:center;margin-bottom:16px;">${camp?.invite_code||'------'}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText('${camp?.invite_code||''}').then(()=>showToast('Copied!','success'))">Copy Code</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCampaign()">Delete Campaign</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Party — ${players.length} online</div>
+        ${players.length===0
+          ?'<p style="font-size:13px;color:var(--muted);font-style:italic;padding:8px 0;">Waiting for players to join…</p>'
+          :players.map(p=>{
+            const pct=p.maxHP?Math.max(0,Math.min(100,(p.currentHP/p.maxHP)*100)):100;
+            const hpColor=pct>50?'var(--green)':pct>25?'var(--gold)':'var(--hp-red)';
+            return`<div class="party-player">
+              <div style="flex:1;min-width:0;">
+                <div class="party-name">${p.charName||'Unknown'}</div>
+                <div class="party-sub">${p.className||''} · Lv ${p.level||1}${p.tempHP?` · <span style="color:var(--ac-blue);">+${p.tempHP} tmp</span>`:''}</div>
+                <div class="hp-mini-bar" style="margin-top:5px;"><div class="hp-mini-fill" style="width:${pct}%;background:${hpColor};"></div></div>
+                ${p.conditions&&p.conditions.length?`<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px;">${p.conditions.map(c=>`<span style="font-size:10px;background:var(--chip-bg);border:1px solid var(--red);border-radius:8px;padding:1px 6px;color:var(--red);">${c}</span>`).join('')}</div>`:''}
+              </div>
+              <div class="party-hp-val">${p.currentHP??'?'}<span style="font-size:11px;font-weight:400;color:var(--muted);">/${p.maxHP||'?'}</span></div>
+            </div>`;
+          }).join('')}
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div class="card-title">DM Controls</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Announce rests to all players in the campaign — they'll see a notification prompt.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-red" onclick="dmAnnounce('short_rest')">📯 Short Rest</button>
+          <button class="btn btn-gold" onclick="dmAnnounce('long_rest')">🌙 Long Rest</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Roll Feed</div>
+        ${_sessionFeed.length===0
+          ?'<p style="font-size:13px;color:var(--muted);font-style:italic;padding:8px 0;">No rolls yet this session.</p>'
+          :`<div class="roll-feed">
+            ${_sessionFeed.map(r=>`<div class="roll-entry${r.isCrit?' crit':r.isMiss?' miss':''}">
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.charName} <span style="font-weight:400;color:var(--muted);">— ${r.label}</span></div>
+                <div style="font-size:11px;color:var(--muted);">${r.formula}${r.dmgTotal!=null?' · '+r.dmgDice+' dmg':''}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0;margin-left:8px;">
+                <div class="roll-total" style="color:${r.isCrit?'var(--green)':r.isMiss?'var(--hp-red)':'var(--ink)'};">${r.isMiss?'Miss':r.total}</div>
+                ${r.dmgTotal!=null?`<div style="font-size:11px;color:var(--ac-blue);">${r.dmgTotal} dmg</div>`:''}
+                ${r.isCrit?'<div style="font-size:10px;color:var(--green);font-weight:700;">CRIT!</div>':''}
+              </div>
+            </div>`).join('')}
+          </div>`}
+      </div>
+    </div>
+  </div>`;
 }
 
 // Initialize after deferred scripts (Supabase SDK) have loaded
@@ -5247,7 +5409,7 @@ document.addEventListener('DOMContentLoaded', function(){
   initSupabase();
   renderTrackerAuthBar();
   if(!loadPendingImport()) loadSaved();
-  autoRejoinSession();
+  loadActiveCampaign();
 });
 
 // File input handled via handleFileInput() defined at top of script

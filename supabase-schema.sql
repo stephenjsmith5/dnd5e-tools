@@ -52,6 +52,47 @@ create policy "Authenticated users can read sessions"
 create policy "Authenticated users can create sessions"
   on sessions for insert with check (auth.uid() = created_by);
 
+-- ── Campaigns (persistent DM-owned groups) ───────────────────────────────────
+
+create table if not exists campaigns (
+  id          uuid primary key default gen_random_uuid(),
+  created_by  uuid references auth.users(id) on delete cascade not null,
+  name        text not null,
+  invite_code text unique not null,  -- 6-char alphanumeric, shown to players
+  created_at  timestamptz default now()
+);
+
+alter table campaigns enable row level security;
+
+create policy "Authenticated users can read campaigns"
+  on campaigns for select using (auth.uid() is not null);
+
+create policy "DM can create campaigns"
+  on campaigns for insert with check (auth.uid() = created_by);
+
+create policy "DM can delete own campaigns"
+  on campaigns for delete using (auth.uid() = created_by);
+
+-- Track which users/characters are in each campaign
+create table if not exists campaign_members (
+  campaign_id uuid references campaigns(id) on delete cascade not null,
+  user_id     uuid references auth.users(id) on delete cascade not null,
+  char_name   text,
+  joined_at   timestamptz default now(),
+  primary key (campaign_id, user_id)
+);
+
+alter table campaign_members enable row level security;
+
+create policy "Authenticated users can view campaign members"
+  on campaign_members for select using (auth.uid() is not null);
+
+create policy "Users can join campaigns"
+  on campaign_members for insert with check (auth.uid() = user_id);
+
+create policy "Users can leave campaigns"
+  on campaign_members for delete using (auth.uid() = user_id);
+
 -- Roll history so late joiners can see what happened earlier in the session
 create table if not exists session_rolls (
   id          uuid primary key default gen_random_uuid(),
