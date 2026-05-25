@@ -522,6 +522,14 @@ let _sessionFeed=[];      // [{ charName, label, formula, total, isCrit, isMiss,
 let _sessionModalMode=null; // 'create' | 'join' | null
 let _campaign=null;       // { id, name, invite_code, created_by } when in a campaign
 let _isDM=false;          // true if current user created the active campaign
+let _sandboxMode=false;   // true when opened via ?sandbox=true
+let _campaignSaveTimer=null; // debounce timer for campaign char saves
+let _dmPlayerStates=[];   // [{user_id, char_name, char_data, updated_at}] for DM view
+let _activityFeed=[];     // recent campaign_activity rows
+let _pendingRequests=[];  // player's own pending change requests [{id,change_type,description}]
+let _dmPendingRequests=[]; // DM view: all pending requests in campaign
+let _currentUserId=null;  // cached session user ID for broadcast comparisons
+let _dmViewedPlayer=null; // {userId, charName, charData} — Phase 3 DM player sheet view
 let encounterCondExpanded=new Set(); // combatant IDs with condition panel open
 
 // ─── FILE INPUT HANDLER (defined first so it's always available) ─────────────
@@ -739,6 +747,59 @@ async function _joinChannel(code){
     .on('broadcast',{event:'dm_announce'},({payload})=>{
       if(payload.type==='long_rest'){showToast('📯 DM called a Long Rest — resources restored!','info');}
       else if(payload.type==='short_rest'){showToast('📯 DM called a Short Rest.','info');}
+    })
+    .on('broadcast',{event:'activity'},({payload})=>{
+      _activityFeed.unshift({char_name:payload.charName,action_type:payload.type,description:payload.desc,created_at:payload.ts});
+      if(_activityFeed.length>60) _activityFeed.pop();
+      if(_isDM&&activeTab==='dm') render();
+    })
+    .on('broadcast',{event:'player_state_update'},({payload})=>{
+      if(_isDM){
+        const idx=_dmPlayerStates.findIndex(s=>s.user_id===payload.userId);
+        if(idx>=0) _dmPlayerStates[idx]={..._dmPlayerStates[idx],char_data:payload.charData,char_name:payload.charName,updated_at:payload.ts};
+        else _dmPlayerStates.push({user_id:payload.userId,char_name:payload.charName,char_data:payload.charData,updated_at:payload.ts});
+        if(_dmViewedPlayer&&_dmViewedPlayer.userId===payload.userId) _dmViewedPlayer.charData=payload.charData;
+        if(activeTab==='dm') render();
+      }
+    })
+    .on('broadcast',{event:'change_request'},({payload})=>{
+      // DM receives a new player change request
+      if(_isDM){
+        _dmPendingRequests.unshift({id:payload.id,user_id:payload.userId,char_name:payload.charName,change_type:payload.type,description:payload.desc,change_data:null,created_at:payload.ts});
+        // Full data will be fetched from Supabase on DM panel render; this just pings for immediate UI update
+        if(activeTab==='dm') render();
+        else showToast(payload.charName+' requests: '+payload.desc,'info');
+      }
+    })
+    .on('broadcast',{event:'change_resolved'},async({payload})=>{
+      // Player receives approval/rejection of their request
+      if(!_isDM&&_currentUserId===payload.userId){
+        _pendingRequests=_pendingRequests.filter(r=>r.id!==payload.requestId);
+        if(payload.status==='approved'){
+          // Reload char from campaign state (DM just updated it)
+          const session=await getSession();
+          if(session){
+            const charData=await _loadCampaignChar(_campaign.id,session);
+            if(charData){char=migrateChar(charData);syncResources(char);syncSpells(char);}
+          }
+          showToast('DM approved: '+payload.desc,'success');
+        } else {
+          showToast('DM rejected your request'+(payload.message?': '+payload.message:'')+(payload.desc?' ('+payload.desc+')':''),'warning');
+        }
+        render();
+      }
+    })
+    .on('broadcast',{event:'dm_edit'},({payload})=>{
+      // Player receives a direct DM edit to their character
+      if(!_isDM&&_currentUserId===payload.userId&&char){
+        if(payload.field==='currentHP') char.tracker.currentHP=payload.value;
+        else if(payload.field==='tempHP') char.tracker.tempHP=payload.value;
+        else if(payload.field==='conditions') char.tracker.conditions=payload.value;
+        else if(payload.field==='currency') char.tracker.currency=payload.value;
+        else if(payload.field==='inventory') char.tracker.inventory=payload.value;
+        save();render();
+        showToast('DM updated your '+payload.field.replace('_',' '),'info');
+      }
     });
   await _sessionChannel.subscribe(async(status)=>{
     if(status==='SUBSCRIBED') await trackPresence();
@@ -853,7 +914,6 @@ function _renderSessionModalEl(){
 }
 
 function _renderSessionBarHTML(){
-  if(!char) return '';
   const playerCount=Object.keys(_sessionPresence).length;
   if(_campaign&&_sessionCode){
     const dmControls=_isDM
@@ -874,6 +934,10 @@ function _renderSessionBarHTML(){
       <button class="btn btn-danger btn-sm" onclick="leaveCampaign()">Leave</button>
     </div>`;
   }
+  if(_sandboxMode) return `<div class="session-bar" style="justify-content:flex-end;">
+    <span style="font-size:12px;color:var(--muted);">Sandbox mode — local only</span>
+    <a href="campaigns.html" class="btn btn-ghost btn-sm">← Campaigns</a>
+  </div>`;
   if(!_sbEnabled()) return '';
   return`<div class="session-bar" style="justify-content:flex-end;">
     <span style="font-size:12px;color:var(--muted);">Join or create a campaign →</span>
@@ -2093,12 +2157,17 @@ function renderSidebar(){
     </div>
     <div class="card" style="margin-bottom:8px;">
       <div class="sidebar-rest-row">
-        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="doShortRest()">Short Rest</button>
-        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="doLongRest()">Long Rest</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;${_campaign&&!_sandboxMode&&_pendingRequests.some(r=>r.change_type==='short_rest')?'opacity:.5;':''}position:relative;" onclick="doShortRest()">
+          Short Rest${_campaign&&!_sandboxMode&&_pendingRequests.some(r=>r.change_type==='short_rest')?'<span style="position:absolute;top:-4px;right:-4px;width:7px;height:7px;background:var(--gold);border-radius:50%;"></span>':''}
+        </button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;${_campaign&&!_sandboxMode&&_pendingRequests.some(r=>r.change_type==='long_rest')?'opacity:.5;':''}position:relative;" onclick="doLongRest()">
+          Long Rest${_campaign&&!_sandboxMode&&_pendingRequests.some(r=>r.change_type==='long_rest')?'<span style="position:absolute;top:-4px;right:-4px;width:7px;height:7px;background:var(--gold);border-radius:50%;"></span>':''}
+        </button>
       </div>
+      ${_campaign&&!_sandboxMode&&_pendingRequests.length>0?`<div style="margin-top:6px;font-size:11px;color:var(--gold);text-align:center;">${_pendingRequests.length} request${_pendingRequests.length>1?'s':''} pending DM approval</div>`:''}
       <div style="display:flex;gap:5px;margin-top:5px;">
-        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="exportJSON()">💾 Save</button>
-        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="showCharSelect()">Characters</button>
+        ${!_campaign||_sandboxMode?`<button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="exportJSON()">💾 Save</button>`:''}
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="${_campaign&&!_sandboxMode?'window.location.href=\'campaigns.html\'':'showCharSelect()'}">${_campaign&&!_sandboxMode?'⚔ Campaigns':'Characters'}</button>
       </div>
     </div>
   </div>`;
@@ -2111,6 +2180,7 @@ function render(){
   const root=document.getElementById('root');
   if(!char){
     if(_isDM&&_campaign){root.innerHTML=renderDMOnlyView();return;}
+    if(_campaign&&!_sandboxMode){root.innerHTML=renderCharacterInit();return;}
     root.innerHTML=renderUpload();return;
   }
   const _allTabs=['combat','encounter','resources','spells','skills','levelup','inventory','log','notes'];
@@ -2135,6 +2205,15 @@ function render(){
     const overlay=document.createElement('div');
     overlay.innerHTML=renderCastDialog();
     if(overlay.firstElementChild) document.body.appendChild(overlay.firstElementChild);
+  }
+  // Phase 3: DM player sheet overlay (appended after root so it overlaps everything)
+  const existingOverlay=document.getElementById('dm-player-sheet-overlay');
+  if(existingOverlay) existingOverlay.remove();
+  if(_dmViewedPlayer){
+    const ol=document.createElement('div');
+    ol.id='dm-player-sheet-overlay';
+    ol.innerHTML=renderDMPlayerSheet();
+    document.body.appendChild(ol);
   }
 }
 
@@ -2439,33 +2518,27 @@ function showToast(msg,type='info'){
 }
 
 function doShortRest(){
-  syncResources(char);
-  const res=char.tracker.resources;
-  const cls=char.class.id;
-  const sub=char.tracker.subclass?char.tracker.subclass.id:'';
-
-  // Warlock slots
-  if(cls==='warlock') res.warlockSlots=res.warlockSlotsMax||0;
-  // Channel Divinity (Cleric, Paladin)
-  if(cls==='cleric'||cls==='paladin') res.channelDivinity=res.channelDivinityMax||0;
-  // Wild Shape (Druid)
-  if(cls==='druid') res.wildShape=res.wildShapeMax||0;
-  // Second Wind + Action Surge (Fighter)
-  if(cls==='fighter'){
-    res.secondWind=res.secondWindMax||0;
-    res.actionSurge=res.actionSurgeMax||0;
-    if(sub==='battlemaster') res.superiorityDice=res.superiorityDiceMax||0;
+  if(_campaign&&!_sandboxMode){
+    if(_pendingRequests.some(r=>r.change_type==='short_rest')){showToast('Short rest request already pending DM approval.','info');return;}
+    const proposed=JSON.parse(JSON.stringify(char));
+    _applyShortRestLogic(proposed);
+    submitChangeRequest('short_rest','take a short rest',proposed);
+    return;
   }
-  // Ki (Monk)
-  if(cls==='monk') res.ki=res.kiMax||0;
-  // Bardic Inspiration (Bard — only if Font of Inspiration, Lv5+)
-  if(cls==='bard'&&res.bardicShortRest) res.bardicInspiration=res.bardicInspirationMax||0;
-
+  _applyShortRestLogic(char);
   saveAndRender();
   showToast('Short rest taken — some resources restored.','warning');
+  logActivity('short_rest','took a short rest');
 }
 
 function doLongRest(){
+  if(_campaign&&!_sandboxMode){
+    if(_pendingRequests.some(r=>r.change_type==='long_rest')){showToast('Long rest request already pending DM approval.','info');return;}
+    const proposed=JSON.parse(JSON.stringify(char));
+    _applyLongRestLogic(proposed);
+    submitChangeRequest('long_rest','take a long rest',proposed);
+    return;
+  }
   syncResources(char);
   const res=char.tracker.resources;
   const cls=char.class.id;
@@ -2512,6 +2585,7 @@ function doLongRest(){
 
   saveAndRender();
   showToast('Long rest complete — HP and all resources restored.','success');
+  logActivity('long_rest','took a long rest — HP and resources restored');
 }
 
 
@@ -3936,10 +4010,12 @@ function renderLevelUp(){
         </div>`:''}
 
         ${renderLevelUpSpellSection(classId,char.tracker.subclass?char.tracker.subclass.id:'',nextLevel)}
-        ${lu.active?`<div style="display:flex;gap:8px;margin-top:4px;">
-          <button class="btn btn-red" onclick="confirmLevelUp()" ${!canConfirmLevelUp()?'disabled':''}>Confirm Level Up</button>
+        ${lu.active?`<div style="display:flex;gap:8px;margin-top:4px;align-items:center;">
+          <button class="btn btn-red" onclick="confirmLevelUp()" ${(!canConfirmLevelUp()||(_campaign&&!_sandboxMode&&_pendingRequests.some(r=>r.change_type==='level_up')))?'disabled':''}>
+            ${_campaign&&!_sandboxMode?(_pendingRequests.some(r=>r.change_type==='level_up')?'⏳ Pending DM Approval':'Submit for DM Approval'):'Confirm Level Up'}
+          </button>
           <button class="btn btn-ghost" onclick="cancelLevelUp()">Cancel</button>
-        </div>`:''} 
+        </div>`:''}
       </div>
     </div>
 
@@ -3972,15 +4048,20 @@ function canConfirmLevelUp(){
 // ── INVENTORY TAB ──
 function renderInventory(){
   const t=char.tracker;
+  const inCampaign=_campaign&&!_sandboxMode;
+  const pendingItem=_pendingRequests.some(r=>r.change_type==='add_item');
+  const pendingGold=_pendingRequests.some(r=>r.change_type==='gold_change');
   return`<div class="two-col">
     <div>
       <div class="card">
-        <div class="card-title">Add Item</div>
+        <div class="card-title">Add Item${inCampaign?' <span style="font-size:11px;color:var(--muted);font-weight:400;">(requires DM approval)</span>':''}</div>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div><label>Item Name</label><input type="text" id="item-name" placeholder="e.g. Potion of Healing" style="width:100%;"/></div>
           <div style="display:flex;gap:8px;align-items:flex-end;">
             <div style="flex:1;"><label>Quantity</label><input type="number" id="item-qty" value="1" min="1" style="width:100%;"/></div>
-            <button class="btn btn-red" onclick="addItem()">Add</button>
+            <button class="btn btn-red" onclick="addItem()" ${pendingItem?'disabled title="Request already pending"':''}>
+              ${inCampaign?(pendingItem?'⏳ Pending':'Request'):'Add'}
+            </button>
           </div>
         </div>
       </div>
@@ -3991,9 +4072,23 @@ function renderInventory(){
           ${[['cp','Copper'],['sp','Silver'],['gp','Gold'],['pp','Platinum']].map(([k,label])=>`
             <div class="currency-box">
               <div class="currency-label">${label}</div>
-              <input class="currency-input" type="number" min="0" value="${t.currency[k]}" id="cur2-${k}" onchange="updateCurrency('${k}',this.value)"/>
+              <input class="currency-input" type="number" min="0" value="${t.currency[k]}" id="cur2-${k}" onchange="updateCurrency('${k}',this.value)" ${inCampaign?'readonly style="opacity:.6;cursor:default;"':''}/>
             </div>`).join('')}
         </div>
+        ${inCampaign?`<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">
+          <div style="font-size:12px;font-weight:600;color:var(--ink-light);margin-bottom:8px;">Request Currency Change${pendingGold?' <span style="color:var(--gold);">⏳ Pending</span>':''}</div>
+          <div class="currency-grid" style="margin-bottom:8px;">
+            ${[['cp','CP'],['sp','SP'],['gp','GP'],['pp','PP']].map(([k,label])=>`
+              <div class="currency-box">
+                <div class="currency-label">${label} delta</div>
+                <input class="currency-input" type="number" value="0" id="cur-req-${k}" ${pendingGold?'disabled':''}/>
+              </div>`).join('')}
+          </div>
+          <div style="margin-bottom:8px;"><label style="font-size:11px;">Reason (optional)</label><input type="text" id="cur-req-reason" placeholder="e.g. Found in treasure chest" style="width:100%;font-size:12px;" ${pendingGold?'disabled':''}/></div>
+          <button class="btn btn-red btn-sm" onclick="requestCurrencyChange()" ${pendingGold?'disabled':''}>
+            ${pendingGold?'⏳ Pending DM Approval':'Submit Request'}
+          </button>
+        </div>`:''}
       </div>
     </div>
 
@@ -4336,14 +4431,15 @@ function adjustHP(dir){
   if(amt<=0)return;
   const t=char.tracker;
   const max=computeMaxHP();
+  const prevHP=t.currentHP;
   if(dir>0){
-    // healing: first fill temp, then main
     t.currentHP=Math.min(max,t.currentHP+amt);
+    logActivity('hp_change','healed '+amt+' HP ('+prevHP+' → '+t.currentHP+')');
   } else {
-    // damage: absorb temp HP first
     let dmg=amt;
     if(t.tempHP>0){const absorbed=Math.min(t.tempHP,dmg);t.tempHP-=absorbed;dmg-=absorbed;}
     t.currentHP=Math.max(0,t.currentHP-dmg);
+    logActivity('hp_change','took '+amt+' damage ('+prevHP+' → '+t.currentHP+')');
   }
   if(el)el.value='';
   saveAndRender();
@@ -4385,6 +4481,7 @@ function setExhaustion(lvl){
 }
 
 function updateCurrency(key,val){
+  if(_campaign&&!_sandboxMode) return; // currency edits in campaign mode go through requestCurrencyChange()
   char.tracker.currency[key]=Math.max(0,parseInt(val)||0);
   save();
 }
@@ -4393,8 +4490,35 @@ function addItem(){
   const name=(document.getElementById('item-name')||{}).value||'';
   const qty=parseInt((document.getElementById('item-qty')||{}).value)||1;
   if(!name.trim())return;
+  if(_campaign&&!_sandboxMode){
+    const proposed=JSON.parse(JSON.stringify(char));
+    proposed.tracker.inventory.push({name:name.trim(),qty});
+    submitChangeRequest('add_item','add '+name.trim()+(qty>1?' ×'+qty:''),proposed);
+    return;
+  }
   char.tracker.inventory.push({name:name.trim(),qty});
   saveAndRender();
+}
+
+function requestCurrencyChange(){
+  if(!_campaign||_sandboxMode) return;
+  const delta={cp:0,sp:0,gp:0,pp:0};
+  const keys=['cp','sp','gp','pp'];
+  let hasChange=false;
+  for(const k of keys){
+    const el=document.getElementById('cur-req-'+k);
+    const v=parseInt(el?el.value:0)||0;
+    if(v!==0){delta[k]=v;hasChange=true;}
+  }
+  if(!hasChange){showToast('Enter an amount to request.','info');return;}
+  const reasonEl=document.getElementById('cur-req-reason');
+  const reason=(reasonEl?reasonEl.value:'').trim();
+  const proposed=JSON.parse(JSON.stringify(char));
+  const cur=proposed.tracker.currency;
+  for(const k of keys) cur[k]=Math.max(0,(cur[k]||0)+delta[k]);
+  const parts=keys.filter(k=>delta[k]!==0).map(k=>(delta[k]>0?'+':'')+delta[k]+' '+k.toUpperCase());
+  const desc='currency change: '+parts.join(', ')+(reason?' ('+reason+')':'');
+  submitChangeRequest('gold_change',desc,proposed);
 }
 
 function removeItem(i){char.tracker.inventory.splice(i,1);saveAndRender();}
@@ -4898,6 +5022,27 @@ startLevelUp=function(){
   render();
 };
 
+// ── CAMPAIGN MODE: intercept confirmLevelUp to submit approval request ─────────
+const _campaignConfirmLevelUp=confirmLevelUp;
+confirmLevelUp=async function(){
+  if(!_campaign||_sandboxMode){_campaignConfirmLevelUp();return;}
+  if(_pendingRequests.some(r=>r.change_type==='level_up')){showToast('Level up request already pending DM approval.','info');return;}
+  // Dry-run: clone char and apply level-up to the clone, capture proposed state
+  const origChar=char;
+  const proposedChar=JSON.parse(JSON.stringify(char));
+  char=proposedChar;
+  try{
+    _campaignConfirmLevelUp(); // modifies proposedChar in-place via global char ref
+  }finally{
+    char=origChar; // restore global
+    if(_campaignSaveTimer){clearTimeout(_campaignSaveTimer);_campaignSaveTimer=null;}
+    levelUpState.active=false;
+    levelUpState.summary=null;
+  }
+  const newLevel=proposedChar.level;
+  await submitChangeRequest('level_up','level up to level '+newLevel,proposedChar);
+};
+
 
 
 // ─── PERSISTENCE ──────────────────────────────────────────────────────────────
@@ -4955,12 +5100,20 @@ function migrateChar(char){
 }
 
 function save(){
-  if(!char)return;
+  if(!char) return;
+  if(_campaign&&!_sandboxMode){
+    // Campaign mode: cache locally + debounce to Supabase
+    store.set('dnd5e_camp_'+_campaign.id, JSON.stringify(char));
+    if(_campaignSaveTimer) clearTimeout(_campaignSaveTimer);
+    _campaignSaveTimer=setTimeout(()=>{ _saveCampaignChar(); }, 2000);
+    return;
+  }
+  // Sandbox or standalone mode: save to CharStore + localStorage
   const id=char._charId;
   if(id){
     CharStore.savePart(id,'tracker',char);
     CharStore.upsertMeta({id,name:char.identity?.name||'Unnamed',classId:char.class?.id||null,level:char.level||1,updatedAt:new Date().toISOString()});
-    if(_sbEnabled())pushToCloud(id).catch(()=>{});
+    if(_sbEnabled()&&!_sandboxMode) pushToCloud(id).catch(()=>{});
   }
   store.set('dnd5e_tracker_char',JSON.stringify(char));
 }
@@ -5326,14 +5479,16 @@ async function joinCampaign(code){
 }
 
 async function leaveCampaign(){
+  if(_campaignSaveTimer){clearTimeout(_campaignSaveTimer);_campaignSaveTimer=null;}
   if(_sessionChannel){_sessionChannel.unsubscribe();_sessionChannel=null;}
   _sessionCode=null;_sessionPresence={};_sessionFeed=[];
-  _campaign=null;_isDM=false;
+  _campaign=null;_isDM=false;_sandboxMode=false;
+  _dmPlayerStates=[];_activityFeed=[];
+  char=null;
   store.remove('dnd5e_campaign_id');
-  // Keep campaign in registry so user can rejoin from campaigns.html without needing invite code again
   activeTab='combat';
-  render();
-  showToast('Left campaign.','info');
+  // Redirect to campaigns hub after leaving
+  window.location.href='campaigns.html';
 }
 
 async function loadActiveCampaign(){
@@ -5366,8 +5521,38 @@ async function deleteCampaign(){
 }
 
 function renderDMTab(){
-  const players=Object.values(_sessionPresence);
+  const livePresence=Object.values(_sessionPresence);
   const camp=_campaign;
+
+  // Merge live presence with persisted states: presence data wins for online players
+  const presenceByName={};
+  livePresence.forEach(p=>{ presenceByName[p.charName]=p; });
+  const allPlayers=_dmPlayerStates.map(s=>{
+    const live=presenceByName[s.char_name];
+    const cd=s.char_data||{};
+    const tracker=cd.tracker||{};
+    const maxHP=cd.hp?.max||0;
+    const currentHP=live?live.currentHP:(typeof tracker.currentHP==='number'?tracker.currentHP:maxHP);
+    const tempHP=live?live.tempHP:(tracker.tempHP||0);
+    const conditions=live?live.conditions:(tracker.conditions||[]);
+    const pct=maxHP?Math.max(0,Math.min(100,(currentHP/maxHP)*100)):100;
+    const hpColor=pct>50?'var(--green)':pct>25?'var(--gold)':'var(--hp-red)';
+    const isOnline=!!live;
+    return{charName:s.char_name,className:cd.class?.name||'',level:cd.level||1,currentHP,maxHP,tempHP,conditions,pct,hpColor,isOnline};
+  });
+
+  const actionFeedHTML=_activityFeed.length===0
+    ?'<p style="font-size:13px;color:var(--muted);font-style:italic;padding:8px 0;">No activity yet.</p>'
+    :`<div style="display:flex;flex-direction:column;gap:4px;max-height:280px;overflow-y:auto;">
+      ${_activityFeed.map(a=>{
+        const ts=a.created_at?new Date(a.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+        return`<div style="display:flex;gap:8px;align-items:baseline;font-size:13px;border-bottom:1px solid var(--border);padding:5px 0;">
+          <span style="color:var(--muted);font-size:11px;white-space:nowrap;">${ts}</span>
+          <span><strong style="color:var(--ink);">${a.char_name||'?'}</strong> <span style="color:var(--ink-light);">${a.description||a.action_type}</span></span>
+        </div>`;
+      }).join('')}
+    </div>`;
+
   return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;">
     <div>
       <div class="card" style="margin-bottom:1rem;">
@@ -5381,20 +5566,28 @@ function renderDMTab(){
         </div>
       </div>
       <div class="card">
-        <div class="card-title">Party — ${players.length} online</div>
-        ${players.length===0
-          ?'<p style="font-size:13px;color:var(--muted);font-style:italic;padding:8px 0;">Waiting for players to join…</p>'
-          :players.map(p=>{
-            const pct=p.maxHP?Math.max(0,Math.min(100,(p.currentHP/p.maxHP)*100)):100;
-            const hpColor=pct>50?'var(--green)':pct>25?'var(--gold)':'var(--hp-red)';
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div class="card-title" style="margin:0;">Party</div>
+          <span style="font-size:11px;color:var(--muted);">${livePresence.length} online · ${allPlayers.length} total</span>
+        </div>
+        ${allPlayers.length===0
+          ?'<p style="font-size:13px;color:var(--muted);font-style:italic;padding:8px 0;">No players have joined yet.</p>'
+          :allPlayers.map(p=>{
+            const userId=(_dmPlayerStates.find(s=>s.char_name===p.charName)||{}).user_id||'';
             return`<div class="party-player">
               <div style="flex:1;min-width:0;">
-                <div class="party-name">${p.charName||'Unknown'}</div>
-                <div class="party-sub">${p.className||''} · Lv ${p.level||1}${p.tempHP?` · <span style="color:var(--ac-blue);">+${p.tempHP} tmp</span>`:''}</div>
-                <div class="hp-mini-bar" style="margin-top:5px;"><div class="hp-mini-fill" style="width:${pct}%;background:${hpColor};"></div></div>
-                ${p.conditions&&p.conditions.length?`<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px;">${p.conditions.map(c=>`<span style="font-size:10px;background:var(--chip-bg);border:1px solid var(--red);border-radius:8px;padding:1px 6px;color:var(--red);">${c}</span>`).join('')}</div>`:''}
+                <div class="party-name" style="display:flex;align-items:center;gap:6px;">
+                  ${p.isOnline?'<span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;" title="Online"></span>':'<span style="width:7px;height:7px;border-radius:50%;background:var(--border);display:inline-block;" title="Offline"></span>'}
+                  ${p.charName||'Unknown'}
+                </div>
+                <div class="party-sub">${p.className} · Lv ${p.level}${p.tempHP?` · <span style="color:var(--ac-blue);">+${p.tempHP} tmp</span>`:''}</div>
+                <div class="hp-mini-bar" style="margin-top:5px;"><div class="hp-mini-fill" style="width:${p.pct}%;background:${p.hpColor};"></div></div>
+                ${p.conditions.length?`<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px;">${p.conditions.map(c=>`<span style="font-size:10px;background:var(--chip-bg);border:1px solid var(--red);border-radius:8px;padding:1px 6px;color:var(--red);">${c}</span>`).join('')}</div>`:''}
               </div>
-              <div class="party-hp-val">${p.currentHP??'?'}<span style="font-size:11px;font-weight:400;color:var(--muted);">/${p.maxHP||'?'}</span></div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+                <div class="party-hp-val">${p.currentHP}<span style="font-size:11px;font-weight:400;color:var(--muted);">/${p.maxHP}</span></div>
+                ${userId?`<button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 7px;" onclick="viewPlayerSheet('${userId}')">View Sheet</button>`:''}
+              </div>
             </div>`;
           }).join('')}
       </div>
@@ -5402,11 +5595,31 @@ function renderDMTab(){
     <div>
       <div class="card" style="margin-bottom:1rem;">
         <div class="card-title">DM Controls</div>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Announce rests to all players in the campaign — they'll see a notification prompt.</p>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Announce rests to all players — they'll see a notification prompt.</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn btn-red" onclick="dmAnnounce('short_rest')">📯 Short Rest</button>
           <button class="btn btn-gold" onclick="dmAnnounce('long_rest')">🌙 Long Rest</button>
+          <button class="btn btn-ghost btn-sm" onclick="loadDMPlayerStates();_loadDMPendingRequests();" title="Refresh">↻ Refresh</button>
         </div>
+      </div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div class="card-title" style="margin:0;">Pending Requests${_dmPendingRequests.length?` <span style="background:var(--red);color:#fff;border-radius:10px;font-size:11px;padding:1px 7px;font-family:sans-serif;">${_dmPendingRequests.length}</span>`:''}</div>
+        </div>
+        ${_dmPendingRequests.length===0
+          ?'<p style="font-size:13px;color:var(--muted);font-style:italic;padding:4px 0;">No pending requests.</p>'
+          :_dmPendingRequests.map(req=>`<div style="border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;background:var(--chip-bg);">
+            <div style="font-size:13px;font-weight:600;color:var(--ink);">${req.char_name||'Unknown'}</div>
+            <div style="font-size:12px;color:var(--ink-light);margin:3px 0 8px;">${req.description||req.change_type}</div>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-sm" style="background:var(--green);color:#fff;border-color:var(--green);" onclick="approveCampaignChange('${req.id}')">✓ Approve</button>
+              <button class="btn btn-sm btn-danger" onclick="rejectCampaignChange('${req.id}')">✕ Reject</button>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div class="card-title">Activity Feed</div>
+        ${actionFeedHTML}
       </div>
       <div class="card">
         <div class="card-title">Roll Feed</div>
@@ -5437,65 +5650,549 @@ function renderDMOnlyView(){
   </div>`;
 }
 
-async function _handleURLParams(){
-  const params=new URLSearchParams(location.search);
-  const rejoinId=params.get('rejoin');
-  const dmId=params.get('dm');
+// ── CAMPAIGN CHARACTER STATE ──────────────────────────────────────────────────
 
-  if(rejoinId){
-    // Player rejoining: find their character from registry and load it
-    const registry=_getCampaignRegistry();
-    const entry=registry.find(c=>c.id===rejoinId);
-    if(entry){
-      if(entry.charId){
-        const saved=CharStore.loadPart(entry.charId,'tracker');
-        if(saved){
-          char=migrateChar(saved);char._charId=entry.charId;
-          CharStore.setActive(entry.charId);
-          syncResources(char);syncSpells(char);
-          activeTab='combat';
-        }
-      }
-      const session=await getSession();
-      if(session){
-        const{data:camp}=await _sb.from('campaigns').select('*').eq('id',rejoinId).single();
-        if(camp){
-          _campaign=camp;_isDM=(camp.created_by===session.user.id);
-          store.set('dnd5e_campaign_id',camp.id);
-          await _joinChannel(camp.id);
-          showToast('Rejoined '+camp.name,'success');
-          return;
-        }
-      }
-    }
-    showToast('Could not rejoin — campaign not found.','warning');
+// Pure rest-logic helpers — operate on any char object (don't touch global char)
+function _applyShortRestLogic(c){
+  syncResources(c);
+  const res=c.tracker.resources;
+  const cls=c.class.id;
+  const sub=c.tracker.subclass?c.tracker.subclass.id:'';
+  if(cls==='warlock') res.warlockSlots=res.warlockSlotsMax||0;
+  if(cls==='cleric'||cls==='paladin') res.channelDivinity=res.channelDivinityMax||0;
+  if(cls==='druid') res.wildShape=res.wildShapeMax||0;
+  if(cls==='fighter'){
+    res.secondWind=res.secondWindMax||0;
+    res.actionSurge=res.actionSurgeMax||0;
+    if(sub==='battlemaster') res.superiorityDice=res.superiorityDiceMax||0;
   }
+  if(cls==='monk') res.ki=res.kiMax||0;
+  if(cls==='bard'&&res.bardicShortRest) res.bardicInspiration=res.bardicInspirationMax||0;
+}
 
-  if(dmId){
-    // DM opening panel: no character needed
-    const session=await getSession();
-    if(!session){showToast('Sign in to open your DM panel.','warning');openAuthModal();return;}
-    const{data:camp}=await _sb.from('campaigns').select('*').eq('id',dmId).single();
-    if(!camp){showToast('Campaign not found.','warning');return;}
-    _campaign=camp;_isDM=true;
-    store.set('dnd5e_campaign_id',camp.id);
-    await _joinChannel(camp.id);
-    showToast('DM panel opened — '+camp.name,'success');
+function _applyLongRestLogic(c){
+  syncResources(c);
+  const res=c.tracker.resources;
+  const cls=c.class.id;
+  const sub=c.tracker.subclass?c.tracker.subclass.id:'';
+  if(res.spellSlots) res.spellSlots=res.spellSlots.map(([,max])=>[max,max]);
+  if(cls==='warlock') res.warlockSlots=res.warlockSlotsMax||0;
+  if(c.tracker.mysticArcanumUsed) c.tracker.mysticArcanumUsed={};
+  res.arcaneRecoveryUsed=false;
+  if(cls==='sorcerer') res.sorceryPoints=res.sorceryPointsMax||0;
+  if(cls==='barbarian') res.rageUses=res.rageUsesMax||0;
+  if(cls==='bard') res.bardicInspiration=res.bardicInspirationMax||0;
+  if(cls==='cleric'||cls==='paladin') res.channelDivinity=res.channelDivinityMax||0;
+  if(cls==='druid') res.wildShape=res.wildShapeMax||0;
+  if(cls==='fighter'){
+    res.secondWind=res.secondWindMax||0;
+    res.actionSurge=res.actionSurgeMax||0;
+    res.indomitable=res.indomitableMax||0;
+    if(sub==='battlemaster') res.superiorityDice=res.superiorityDiceMax||0;
+  }
+  if(cls==='monk') res.ki=res.kiMax||0;
+  if(cls==='paladin') res.layOnHandsHP=res.layOnHandsHPMax||0;
+  if(c.tracker.spells&&getSpellMode(c)==='prepared') c.tracker.spells.prepared=[];
+  if(c.tracker.spells&&getSpellMode(c)==='spellbook') c.tracker.spells.prepared=[];
+  c.tracker.currentHP=computeMaxHP(); // same value since level hasn't changed
+  c.tracker.tempHP=0;
+  c.tracker.deathSaves={successes:0,failures:0};
+}
+
+// ── PHASE 2: APPROVAL QUEUE ───────────────────────────────────────────────────
+
+async function submitChangeRequest(type,desc,proposedChar){
+  if(!_campaign||_sandboxMode) return false;
+  const session=await getSession();
+  if(!session) return false;
+  const{data,error}=await _sb.from('campaign_change_requests').insert({
+    campaign_id:_campaign.id,
+    user_id:session.user.id,
+    char_name:char?.identity?.name||'Unknown',
+    change_type:type,
+    description:desc,
+    change_data:{proposedChar},
+    status:'pending'
+  }).select().single();
+  if(error){showToast('Could not submit request: '+error.message,'warning');return false;}
+  _pendingRequests.push({id:data.id,change_type:type,description:desc});
+  if(_sessionChannel){
+    _sessionChannel.send({type:'broadcast',event:'change_request',payload:{
+      id:data.id,type,desc,charName:char?.identity?.name||'Unknown',userId:session.user.id,ts:new Date().toISOString()
+    }});
+  }
+  showToast('Request submitted — waiting for DM approval','info');
+  render();
+  return true;
+}
+
+async function _loadPendingRequests(){
+  if(!_campaign||_isDM) return;
+  const session=await getSession();
+  if(!session) return;
+  const{data}=await _sb.from('campaign_change_requests')
+    .select('id,change_type,description,status')
+    .eq('campaign_id',_campaign.id)
+    .eq('user_id',session.user.id)
+    .eq('status','pending');
+  if(data) _pendingRequests=data.map(r=>({id:r.id,change_type:r.change_type,description:r.description}));
+}
+
+async function _loadDMPendingRequests(){
+  if(!_campaign||!_isDM) return;
+  const{data}=await _sb.from('campaign_change_requests')
+    .select('*')
+    .eq('campaign_id',_campaign.id)
+    .eq('status','pending')
+    .order('created_at',{ascending:true});
+  if(data) _dmPendingRequests=data;
+}
+
+async function approveCampaignChange(requestId){
+  if(!_campaign||!_isDM) return;
+  // Fetch full request data if we only have the summary
+  let req=_dmPendingRequests.find(r=>r.id===requestId);
+  if(!req){showToast('Request not found.','warning');return;}
+  if(!req.change_data){
+    const{data}=await _sb.from('campaign_change_requests').select('*').eq('id',requestId).single();
+    if(data) req=data;
+  }
+  const proposedChar=req.change_data?.proposedChar;
+  if(!proposedChar){showToast('No proposed state attached to this request.','warning');return;}
+
+  // Write proposed char to player's campaign state
+  const{error}=await _sb.from('campaign_character_state').upsert({
+    campaign_id:_campaign.id,
+    user_id:req.user_id,
+    char_name:req.char_name||proposedChar.identity?.name||'Unknown',
+    char_data:proposedChar
+  },{onConflict:'campaign_id,user_id'});
+  if(error){showToast('Failed to apply change: '+error.message,'warning');return;}
+
+  // Mark as approved
+  await _sb.from('campaign_change_requests').update({status:'approved',resolved_at:new Date().toISOString()}).eq('id',requestId);
+
+  // Update DM's local player state cache
+  const idx=_dmPlayerStates.findIndex(s=>s.user_id===req.user_id);
+  if(idx>=0) _dmPlayerStates[idx].char_data=proposedChar;
+  else _dmPlayerStates.push({user_id:req.user_id,char_name:req.char_name,char_data:proposedChar,updated_at:new Date().toISOString()});
+  if(_dmViewedPlayer&&_dmViewedPlayer.userId===req.user_id) _dmViewedPlayer.charData=proposedChar;
+
+  // Broadcast approval to player
+  if(_sessionChannel){
+    _sessionChannel.send({type:'broadcast',event:'change_resolved',payload:{
+      requestId,status:'approved',userId:req.user_id,desc:req.description
+    }});
+  }
+  _dmPendingRequests=_dmPendingRequests.filter(r=>r.id!==requestId);
+  await logActivity('dm_action','approved '+req.char_name+"'s "+req.description);
+  showToast('Approved — '+req.char_name+': '+req.description,'success');
+  render();
+}
+
+async function rejectCampaignChange(requestId){
+  if(!_campaign||!_isDM) return;
+  const req=_dmPendingRequests.find(r=>r.id===requestId);
+  if(!req) return;
+  const msg=prompt('Rejection reason (optional — the player will see this):');
+  if(msg===null) return; // cancelled
+  await _sb.from('campaign_change_requests').update({
+    status:'rejected',dm_message:msg||'',resolved_at:new Date().toISOString()
+  }).eq('id',requestId);
+  if(_sessionChannel){
+    _sessionChannel.send({type:'broadcast',event:'change_resolved',payload:{
+      requestId,status:'rejected',userId:req.user_id,desc:req.description,message:msg||''
+    }});
+  }
+  _dmPendingRequests=_dmPendingRequests.filter(r=>r.id!==requestId);
+  await logActivity('dm_action','rejected '+req.char_name+"'s "+req.description+(msg?' — '+msg:''));
+  showToast('Rejected request','info');
+  render();
+}
+
+// ── PHASE 3: DM DIRECT PLAYER EDIT ───────────────────────────────────────────
+
+function viewPlayerSheet(userId){
+  const state=_dmPlayerStates.find(s=>s.user_id===userId);
+  if(!state){showToast('No character data for this player yet.','warning');return;}
+  _dmViewedPlayer={userId,charName:state.char_name,charData:JSON.parse(JSON.stringify(state.char_data))};
+  render();
+}
+
+function closeDMPlayerSheet(){_dmViewedPlayer=null;render();}
+
+async function _applyDMEditToPlayer(userId,editFn,fieldName,newValue,desc){
+  // Load current player state
+  const{data,error}=await _sb.from('campaign_character_state')
+    .select('char_data,char_name')
+    .eq('campaign_id',_campaign.id)
+    .eq('user_id',userId)
+    .single();
+  if(error||!data){showToast('Could not load player state.','warning');return;}
+  const updatedChar=JSON.parse(JSON.stringify(data.char_data));
+  editFn(updatedChar);
+  await _sb.from('campaign_character_state').update({char_data:updatedChar,char_name:data.char_name}).eq('campaign_id',_campaign.id).eq('user_id',userId);
+  // Update DM caches
+  const idx=_dmPlayerStates.findIndex(s=>s.user_id===userId);
+  if(idx>=0) _dmPlayerStates[idx].char_data=updatedChar;
+  if(_dmViewedPlayer&&_dmViewedPlayer.userId===userId) _dmViewedPlayer.charData=updatedChar;
+  // Broadcast to player
+  if(_sessionChannel){
+    _sessionChannel.send({type:'broadcast',event:'dm_edit',payload:{userId,field:fieldName,value:newValue}});
+  }
+  await logActivity('dm_action',desc||'DM updated '+fieldName);
+  render();
+}
+
+async function dmSetPlayerHP(userId){
+  const state=_dmPlayerStates.find(s=>s.user_id===userId)||(_dmViewedPlayer?.userId===userId?{char_data:_dmViewedPlayer.charData}:null);
+  const max=state?.char_data?.hp?.max||50;
+  const cur=state?.char_data?.tracker?.currentHP??max;
+  const val=prompt('Set HP for this player (max '+max+'):',cur);
+  if(val===null||val==='') return;
+  const newHP=Math.max(0,Math.min(max,parseInt(val)||0));
+  await _applyDMEditToPlayer(userId,c=>{c.tracker.currentHP=newHP;},'currentHP',newHP,'DM set HP to '+newHP);
+  showToast('HP set to '+newHP,'success');
+}
+
+async function dmSetPlayerTempHP(userId){
+  const state=_dmPlayerStates.find(s=>s.user_id===userId)||(_dmViewedPlayer?.userId===userId?{char_data:_dmViewedPlayer.charData}:null);
+  const cur=state?.char_data?.tracker?.tempHP??0;
+  const val=prompt('Set Temp HP:',cur);
+  if(val===null||val==='') return;
+  const newTHP=Math.max(0,parseInt(val)||0);
+  await _applyDMEditToPlayer(userId,c=>{c.tracker.tempHP=newTHP;},'tempHP',newTHP,'DM set Temp HP to '+newTHP);
+}
+
+async function dmTogglePlayerCondition(userId,condition){
+  await _applyDMEditToPlayer(userId,c=>{
+    const conds=c.tracker.conditions=c.tracker.conditions||[];
+    const idx=conds.indexOf(condition);
+    if(idx>=0) conds.splice(idx,1); else conds.push(condition);
+  },'conditions',null,'DM toggled condition: '+condition);
+}
+
+async function dmSetPlayerCurrency(userId,key,val){
+  await _applyDMEditToPlayer(userId,c=>{
+    c.tracker.currency=c.tracker.currency||{cp:0,sp:0,gp:0,pp:0};
+    c.tracker.currency[key]=Math.max(0,parseInt(val)||0);
+  },'currency',null,'DM set currency');
+}
+
+async function dmAddPlayerItem(userId){
+  const name=prompt('Item name:');
+  if(!name||!name.trim()) return;
+  const qty=parseInt(prompt('Quantity:','1'))||1;
+  const item={name:name.trim(),qty};
+  await _applyDMEditToPlayer(userId,c=>{
+    c.tracker.inventory=c.tracker.inventory||[];
+    c.tracker.inventory.push(item);
+  },'inventory',null,'DM added item: '+name);
+  showToast('Added '+name+' to '+( _dmViewedPlayer?.charName||'player')+"'s inventory",'success');
+}
+
+async function dmRemovePlayerItem(userId,idx){
+  await _applyDMEditToPlayer(userId,c=>{
+    if(c.tracker.inventory) c.tracker.inventory.splice(idx,1);
+  },'inventory',null,'DM removed inventory item');
+}
+
+function renderDMPlayerSheet(){
+  const p=_dmViewedPlayer;
+  if(!p) return '';
+  const cd=p.charData||{};
+  const t=cd.tracker||{};
+  const eff=cd.effectiveAbilities||{str:10,dex:10,con:10,int:10,wis:10,cha:10};
+  const maxHP=cd.hp?.max||0;
+  const conditions=['Blinded','Charmed','Deafened','Frightened','Grappled','Incapacitated','Invisible','Paralyzed','Petrified','Poisoned','Prone','Restrained','Stunned','Unconscious'];
+  const pct=maxHP?Math.max(0,Math.min(100,((t.currentHP??maxHP)/maxHP)*100)):100;
+  const hpColor=pct>50?'var(--green)':pct>25?'var(--gold)':'var(--hp-red)';
+  const curConds=t.conditions||[];
+  const inv=t.inventory||[];
+  const cur=t.currency||{cp:0,sp:0,gp:0,pp:0};
+  const res=t.resources||{};
+
+  return`<div style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;width:100%;max-width:860px;margin:auto;">
+      <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-family:'Cinzel',serif;font-size:18px;font-weight:700;">${p.charName||'Unknown'}</div>
+          <div style="font-size:12px;color:var(--muted);">${cd.class?.name||''} · Level ${cd.level||1} · ${cd.race?.name||''}</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="closeDMPlayerSheet()">✕ Close</button>
+      </div>
+      <div style="padding:1.5rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <!-- HP + Combat -->
+        <div>
+          <div class="card" style="margin-bottom:1rem;">
+            <div class="card-title">Hit Points</div>
+            <div style="display:flex;align-items:center;gap:1rem;margin-bottom:8px;">
+              <div style="flex:1;">
+                <div style="font-size:28px;font-weight:700;color:${hpColor};">${t.currentHP??maxHP}<span style="font-size:16px;color:var(--muted);font-weight:400;"> / ${maxHP}</span></div>
+                ${t.tempHP?`<div style="font-size:13px;color:var(--ac-blue);">+${t.tempHP} temp</div>`:''}
+                <div class="hp-mini-bar" style="margin-top:6px;height:8px;"><div class="hp-mini-fill" style="width:${pct}%;background:${hpColor};"></div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <button class="btn btn-sm btn-red" onclick="dmSetPlayerHP('${p.userId}')">Set HP</button>
+                <button class="btn btn-sm btn-ghost" onclick="dmSetPlayerTempHP('${p.userId}')">Set Temp</button>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:1rem;">
+            <div class="card-title">Conditions</div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;">
+              ${conditions.map(c=>{
+                const active=curConds.includes(c);
+                return`<button onclick="dmTogglePlayerCondition('${p.userId}','${c}')" style="font-size:11px;padding:3px 8px;border-radius:12px;border:1px solid ${active?'var(--red)':'var(--border)'};background:${active?'var(--red)':'var(--chip-bg)'};color:${active?'#fff':'var(--ink-light)'};cursor:pointer;">${c}</button>`;
+              }).join('')}
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Ability Scores</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center;">
+              ${['str','dex','con','int','wis','cha'].map(s=>`
+                <div style="background:var(--chip-bg);border-radius:6px;padding:6px;">
+                  <div style="font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);">${s}</div>
+                  <div style="font-size:18px;font-weight:700;">${eff[s]||10}</div>
+                  <div style="font-size:11px;color:var(--muted);">${(m=>m>=0?'+'+m:''+m)(getModNum(eff[s]||10))}</div>
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>
+        <!-- Inventory + Currency -->
+        <div>
+          <div class="card" style="margin-bottom:1rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div class="card-title" style="margin:0;">Currency</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;">
+              ${['cp','sp','gp','pp'].map(k=>`<div style="text-align:center;">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">${k.toUpperCase()}</div>
+                <input type="number" min="0" value="${cur[k]||0}" style="width:100%;text-align:center;font-size:13px;border:1px solid var(--border);border-radius:4px;padding:3px;" onchange="dmSetPlayerCurrency('${p.userId}','${k}',this.value)"/>
+              </div>`).join('')}
+            </div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div class="card-title" style="margin:0;">Inventory (${inv.length})</div>
+              <button class="btn btn-sm btn-ghost" onclick="dmAddPlayerItem('${p.userId}')">+ Add Item</button>
+            </div>
+            ${inv.length===0?'<p style="font-size:13px;color:var(--muted);font-style:italic;">Empty</p>'
+              :`<div style="max-height:280px;overflow-y:auto;">
+                ${inv.map((item,i)=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);">
+                  <div style="font-size:13px;">${item.name||'Item'}${item.qty&&item.qty>1?' ×'+item.qty:''}</div>
+                  <button onclick="dmRemovePlayerItem('${p.userId}',${i})" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;">✕</button>
+                </div>`).join('')}
+              </div>`}
+          </div>
+        </div>
+      </div>
+      ${res.spellSlots&&res.spellSlots.some(([c])=>c>0||true)?`
+      <div style="padding:0 1.5rem 1.5rem;">
+        <div class="card">
+          <div class="card-title">Spell Slots</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            ${(res.spellSlots||[]).map(([cur,max],i)=>max>0?`<div style="text-align:center;min-width:44px;"><div style="font-size:10px;color:var(--muted);">Lv ${i+1}</div><div style="font-size:14px;font-weight:700;">${cur}/${max}</div></div>`:''  ).join('')}
+          </div>
+        </div>
+      </div>`:''}
+    </div>
+  </div>`;
+}
+
+async function _saveCampaignChar(){
+  if(!char||!_campaign||_sandboxMode) return;
+  const session=await getSession();
+  if(!session) return;
+  const{error}=await _sb.from('campaign_character_state').upsert({
+    campaign_id:_campaign.id,
+    user_id:session.user.id,
+    char_name:char.identity?.name||'Unknown',
+    char_data:char
+  },{onConflict:'campaign_id,user_id'});
+  if(error){console.error('Campaign save failed:',error.message);return;}
+  // Broadcast to DM so their view updates live
+  if(_sessionChannel){
+    _sessionChannel.send({type:'broadcast',event:'player_state_update',payload:{
+      userId:session.user.id,charName:char.identity?.name||'Unknown',charData:char,ts:new Date().toISOString()
+    }});
   }
 }
 
-// Initialize after deferred scripts (Supabase SDK) have loaded
+async function _loadCampaignChar(campaignId,session){
+  const{data,error}=await _sb.from('campaign_character_state')
+    .select('char_data,char_name,updated_at')
+    .eq('campaign_id',campaignId)
+    .eq('user_id',session.user.id)
+    .single();
+  if(data&&!error){
+    store.set('dnd5e_camp_'+campaignId,JSON.stringify(data.char_data));
+    return data.char_data;
+  }
+  // Fallback to local cache
+  const cached=store.get('dnd5e_camp_'+campaignId);
+  if(cached){try{return JSON.parse(cached);}catch(e){}}
+  return null;
+}
+
+async function _loadActivityFeed(campaignId){
+  const{data}=await _sb.from('campaign_activity')
+    .select('*')
+    .eq('campaign_id',campaignId)
+    .order('created_at',{ascending:false})
+    .limit(50);
+  if(data) _activityFeed=data;
+}
+
+async function logActivity(type,desc,data){
+  if(!_campaign||_sandboxMode) return;
+  const session=await getSession();
+  if(!session) return;
+  const entry={
+    campaign_id:_campaign.id,
+    user_id:session.user.id,
+    char_name:char?.identity?.name||'Unknown',
+    action_type:type,
+    description:desc,
+    data:data||null
+  };
+  _sb.from('campaign_activity').insert(entry).then(()=>{});
+  // Broadcast to channel so all members see it live
+  if(_sessionChannel){
+    _sessionChannel.send({type:'broadcast',event:'activity',payload:{type,desc,charName:entry.char_name,ts:new Date().toISOString()}});
+  }
+  _activityFeed.unshift({...entry,created_at:new Date().toISOString()});
+  if(_activityFeed.length>60) _activityFeed.pop();
+}
+
+async function loadDMPlayerStates(){
+  if(!_campaign||!_isDM) return;
+  const{data,error}=await _sb.from('campaign_character_state')
+    .select('user_id,char_name,char_data,updated_at')
+    .eq('campaign_id',_campaign.id);
+  if(!error&&data) _dmPlayerStates=data;
+  render();
+}
+
+async function _initCampaignMode(campaignId,isDM,session){
+  const{data:camp,error}=await _sb.from('campaigns').select('*').eq('id',campaignId).single();
+  if(error||!camp){
+    showToast('Campaign not found.','warning');
+    window.location.href='campaigns.html';
+    return;
+  }
+  _campaign=camp;
+  _isDM=isDM||(camp.created_by===session.user.id);
+  _currentUserId=session.user.id;
+  store.set('dnd5e_campaign_id',camp.id);
+  _saveCampaignToRegistry(camp);
+  await _joinChannel(camp.id);
+  if(_isDM){
+    char=null;
+    await Promise.all([loadDMPlayerStates(),_loadActivityFeed(camp.id),_loadDMPendingRequests()]);
+    showToast('DM Panel — '+camp.name,'info');
+    render();
+  } else {
+    const charData=await _loadCampaignChar(camp.id,session);
+    if(charData){
+      try{
+        char=migrateChar(charData);
+        syncResources(char);syncSpells(char);
+        activeTab='combat';
+        await Promise.all([_loadActivityFeed(camp.id),_loadPendingRequests()]);
+        showToast('Welcome back, '+camp.name,'success');
+        await logActivity('join','rejoined the campaign');
+      }catch(e){
+        console.error('Failed to restore campaign char:',e);
+        char=null;
+      }
+    } else {
+      await _loadActivityFeed(camp.id);
+    }
+    render();
+  }
+}
+
+function renderCharacterInit(){
+  const chars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+  return`<div style="max-width:640px;margin:4rem auto;padding:1.5rem;">
+    ${_renderSessionBarHTML()}
+    <div class="card" style="margin-top:1.5rem;">
+      <div class="card-title" style="margin-bottom:4px;">Joining ${_campaign?.name||'Campaign'}</div>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:1.25rem;">Choose a character to bring into this campaign. Once in, all your progression — levels, inventory, gold, HP — lives here and stays separate from your other campaigns.</p>
+      ${chars.length>0?`<div style="margin-bottom:1.25rem;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--ink-light);">Your Characters</div>
+        ${chars.map(c=>`<div class="party-player" style="cursor:pointer;" onclick="initCampaignCharacter('${c.id}')">
+          <div style="flex:1;min-width:0;">
+            <div class="party-name">${c.name||'Unnamed'}</div>
+            <div class="party-sub">${c.classId?c.classId.charAt(0).toUpperCase()+c.classId.slice(1):''} · Lv ${c.level||1}</div>
+          </div>
+          <button class="btn btn-sm" onclick="event.stopPropagation();initCampaignCharacter('${c.id}')">Bring In →</button>
+        </div>`).join('')}
+      </div>`:'<p style="font-size:13px;color:var(--muted);font-style:italic;margin-bottom:1rem;">No characters found — build one first.</p>'}
+      <div style="border-top:1px solid var(--border);padding-top:1rem;">
+        <a href="builder.html" class="btn btn-ghost btn-sm" style="margin-right:8px;">Open Character Builder</a>
+        <a href="campaigns.html" class="btn btn-ghost btn-sm">Back to Campaigns</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function initCampaignCharacter(charId){
+  const saved=CharStore.loadPart(charId,'tracker');
+  if(!saved){showToast('Character not found.','warning');return;}
+  try{
+    char=migrateChar(saved);
+    // Don't carry the CharStore _charId into campaign mode — campaign identity is (campaign_id, user_id)
+    delete char._charId;
+    syncResources(char);syncSpells(char);
+    activeTab='combat';
+    // Immediately persist to campaign state
+    if(_campaignSaveTimer) clearTimeout(_campaignSaveTimer);
+    await _saveCampaignChar();
+    // Cache locally
+    if(_campaign) store.set('dnd5e_camp_'+_campaign.id,JSON.stringify(char));
+    await logActivity('join','entered the campaign as '+char.identity?.name);
+    showToast((char.identity?.name||'Character')+' is now in this campaign!','success');
+    render();
+  }catch(e){showToast('Error loading character: '+e.message,'warning');}
+}
+
+// ── URL ROUTING ────────────────────────────────────────────────────────────────
+// ?campaign=UUID            → player enters campaign
+// ?campaign=UUID&dm=true    → DM panel
+// ?sandbox=true             → sandbox mode (no campaign required, local only)
+// (no params)               → redirect to campaigns.html
+
 document.addEventListener('DOMContentLoaded', async function(){
   initTheme();
   initSupabase();
   renderTrackerAuthBar();
-  if(!loadPendingImport()) loadSaved();
+
   const params=new URLSearchParams(location.search);
-  if(params.get('rejoin')||params.get('dm')){
-    await _handleURLParams();
-  } else {
-    await loadActiveCampaign();
+  const campaignId=params.get('campaign');
+  const isSandbox=params.get('sandbox')==='true'||params.get('sandbox')==='1';
+  const isDMParam=params.get('dm')==='true'||params.get('dm')==='1';
+
+  if(isSandbox){
+    _sandboxMode=true;
+    if(!loadPendingImport()) loadSaved();
+    showToast('Sandbox mode — changes are local only','info');
+    return;
   }
+
+  if(campaignId){
+    const session=await getSession();
+    if(!session){
+      window.location.href='campaigns.html?signin=1';
+      return;
+    }
+    await _initCampaignMode(campaignId,isDMParam,session);
+    return;
+  }
+
+  // No campaign, no sandbox → redirect to campaigns hub
+  window.location.href='campaigns.html';
 });
 
 // File input handled via handleFileInput() defined at top of script
