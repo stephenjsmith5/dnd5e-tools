@@ -2186,7 +2186,7 @@ function renderSidebar(){
       <div class="card-title" style="font-size:11px;margin-bottom:6px;">Saving Throws</div>
       <div class="sidebar-saves">
         ${STAT_NAMES.map(s=>{
-          const isProf=char.class.saves.includes(s);
+          const isProf=(char.class.saves||[]).includes(s);
           const mod=getModNum(eff[s])+(isProf?prof:0);
           return`<div class="sidebar-save-row" onclick="rollCheck('${STAT_LABELS[s]} Save',${mod})" title="Roll ${STAT_LABELS[s]} save">
             <span style="color:${isProf?'var(--ink)':'var(--muted)'};">${isProf?'●':'○'}&nbsp;${STAT_LABELS[s]}</span>
@@ -5337,6 +5337,8 @@ function migrateChar(char){
     if(!char.feats||!Array.isArray(char.feats)) char.feats=[];
     if(!char.background) char.background={id:'',name:''};
     if(!char.speed) char.speed=30;
+    // Guarantee class.saves is always an array (old saves may not have it)
+    if(char.class&&!Array.isArray(char.class.saves)) char.class.saves=[];
     // Guarantee every tracker sub-field
     if(!char.tracker) char.tracker={};
     var t=char.tracker;
@@ -6561,12 +6563,13 @@ function renderCharacterInit(){
       <p style="color:var(--muted);font-size:14px;margin-bottom:1.25rem;">Choose a character to bring into this campaign. Once in, all your progression — levels, inventory, gold, HP — lives here and stays separate from your other campaigns.</p>
       ${chars.length>0?`<div style="margin-bottom:1.25rem;">
         <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--ink-light);">Your Characters</div>
-        ${chars.map(c=>`<div class="party-player" style="cursor:pointer;" onclick="initCampaignCharacter('${c.id}')">
-          <div style="flex:1;min-width:0;">
+        ${chars.map(c=>`<div class="party-player">
+          <div style="flex:1;min-width:0;cursor:pointer;" onclick="initCampaignCharacter('${c.id}')">
             <div class="party-name">${c.name||'Unnamed'}</div>
             <div class="party-sub">${c.classId?c.classId.charAt(0).toUpperCase()+c.classId.slice(1):''} · Lv ${c.level||1}</div>
           </div>
-          <button class="btn btn-sm" onclick="event.stopPropagation();initCampaignCharacter('${c.id}')">Bring In →</button>
+          <button class="btn btn-sm" onclick="initCampaignCharacter('${c.id}')">Bring In →</button>
+          <button class="btn btn-ghost btn-sm" onclick="if(confirm('Delete \\'${(c.name||'Unnamed').replace(/'/g,"\\'")}\\' from your character list?')){CharStore.delete('${c.id}');render();}" style="font-size:11px;color:var(--muted);padding:3px 7px;" title="Delete this character">✕</button>
         </div>`).join('')}
       </div>`:'<p style="font-size:13px;color:var(--muted);font-style:italic;margin-bottom:1rem;">No characters found — build one first.</p>'}
       <div style="border-top:1px solid var(--border);padding-top:1rem;">
@@ -6577,21 +6580,29 @@ function renderCharacterInit(){
   </div>`;
 }
 
+let _initCampaignCharBusy=false;
 async function initCampaignCharacter(charId){
+  if(_initCampaignCharBusy) return; // prevent double-click duplicates
+  _initCampaignCharBusy=true;
   // Try tracker part first (character has been played before), then builder part (fresh build)
   const trackerData=CharStore.loadPart(charId,'tracker');
   const builderData=CharStore.loadPart(charId,'builder');
   const rawData=trackerData||builderData;
-  if(!rawData){showToast('Character data not found — try rebuilding in the Character Builder.','warning');return;}
+  if(!rawData){
+    _initCampaignCharBusy=false;
+    showToast('Character data not found — try rebuilding in the Character Builder.','warning');
+    return;
+  }
   try{
     if(trackerData){
       char=migrateChar(trackerData);
+      char._charId=charId; // ensure stable ID is preserved
     } else {
-      // Builder-only character: run through applyCharData to seed tracker fields
+      // Builder-only: inject stable ID before applyCharData so it doesn't generate a new one
+      builderData._charId=charId;
       applyCharData(builderData);
-      // applyCharData sets the global char — now normalize it
+      // applyCharData sets the global char with correct ID
     }
-    delete char._charId;
     syncResources(char);syncSpells(char);
     activeTab='combat';
     if(_campaignSaveTimer) clearTimeout(_campaignSaveTimer);
@@ -6605,6 +6616,7 @@ async function initCampaignCharacter(charId){
     showToast((char.identity?.name||'Character')+' is now in this campaign!','success');
     render();
   }catch(e){showToast('Error loading character: '+e.message,'warning');console.error(e);}
+  finally{_initCampaignCharBusy=false;}
 }
 
 // ── URL ROUTING ────────────────────────────────────────────────────────────────
