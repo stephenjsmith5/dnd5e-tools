@@ -442,6 +442,7 @@ button[data-tip],label[data-tip]{cursor:pointer;}
       <a class="top-nav-link" href="index.html">Home</a>
       <a class="top-nav-link" href="builder.html">Builder</a>
       <a class="top-nav-link active" href="tracker.html">Tracker</a>
+      <a class="top-nav-link" href="campaigns.html">Campaigns</a>
     </div>
     <div class="top-nav-right">
       <div class="theme-dots" id="themeDots"></div>
@@ -2108,7 +2109,10 @@ function showCharSelect(){char=null;activeTab='combat';render();}
 
 function render(){
   const root=document.getElementById('root');
-  if(!char){root.innerHTML=renderUpload();return;}
+  if(!char){
+    if(_isDM&&_campaign){root.innerHTML=renderDMOnlyView();return;}
+    root.innerHTML=renderUpload();return;
+  }
   const _allTabs=['combat','encounter','resources','spells','skills','levelup','inventory','log','notes'];
   let _tabs=_sessionCode?['party',..._allTabs]:_allTabs;
   if(_isDM&&_sessionCode&&!_tabs.includes('dm'))_tabs=['dm',..._tabs];
@@ -5253,6 +5257,16 @@ function deleteTrackerChar(id){
 
 // ── CAMPAIGN FUNCTIONS ────────────────────────────────────────────────────────
 
+function _getCampaignRegistry(){try{return JSON.parse(localStorage.getItem('dnd5e_my_campaigns')||'[]');}catch(e){return[];}}
+function _saveCampaignToRegistry(entry){
+  const reg=_getCampaignRegistry().filter(c=>c.id!==entry.id);
+  reg.unshift(entry);
+  localStorage.setItem('dnd5e_my_campaigns',JSON.stringify(reg));
+}
+function _removeCampaignFromRegistry(id){
+  localStorage.setItem('dnd5e_my_campaigns',JSON.stringify(_getCampaignRegistry().filter(c=>c.id!==id)));
+}
+
 function _genInviteCode(){
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code='';
@@ -5277,6 +5291,7 @@ async function createCampaign(name){
   const{data:camp}=await _sb.from('campaigns').select('*').eq('invite_code',invite_code).single();
   _campaign=camp;_isDM=true;
   store.set('dnd5e_campaign_id',camp.id);
+  _saveCampaignToRegistry({id:camp.id,name:camp.name,invite_code:camp.invite_code,isDM:true});
   _sessionModalMode=null;_renderSessionModalEl();
   await _joinChannel(camp.id);
   showToast('Campaign created! Invite code: '+invite_code,'success');
@@ -5293,8 +5308,14 @@ async function joinCampaign(code){
   if(error||!camp){showToast('Campaign not found. Check the invite code.','warning');return;}
   // Upsert membership
   await _sb.from('campaign_members').upsert({campaign_id:camp.id,user_id:session.user.id,char_name:char.identity?.name||'Unknown'},{onConflict:'campaign_id,user_id'});
-  _campaign=camp;_isDM=(camp.created_by===session.user.id);
+  const isDM=(camp.created_by===session.user.id);
+  _campaign=camp;_isDM=isDM;
   store.set('dnd5e_campaign_id',camp.id);
+  _saveCampaignToRegistry({
+    id:camp.id,name:camp.name,invite_code:camp.invite_code,isDM,
+    charId:char._charId||null,charName:char.identity?.name||null,
+    charClass:char.class?.id||null,charLevel:char.level||null,
+  });
   _sessionModalMode=null;_renderSessionModalEl();
   await _joinChannel(camp.id);
   showToast('Joined campaign: '+camp.name,'success');
@@ -5302,9 +5323,11 @@ async function joinCampaign(code){
 
 async function leaveCampaign(){
   if(_sessionChannel){_sessionChannel.unsubscribe();_sessionChannel=null;}
+  const campId=_campaign?.id;
   _sessionCode=null;_sessionPresence={};_sessionFeed=[];
   _campaign=null;_isDM=false;
   store.remove('dnd5e_campaign_id');
+  if(campId) _removeCampaignFromRegistry(campId);
   activeTab='combat';
   render();
   showToast('Left campaign.','info');
@@ -5332,8 +5355,10 @@ function dmAnnounce(type){
 async function deleteCampaign(){
   if(!_campaign||!_isDM) return;
   if(!confirm('Delete campaign "'+_campaign.name+'"? Players will be disconnected and the campaign cannot be restored.')) return;
-  const{error}=await _sb.from('campaigns').delete().eq('id',_campaign.id);
+  const campId=_campaign.id;
+  const{error}=await _sb.from('campaigns').delete().eq('id',campId);
   if(error){showToast('Could not delete campaign: '+error.message,'warning');return;}
+  _removeCampaignFromRegistry(campId);
   await leaveCampaign();
   showToast('Campaign deleted.','info');
 }
@@ -5403,13 +5428,72 @@ function renderDMTab(){
   </div>`;
 }
 
+function renderDMOnlyView(){
+  return`<div style="max-width:960px;margin:0 auto;padding:1rem 1.5rem;">
+    ${_renderSessionBarHTML()}
+    <div style="margin-top:1rem;">${renderDMTab()}</div>
+  </div>`;
+}
+
+async function _handleURLParams(){
+  const params=new URLSearchParams(location.search);
+  const rejoinId=params.get('rejoin');
+  const dmId=params.get('dm');
+
+  if(rejoinId){
+    // Player rejoining: find their character from registry and load it
+    const registry=_getCampaignRegistry();
+    const entry=registry.find(c=>c.id===rejoinId);
+    if(entry){
+      if(entry.charId){
+        const saved=CharStore.loadPart(entry.charId,'tracker');
+        if(saved){
+          char=migrateChar(saved);char._charId=entry.charId;
+          CharStore.setActive(entry.charId);
+          syncResources(char);syncSpells(char);
+          activeTab='combat';
+        }
+      }
+      const session=await getSession();
+      if(session){
+        const{data:camp}=await _sb.from('campaigns').select('*').eq('id',rejoinId).single();
+        if(camp){
+          _campaign=camp;_isDM=(camp.created_by===session.user.id);
+          store.set('dnd5e_campaign_id',camp.id);
+          await _joinChannel(camp.id);
+          showToast('Rejoined '+camp.name,'success');
+          return;
+        }
+      }
+    }
+    showToast('Could not rejoin — campaign not found.','warning');
+  }
+
+  if(dmId){
+    // DM opening panel: no character needed
+    const session=await getSession();
+    if(!session){showToast('Sign in to open your DM panel.','warning');openAuthModal();return;}
+    const{data:camp}=await _sb.from('campaigns').select('*').eq('id',dmId).single();
+    if(!camp){showToast('Campaign not found.','warning');return;}
+    _campaign=camp;_isDM=true;
+    store.set('dnd5e_campaign_id',camp.id);
+    await _joinChannel(camp.id);
+    showToast('DM panel opened — '+camp.name,'success');
+  }
+}
+
 // Initialize after deferred scripts (Supabase SDK) have loaded
-document.addEventListener('DOMContentLoaded', function(){
+document.addEventListener('DOMContentLoaded', async function(){
   initTheme();
   initSupabase();
   renderTrackerAuthBar();
   if(!loadPendingImport()) loadSaved();
-  loadActiveCampaign();
+  const params=new URLSearchParams(location.search);
+  if(params.get('rejoin')||params.get('dm')){
+    await _handleURLParams();
+  } else {
+    await loadActiveCampaign();
+  }
 });
 
 // File input handled via handleFileInput() defined at top of script

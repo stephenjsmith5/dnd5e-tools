@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="parchment">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Campaigns — D&D 5e Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<style>
+:root{
+  --parchment:#fdf8f0;--ink:#2c2416;--ink-light:#5a4a2a;
+  --gold:#8b6914;--gold-light:#c9a84c;--red:#8b1a1a;--on-accent:#fff;
+  --border:#d4c5a0;--surface:#fff;--surface2:#fdf4e8;
+  --muted:#9a8a6a;--chip-bg:#f9e8e8;
+  --nav-bg:#2c1810;--nav-text:#f5e6d0;--nav-accent:#c9a84c;
+  --green:#2d7a2d;--blue:#2255aa;
+}
+[data-theme="midnight"]{
+  --parchment:#1a1a2e;--ink:#e2e4e7;--ink-light:#a0a8b2;
+  --gold:#c9a84c;--gold-light:#e8c86a;--red:#b0c4d8;--on-accent:#1a1a2e;
+  --border:#3d3555;--surface:#22223a;--surface2:#2c2c4a;
+  --muted:#8a8099;--chip-bg:rgba(176,196,216,0.12);
+  --nav-bg:#0d0d1a;--nav-text:#e2e4e7;--nav-accent:#b0c4d8;
+  --green:#4caf7d;--blue:#4a9fd4;
+}
+[data-theme="arcane"]{
+  --parchment:#12102a;--ink:#e8d5f5;--ink-light:#c4a8e0;
+  --gold:#9b59b6;--gold-light:#b07fd4;--red:#e0c055;--on-accent:#12102a;
+  --border:#5a3d7a;--surface:#1a1638;--surface2:#241e50;
+  --muted:#8a7aa8;--chip-bg:rgba(224,192,85,0.12);
+  --nav-bg:#0a0818;--nav-text:#e8d5f5;--nav-accent:#e0c055;
+  --green:#58d68d;--blue:#a78bda;
+}
+[data-theme="forest"]{
+  --parchment:#0f1a12;--ink:#d4e8c4;--ink-light:#9fc28f;
+  --gold:#7daa3f;--gold-light:#9acf50;--red:#90cc58;--on-accent:#0f1a12;
+  --border:#3a6a3a;--surface:#182a1a;--surface2:#213522;
+  --muted:#6a9060;--chip-bg:rgba(144,204,88,0.12);
+  --nav-bg:#080f08;--nav-text:#d4e8c4;--nav-accent:#90cc58;
+  --green:#6bdb7e;--blue:#5dade2;
+}
+[data-theme="iron"]{
+  --parchment:#0e0e0e;--ink:#f0f0f0;--ink-light:#c8c8c8;
+  --gold:#e8c84a;--gold-light:#f0dc6e;--red:#e84040;--on-accent:#fff;
+  --border:#505050;--surface:#1a1a1a;--surface2:#242424;
+  --muted:#909090;--chip-bg:rgba(232,64,64,0.12);
+  --nav-bg:#000000;--nav-text:#f0f0f0;--nav-accent:#e84040;
+  --green:#44ee88;--blue:#4488ee;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Crimson Text',Georgia,serif;background:var(--parchment);color:var(--ink);min-height:100vh;}
+input,select,textarea{color:var(--ink);background:var(--surface);border-color:var(--border);}
+
+/* ── Nav ── */
+.top-nav{position:fixed;top:0;left:0;right:0;z-index:100;height:48px;background:var(--nav-bg);border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;}
+.top-nav-inner{width:100%;max-width:1200px;margin:0 auto;padding:0 1rem;display:flex;align-items:center;gap:1rem;}
+.top-nav-brand{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--nav-accent);letter-spacing:1px;white-space:nowrap;}
+.top-nav-links{display:flex;gap:4px;margin-left:8px;}
+.top-nav-link{color:var(--nav-text);text-decoration:none;font-size:13px;padding:4px 10px;border-radius:4px;opacity:.75;transition:opacity .15s,background .15s;}
+.top-nav-link:hover{opacity:1;background:rgba(255,255,255,.08);}
+.top-nav-link.active{opacity:1;color:var(--nav-accent);font-weight:600;}
+.top-nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.theme-dots{display:flex;gap:5px;align-items:center;}
+.theme-dot{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .1s;}
+.theme-dot.active,.theme-dot:hover{border-color:#fff;transform:scale(1.15);}
+.auth-bar{display:flex;align-items:center;gap:8px;}
+.auth-email{font-size:12px;color:var(--nav-text);opacity:.8;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ── Buttons ── */
+.btn{font-family:'Cinzel',serif;font-size:13px;padding:7px 16px;border-radius:4px;border:1px solid transparent;cursor:pointer;transition:filter .15s,opacity .15s;font-weight:600;display:inline-block;text-decoration:none;text-align:center;white-space:nowrap;}
+.btn-red{background:var(--red);color:var(--on-accent);border-color:var(--red);}
+.btn-red:hover{filter:brightness(.88);}
+.btn-gold{background:var(--gold);color:var(--on-accent,#fff);border-color:var(--gold);}
+.btn-gold:hover{filter:brightness(.88);}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--border);}
+.btn-ghost:hover{background:var(--surface2);}
+.btn-danger{background:transparent;color:#c0392b;border-color:#c0392b;}
+.btn-danger:hover{background:rgba(192,57,43,.08);}
+.btn-sm{font-size:11px;padding:4px 10px;}
+
+input,select{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:14px;font-family:'Crimson Text',Georgia,serif;background:var(--surface);color:var(--ink);}
+input:focus,select:focus{outline:none;border-color:var(--red);}
+label{font-size:12px;font-weight:600;color:var(--ink-light);display:block;margin-bottom:4px;}
+
+/* ── Page layout ── */
+.page-wrap{padding-top:72px;max-width:820px;margin:0 auto;padding-left:1.5rem;padding-right:1.5rem;padding-bottom:4rem;}
+.page-heading{font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700;color:var(--ink);margin-bottom:.25rem;margin-top:.5rem;}
+.page-sub{font-size:1rem;color:var(--muted);margin-bottom:2rem;font-style:italic;}
+.divider{height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent);margin:1.5rem 0;}
+
+/* ── Sign-in prompt ── */
+.sign-in-prompt{text-align:center;padding:3rem 2rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-top:1rem;}
+.sign-in-prompt .prompt-icon{font-size:2.5rem;margin-bottom:1rem;}
+.sign-in-prompt h2{font-family:'Cinzel',serif;font-size:1.2rem;margin-bottom:.6rem;}
+.sign-in-prompt p{color:var(--muted);margin-bottom:1.5rem;font-size:15px;max-width:400px;margin-left:auto;margin-right:auto;line-height:1.6;}
+
+/* ── Campaign cards ── */
+.campaign-list{display:flex;flex-direction:column;gap:12px;margin-bottom:1.5rem;}
+.campaign-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.5rem;display:flex;align-items:center;gap:1.5rem;transition:border-color .15s,box-shadow .15s;}
+.campaign-card:hover{border-color:var(--gold);box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.campaign-card-body{flex:1;min-width:0;}
+.campaign-name{font-family:'Cinzel',serif;font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:4px;}
+.campaign-meta{font-size:13px;color:var(--muted);margin-bottom:8px;line-height:1.4;}
+.campaign-code{font-family:'Cinzel',serif;font-size:1.3rem;letter-spacing:5px;color:var(--gold);font-weight:700;background:var(--chip-bg);border:1px solid var(--gold);border-radius:4px;padding:5px 14px;display:inline-block;margin-bottom:4px;}
+.campaign-code-label{font-size:11px;color:var(--muted);}
+.campaign-card-actions{display:flex;flex-direction:column;gap:7px;align-items:stretch;flex-shrink:0;min-width:140px;}
+.badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:3px;margin-bottom:6px;font-family:'Cinzel',serif;}
+.dm-badge{background:var(--chip-bg);border:1px solid var(--gold);color:var(--gold);}
+.player-badge{background:rgba(74,159,212,0.12);border:1px solid var(--blue);color:var(--blue);}
+
+/* ── Empty state ── */
+.empty-state{text-align:center;padding:2.5rem;background:var(--surface);border:1px dashed var(--border);border-radius:8px;margin-bottom:1.5rem;}
+.empty-state p{color:var(--muted);font-size:15px;}
+
+/* ── Action row ── */
+.action-row{display:flex;gap:10px;flex-wrap:wrap;}
+
+/* ── Modals ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:200;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.75rem;min-width:340px;max-width:460px;width:90%;}
+.modal h3{font-family:'Cinzel',serif;font-size:1.1rem;margin-bottom:.5rem;}
+.modal p{font-size:13px;color:var(--muted);margin-bottom:1.25rem;line-height:1.55;}
+.modal-field{margin-bottom:14px;}
+.modal-actions{display:flex;gap:8px;margin-top:4px;}
+
+/* ── Auth modal ── */
+.auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:300;}
+.auth-modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.75rem;min-width:320px;max-width:420px;width:90%;}
+.auth-modal h3{font-family:'Cinzel',serif;font-size:1.1rem;margin-bottom:1rem;}
+.auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1rem;}
+.auth-tab{background:none;border:none;padding:6px 14px;font-family:'Cinzel',serif;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;}
+.auth-tab.active{color:var(--red);border-bottom-color:var(--red);}
+.auth-field{margin-bottom:12px;}
+.auth-field label{font-size:12px;font-weight:600;color:var(--ink-light);display:block;margin-bottom:4px;}
+
+/* ── Toast ── */
+.toast-wrap{position:fixed;bottom:1.5rem;right:1.5rem;display:flex;flex-direction:column;gap:8px;z-index:500;pointer-events:none;}
+.toast{padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600;box-shadow:0 3px 12px rgba(0,0,0,.25);animation:toastIn .2s ease;}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.toast.success{background:#2d7a2d;color:#fff;}
+.toast.warning{background:#c0392b;color:#fff;}
+.toast.info{background:#555;color:#fff;}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <div class="top-nav-inner">
+    <span class="top-nav-brand">⚔ D&amp;D 5e Tools</span>
+    <div class="top-nav-links">
+      <a class="top-nav-link" href="index.html">Home</a>
+      <a class="top-nav-link" href="builder.html">Builder</a>
+      <a class="top-nav-link" href="tracker.html">Tracker</a>
+      <a class="top-nav-link active" href="campaigns.html">Campaigns</a>
+    </div>
+    <div class="top-nav-right">
+      <div class="theme-dots" id="themeDots"></div>
+      <div id="authBar"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-heading">Campaigns</div>
+  <div class="page-sub">Create or join a campaign to play with your group.</div>
+  <div id="root"></div>
+</div>
+
+<div id="modal-root"></div>
+<div id="auth-modal-root"></div>
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+const SUPABASE_URL='https://vjwefnkgclkczfwkvqis.supabase.co';
+const SUPABASE_KEY='sb_publishable_pDMmhqzBWnSYqNYC9m0KaA_2R3haySF';
+let _sb=null;
+
+// ── THEME ──────────────────────────────────────────────────────────────────────
+const THEME_LIST=[
+  {id:'parchment',color:'#f0dfa0',label:'Parchment'},
+  {id:'midnight',color:'#3a3a5c',label:'Midnight'},
+  {id:'arcane',color:'#6a3d9a',label:'Arcane'},
+  {id:'forest',color:'#2e6b2e',label:'Forest'},
+  {id:'iron',color:'#555555',label:'Draconic'},
+];
+function setTheme(id){
+  document.documentElement.setAttribute('data-theme',id);
+  localStorage.setItem('dnd5e_theme',id);
+  document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active',d.dataset.theme===id));
+}
+function initTheme(){
+  const saved=localStorage.getItem('dnd5e_theme')||'parchment';
+  document.documentElement.setAttribute('data-theme',saved);
+  const el=document.getElementById('themeDots');
+  if(el)el.innerHTML=THEME_LIST.map(t=>`<div class="theme-dot${saved===t.id?' active':''}" data-theme="${t.id}" title="${t.label}" style="background:${t.color};" onclick="setTheme('${t.id}')"></div>`).join('');
+}
+
+// ── SUPABASE ───────────────────────────────────────────────────────────────────
+function _sbEnabled(){return SUPABASE_URL!=='YOUR_SUPABASE_URL';}
+async function getSession(){if(!_sb)return null;try{const{data:{session}}=await _sb.auth.getSession();return session;}catch(e){return null;}}
+async function signOut(){if(_sb)await _sb.auth.signOut();renderAuthBar();render();}
+
+// ── LOCAL STORES (read-only mirrors of tracker localStorage) ──────────────────
+function getLocalChars(){try{return JSON.parse(localStorage.getItem('dnd5e_chars')||'[]');}catch(e){return[];}}
+
+// ── CAMPAIGN REGISTRY ─────────────────────────────────────────────────────────
+function getCampaignRegistry(){try{return JSON.parse(localStorage.getItem('dnd5e_my_campaigns')||'[]');}catch(e){return[];}}
+function saveCampaignToRegistry(entry){
+  const reg=getCampaignRegistry().filter(c=>c.id!==entry.id);
+  reg.unshift(entry);
+  localStorage.setItem('dnd5e_my_campaigns',JSON.stringify(reg));
+}
+function removeCampaignFromRegistry(id){
+  localStorage.setItem('dnd5e_my_campaigns',JSON.stringify(getCampaignRegistry().filter(c=>c.id!==id)));
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────────
+function showToast(msg,type='info'){
+  const el=document.getElementById('toast-wrap');if(!el)return;
+  const d=document.createElement('div');d.className='toast '+type;d.textContent=msg;
+  el.appendChild(d);setTimeout(()=>d.remove(),3500);
+}
+
+// ── AUTH BAR ───────────────────────────────────────────────────────────────────
+function renderAuthBar(){
+  const el=document.getElementById('authBar');if(!el||!_sbEnabled())return;
+  getSession().then(s=>{
+    el.innerHTML=s
+      ?`<div class="auth-bar"><span class="auth-email">${s.user.email}</span><button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button></div>`
+      :`<div class="auth-bar"><button class="btn btn-gold btn-sm" onclick="openAuthModal()">☁ Sign In</button></div>`;
+  });
+}
+
+// ── AUTH MODAL ─────────────────────────────────────────────────────────────────
+let _authMode='signin';
+function openAuthModal(){
+  let el=document.getElementById('auth-modal-root');
+  if(!el){el=document.createElement('div');el.id='auth-modal-root';document.body.appendChild(el);}
+  _renderAuthModal();
+}
+function _renderAuthModal(){
+  const el=document.getElementById('auth-modal-root');if(!el)return;
+  el.innerHTML=`<div class="auth-overlay" onclick="if(event.target===this)closeAuthModal()">
+    <div class="auth-modal">
+      <h3>☁ Sign In</h3>
+      <div class="auth-tabs">
+        <button class="auth-tab${_authMode==='signin'?' active':''}" onclick="_authMode='signin';_renderAuthModal()">Sign In</button>
+        <button class="auth-tab${_authMode==='signup'?' active':''}" onclick="_authMode='signup';_renderAuthModal()">Create Account</button>
+      </div>
+      <div class="auth-field"><label>Email</label><input type="email" id="auth-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('auth-pass').focus()"/></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="auth-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()"/></div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-red" style="flex:1;" onclick="doAuth()">${_authMode==='signin'?'Sign In':'Create Account'}</button>
+        <button class="btn btn-ghost" onclick="closeAuthModal()">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  setTimeout(()=>{const i=document.getElementById('auth-email');if(i)i.focus();},50);
+}
+function closeAuthModal(){const el=document.getElementById('auth-modal-root');if(el)el.innerHTML='';}
+async function doAuth(){
+  const email=document.getElementById('auth-email')?.value?.trim();
+  const pass=document.getElementById('auth-pass')?.value;
+  if(!email||!pass){showToast('Enter email and password.','warning');return;}
+  const{error}=_authMode==='signin'
+    ?await _sb.auth.signInWithPassword({email,password:pass})
+    :await _sb.auth.signUp({email,password:pass});
+  if(error){showToast(error.message,'warning');return;}
+  closeAuthModal();
+  renderAuthBar();
+  showToast(_authMode==='signin'?'Signed in!':'Account created — check your email to confirm.','success');
+  render();
+}
+
+// ── INVITE CODE ────────────────────────────────────────────────────────────────
+function _genInviteCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='';for(let i=0;i<6;i++)code+=chars[Math.floor(Math.random()*chars.length)];
+  return code;
+}
+
+// ── CAMPAIGN CRUD ──────────────────────────────────────────────────────────────
+async function createCampaign(name){
+  if(!name?.trim()){showToast('Enter a campaign name.','warning');return;}
+  const session=await getSession();
+  if(!session){showToast('Sign in first.','warning');openAuthModal();return;}
+  const invite_code=_genInviteCode();
+  const{error}=await _sb.from('campaigns').insert({created_by:session.user.id,name:name.trim(),invite_code});
+  if(error){showToast('Could not create campaign: '+error.message,'warning');return;}
+  const{data:camp}=await _sb.from('campaigns').select('*').eq('invite_code',invite_code).single();
+  if(!camp){showToast('Campaign created but could not load it — refresh.','warning');return;}
+  saveCampaignToRegistry({id:camp.id,name:camp.name,invite_code:camp.invite_code,isDM:true});
+  localStorage.setItem('dnd5e_campaign_id',camp.id);
+  closeModal();
+  render();
+  showToast('Campaign created! Invite code: '+invite_code,'success');
+}
+
+async function joinCampaign(code,charId){
+  if(!code?.trim()){showToast('Enter an invite code.','warning');return;}
+  code=code.trim().toUpperCase();
+  const session=await getSession();
+  if(!session){showToast('Sign in first.','warning');openAuthModal();return;}
+  const{data:camp,error}=await _sb.from('campaigns').select('*').eq('invite_code',code).single();
+  if(error||!camp){showToast('Campaign not found — check the invite code.','warning');return;}
+  const charMeta=charId?getLocalChars().find(c=>c.id===charId):null;
+  await _sb.from('campaign_members').upsert(
+    {campaign_id:camp.id,user_id:session.user.id,char_name:charMeta?.name||null},
+    {onConflict:'campaign_id,user_id'}
+  );
+  const isDM=(camp.created_by===session.user.id);
+  saveCampaignToRegistry({
+    id:camp.id,name:camp.name,invite_code:camp.invite_code,isDM,
+    charId:charId||null,charName:charMeta?.name||null,
+    charClass:charMeta?.classId||null,charLevel:charMeta?.level||null,
+  });
+  localStorage.setItem('dnd5e_campaign_id',camp.id);
+  closeModal();
+  render();
+  showToast('Joined '+camp.name+'!','success');
+}
+
+async function deleteCampaign(id,name){
+  if(!confirm('Delete "'+name+'"? All players will be disconnected and this cannot be undone.'))return;
+  const{error}=await _sb.from('campaigns').delete().eq('id',id);
+  if(error){showToast('Could not delete: '+error.message,'warning');return;}
+  removeCampaignFromRegistry(id);
+  if(localStorage.getItem('dnd5e_campaign_id')===id)localStorage.removeItem('dnd5e_campaign_id');
+  render();
+  showToast('Campaign deleted.','info');
+}
+
+async function leaveCampaign(id,name){
+  if(!confirm('Leave "'+name+'"? You can rejoin with the invite code.'))return;
+  const session=await getSession();
+  if(session&&_sb){
+    await _sb.from('campaign_members').delete().eq('campaign_id',id).eq('user_id',session.user.id);
+  }
+  removeCampaignFromRegistry(id);
+  if(localStorage.getItem('dnd5e_campaign_id')===id)localStorage.removeItem('dnd5e_campaign_id');
+  render();
+  showToast('Left '+name+'.','info');
+}
+
+// ── MODALS ─────────────────────────────────────────────────────────────────────
+function openCreateModal(){
+  const el=document.getElementById('modal-root');
+  el.innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>⚔ Create a Campaign</h3>
+      <p>As DM, you'll get a 6-character invite code to share with your players. No character required — you run the game.</p>
+      <div class="modal-field"><label>Campaign Name</label><input type="text" id="camp-name-input" placeholder="e.g. Curse of Strahd" onkeydown="if(event.key==='Enter')createCampaign(this.value)"/></div>
+      <div class="modal-actions">
+        <button class="btn btn-red" style="flex:1;" onclick="createCampaign(document.getElementById('camp-name-input').value)">Create Campaign</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  setTimeout(()=>{const i=document.getElementById('camp-name-input');if(i)i.focus();},50);
+}
+
+function openJoinModal(){
+  const chars=getLocalChars().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+  const charOptions=chars.length
+    ?chars.map(c=>`<option value="${c.id}">${c.name||'Unnamed'}${c.classId?' · '+c.classId:''}${c.level?' Lv '+c.level:''}</option>`).join('')
+    :'<option value="">No characters found — build one first in the Tracker</option>';
+  const el=document.getElementById('modal-root');
+  el.innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <h3>⚔ Join a Campaign</h3>
+      <p>Enter the 6-character invite code from your DM, then select the character you'll play.</p>
+      <div class="modal-field"><label>Invite Code</label><input type="text" id="join-code-input" placeholder="e.g. XK7M2P" maxlength="6" style="text-transform:uppercase;font-family:'Cinzel',serif;letter-spacing:4px;font-size:22px;text-align:center;" onkeydown="if(event.key==='Enter')document.getElementById('join-char-select').focus()"/></div>
+      <div class="modal-field"><label>Your Character</label><select id="join-char-select">${charOptions}</select></div>
+      <div class="modal-actions">
+        <button class="btn btn-red" style="flex:1;" onclick="joinCampaign(document.getElementById('join-code-input').value,document.getElementById('join-char-select').value)">Join Campaign</button>
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  setTimeout(()=>{const i=document.getElementById('join-code-input');if(i)i.focus();},50);
+}
+
+function closeModal(){const el=document.getElementById('modal-root');if(el)el.innerHTML='';}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────────
+async function render(){
+  const root=document.getElementById('root');
+  if(!root)return;
+  const session=await getSession();
+  const campaigns=getCampaignRegistry();
+
+  if(!session){
+    root.innerHTML=`<div class="sign-in-prompt">
+      <div class="prompt-icon">⚔</div>
+      <h2>Run or Join a Campaign</h2>
+      <p>Sign in to create a campaign as DM or join an existing one as a player. No character needed to get started as a DM.</p>
+      <button class="btn btn-red" onclick="openAuthModal()">☁ Sign In</button>
+    </div>`;
+    return;
+  }
+
+  const cards=campaigns.map(c=>{
+    const safeName=c.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    if(c.isDM){
+      return`<div class="campaign-card">
+        <div class="campaign-card-body">
+          <div><span class="badge dm-badge">DM</span></div>
+          <div class="campaign-name">${c.name}</div>
+          <div class="campaign-meta">Share this code with your players:</div>
+          <div class="campaign-code">${c.invite_code}</div>
+          <div class="campaign-code-label">6-character invite code</div>
+        </div>
+        <div class="campaign-card-actions">
+          <a class="btn btn-red" href="tracker.html?dm=${c.id}">Open DM Panel →</a>
+          <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText('${c.invite_code}').then(()=>showToast('Copied!','success'))">Copy Code</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCampaign('${c.id}','${safeName}')">Delete Campaign</button>
+        </div>
+      </div>`;
+    }
+    return`<div class="campaign-card">
+      <div class="campaign-card-body">
+        <div><span class="badge player-badge">Player</span></div>
+        <div class="campaign-name">${c.name}</div>
+        ${c.charName
+          ?`<div class="campaign-meta">Playing: <strong>${c.charName}</strong>${c.charClass?' · '+c.charClass:''}${c.charLevel?' · Lv '+c.charLevel:''}</div>`
+          :'<div class="campaign-meta" style="font-style:italic;">No character linked — rejoin to select one</div>'}
+      </div>
+      <div class="campaign-card-actions">
+        <a class="btn btn-red" href="tracker.html?rejoin=${c.id}">Rejoin →</a>
+        <button class="btn btn-danger btn-sm" onclick="leaveCampaign('${c.id}','${safeName}')">Leave</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  root.innerHTML=`
+    ${campaigns.length
+      ?`<div class="campaign-list">${cards}</div><div class="divider"></div>`
+      :`<div class="empty-state"><p>You haven't joined any campaigns yet. Create one as DM or join an existing one below.</p></div>`}
+    <div class="action-row">
+      <button class="btn btn-red" onclick="openCreateModal()">⚔ Create Campaign</button>
+      <button class="btn btn-ghost" onclick="openJoinModal()">Join Campaign</button>
+    </div>`;
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  initTheme();
+  if(_sbEnabled()){
+    try{_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){console.warn('Supabase init failed:',e);}
+  }
+  renderAuthBar();
+  render();
+});
+</script>
+</body>
+</html>
