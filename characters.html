@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Characters — D&D 5e Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{--parchment:#fdf8f0;--surface:#fff;--surface2:#fdf4e8;--border:#d4c5a0;--ink:#2c2416;--ink-light:#5a4a2a;--gold:#8b6914;--red:#8b1a1a;--muted:#9a8a6a;--nav-bg:#2c1810;--nav-text:#f5e6d0;--nav-accent:#c9a84c;--green:#2d7a2d;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Crimson Text',Georgia,serif;background:var(--parchment);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;}
+  /* Nav */
+  .top-nav{position:sticky;top:0;z-index:100;height:50px;background:var(--nav-bg);border-bottom:2px solid rgba(255,255,255,.15);display:flex;align-items:center;}
+  .top-nav-inner{width:100%;max-width:1200px;margin:0 auto;padding:0 1rem;display:flex;align-items:center;gap:1rem;}
+  .top-nav-brand{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--nav-accent);letter-spacing:1px;white-space:nowrap;text-decoration:none;}
+  .top-nav-links{display:flex;gap:4px;margin-left:8px;align-items:center;}
+  .top-nav-link{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.5px;color:var(--nav-text);text-decoration:none;padding:5px 10px;border-radius:4px;opacity:.75;transition:opacity .15s,background .15s;background:none;border:none;cursor:pointer;}
+  .top-nav-link:hover{opacity:1;background:rgba(255,255,255,.08);}
+  .top-nav-link.active{opacity:1;color:var(--nav-accent);font-weight:600;}
+  /* Characters dropdown */
+  .nav-dropdown{position:relative;display:inline-flex;}
+  .nav-char-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:250px;max-width:310px;max-height:380px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:2000;scrollbar-width:thin;}
+  .nav-char-menu.open{display:block;}
+  .nav-char-tile{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);}
+  .nav-char-info{flex:1;min-width:0;}
+  .nav-char-name{font-family:'Cinzel',serif;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);}
+  .nav-char-sub{font-size:11px;color:var(--muted);}
+  .nav-char-actions{display:flex;gap:3px;flex-shrink:0;}
+  .nav-char-action{font-family:'Cinzel',serif;font-size:10px;padding:2px 7px;border:1px solid var(--border);border-radius:3px;text-decoration:none;color:var(--ink);background:var(--surface2);white-space:nowrap;cursor:pointer;}
+  .nav-char-action:hover{background:var(--border);}
+  .nav-char-empty{padding:10px 12px;font-size:12px;color:var(--muted);font-style:italic;}
+  .nav-char-footer{display:block;padding:7px 12px;font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-decoration:none;font-weight:600;border-top:1px solid var(--border);}
+  .nav-char-footer:hover{background:var(--surface2);}
+  .nav-char-footer+.nav-char-footer{border-top:none;padding-top:2px;padding-bottom:7px;}
+  /* Page */
+  .page{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:2rem 1.5rem;}
+  .page-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:.75rem;}
+  .page-title{font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700;color:var(--ink);}
+  .btn-create{font-family:'Cinzel',serif;font-size:12px;font-weight:600;padding:8px 18px;background:var(--gold);color:#fff;border:none;border-radius:5px;text-decoration:none;cursor:pointer;transition:opacity .15s;}
+  .btn-create:hover{opacity:.85;}
+  /* Grid */
+  .char-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;}
+  /* Card */
+  .char-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.25rem 1.25rem 1rem;display:flex;flex-direction:column;gap:.75rem;transition:border-color .2s,box-shadow .2s;}
+  .char-card:hover{border-color:var(--gold);box-shadow:0 4px 16px rgba(139,105,20,.12);}
+  .char-card-header{display:flex;align-items:flex-start;gap:.5rem;}
+  .char-avatar{width:40px;height:40px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;}
+  .char-card-info{flex:1;min-width:0;}
+  .char-card-name{font-family:'Cinzel',serif;font-size:1rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .char-card-sub{font-size:.9rem;color:var(--ink-light);margin-top:1px;}
+  .char-card-meta{font-size:.8rem;color:var(--muted);font-style:italic;}
+  .char-card-actions{display:flex;gap:.5rem;margin-top:.25rem;}
+  .char-btn{font-family:'Cinzel',serif;font-size:11px;padding:5px 12px;border-radius:4px;text-decoration:none;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--ink);transition:background .15s;}
+  .char-btn:hover{background:var(--border);}
+  .char-btn-del{border-color:transparent;background:transparent;color:var(--muted);margin-left:auto;padding:5px 8px;}
+  .char-btn-del:hover{color:var(--red);background:rgba(139,26,26,.06);}
+  /* Empty state */
+  .empty{text-align:center;padding:4rem 2rem;}
+  .empty-icon{font-size:3rem;margin-bottom:1rem;}
+  .empty-title{font-family:'Cinzel',serif;font-size:1.2rem;font-weight:600;color:var(--ink);margin-bottom:.5rem;}
+  .empty-sub{font-size:.95rem;color:var(--ink-light);margin-bottom:1.5rem;}
+  /* Divider */
+  .divider{width:200px;height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent);margin:0 auto 1.5rem;}
+</style>
+</head>
+<body>
+<nav class="top-nav">
+  <div class="top-nav-inner">
+    <a class="top-nav-brand" href="index.html">⚔ D&D 5e Tools</a>
+    <div class="top-nav-links">
+      <a class="top-nav-link" href="index.html">Home</a>
+      <div class="nav-dropdown">
+        <button class="top-nav-link active" onclick="toggleNavCharMenu(event)">Characters ▾</button>
+        <div class="nav-char-menu" id="navCharMenu"></div>
+      </div>
+      <a class="top-nav-link" href="campaigns.html">Campaigns</a>
+    </div>
+  </div>
+</nav>
+<div class="page">
+  <div class="page-header">
+    <h1 class="page-title">My Characters</h1>
+    <a class="btn-create" href="builder.html">+ New Character</a>
+  </div>
+  <div id="charGrid"></div>
+</div>
+<script>
+const CharStore={
+  _idx(){try{return JSON.parse(localStorage.getItem('dnd5e_chars')||'[]');}catch(e){return[];}},
+  _saveIdx(arr){try{localStorage.setItem('dnd5e_chars',JSON.stringify(arr));}catch(e){}},
+  index(){return this._idx();},
+  loadPart(id,part){
+    try{const raw=localStorage.getItem('dnd5e_char_'+id);if(!raw)return null;return JSON.parse(raw)[part]??null;}catch(e){return null;}
+  },
+  delete(id){
+    this._saveIdx(this._idx().filter(c=>c.id!==id));
+    try{localStorage.removeItem('dnd5e_char_'+id);}catch(e){}
+    try{const a=localStorage.getItem('dnd5e_active');if(a===id)localStorage.removeItem('dnd5e_active');}catch(e){}
+  }
+};
+
+function _relDate(iso){
+  if(!iso)return'Never';
+  const diff=Date.now()-new Date(iso).getTime();
+  const m=Math.floor(diff/60000);
+  if(m<1)return'Just now';
+  if(m<60)return m+'m ago';
+  const h=Math.floor(m/60);
+  if(h<24)return h+'h ago';
+  const d=Math.floor(h/24);
+  if(d<7)return d+'d ago';
+  return new Date(iso).toLocaleDateString();
+}
+
+function _classIcon(classId){
+  const icons={fighter:'⚔️',wizard:'🧙',rogue:'🗡️',cleric:'✝️',ranger:'🏹',paladin:'🛡️',druid:'🌿',bard:'🎵',monk:'👊',barbarian:'🪓',sorcerer:'✨',warlock:'🌑'};
+  return icons[classId]||'📜';
+}
+
+function render(){
+  const chars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+  const grid=document.getElementById('charGrid');
+  if(!chars.length){
+    grid.innerHTML=`<div class="empty">
+      <div class="empty-icon">📜</div>
+      <div class="empty-title">No Characters Yet</div>
+      <p class="empty-sub">Create your first character to get started.</p>
+      <div class="divider"></div>
+      <a class="btn-create" href="builder.html">+ Create Character</a>
+    </div>`;
+    return;
+  }
+  const cls=(c)=>{
+    if(!c.classId)return'';
+    return c.classId.charAt(0).toUpperCase()+c.classId.slice(1);
+  };
+  grid.innerHTML=`<div class="char-grid">${chars.map(c=>`
+    <div class="char-card">
+      <div class="char-card-header">
+        <div class="char-avatar">${_classIcon(c.classId)}</div>
+        <div class="char-card-info">
+          <div class="char-card-name">${c.name||'Unnamed'}</div>
+          <div class="char-card-sub">${cls(c)?cls(c)+' &middot; ':''}Level ${c.level||1}</div>
+        </div>
+      </div>
+      <div class="char-card-meta">Last played: ${_relDate(c.updatedAt)}</div>
+      <div class="char-card-actions">
+        <a class="char-btn" href="builder.html?char=${c.id}">Edit</a>
+        <a class="char-btn" href="tracker.html?sandbox=true&char=${c.id}">Sandbox</a>
+        <button class="char-btn char-btn-del" onclick="deleteChar('${c.id}','${(c.name||'Unnamed').replace(/'/g,"\\'")}')" title="Delete character">🗑</button>
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+
+function deleteChar(id,name){
+  if(!confirm('Delete ‘'+name+'’ permanently? This cannot be undone.'))return;
+  CharStore.delete(id);
+  render();
+  _populateNavCharMenu();
+}
+
+// ── Nav char dropdown ─────────────────────────────────────────────────────────
+function _populateNavCharMenu(){
+  const menu=document.getElementById('navCharMenu');
+  if(!menu)return;
+  const chars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+  const footer=`<a href="builder.html" class="nav-char-footer">+ Create Character</a><a href="characters.html" class="nav-char-footer">View All →</a>`;
+  if(!chars.length){
+    menu.innerHTML=`<div class="nav-char-empty">No characters yet</div>${footer}`;
+    return;
+  }
+  menu.innerHTML=chars.slice(0,8).map(c=>{
+    const cl=c.classId?c.classId.charAt(0).toUpperCase()+c.classId.slice(1):'';
+    return`<div class="nav-char-tile">
+      <div class="nav-char-info">
+        <div class="nav-char-name">${c.name||'Unnamed'}</div>
+        <div class="nav-char-sub">${cl?cl+' \xb7 ':''}Lv ${c.level||1}</div>
+      </div>
+      <div class="nav-char-actions">
+        <a href="builder.html?char=${c.id}" class="nav-char-action">Edit</a>
+        <a href="tracker.html?sandbox=true&char=${c.id}" class="nav-char-action">Sandbox</a>
+      </div>
+    </div>`;
+  }).join('')+footer;
+}
+function toggleNavCharMenu(e){
+  e&&e.stopPropagation();
+  const menu=document.getElementById('navCharMenu');
+  if(!menu)return;
+  const isOpen=menu.classList.contains('open');
+  document.querySelectorAll('.nav-char-menu.open').forEach(m=>m.classList.remove('open'));
+  if(!isOpen){_populateNavCharMenu();menu.classList.add('open');}
+}
+document.addEventListener('click',()=>{
+  document.querySelectorAll('.nav-char-menu.open').forEach(m=>m.classList.remove('open'));
+});
+
+render();
+</script>
+</body>
+</html>
