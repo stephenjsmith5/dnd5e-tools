@@ -543,6 +543,7 @@ let _dmPendingRequests=[]; // DM view: all pending requests in campaign
 let _currentUserId=null;  // cached session user ID for broadcast comparisons
 let _dmViewedPlayer=null; // {userId, charName, charData} — Phase 3 DM player sheet view
 let encounterCondExpanded=new Set(); // combatant IDs with condition panel open
+let _campaignEncounter=null; // DM-broadcast encounter state (read-only for players)
 
 // ─── FILE INPUT HANDLER (defined first so it's always available) ─────────────
 function handleFileInput(input){
@@ -820,6 +821,16 @@ async function _joinChannel(code){
         else if(payload.field==='inventory') char.tracker.inventory=payload.value;
         save();render();
         showToast('DM updated your '+payload.field.replace('_',' '),'info');
+      }
+    })
+    .on('broadcast',{event:'encounter_update'},({payload})=>{
+      if(!_isDM){
+        const hadEncounter=_campaignEncounter&&_campaignEncounter.combatants.length>0;
+        _campaignEncounter=payload.encounter;
+        const hasEncounter=_campaignEncounter&&_campaignEncounter.combatants.length>0;
+        if(activeTab==='combat') render();
+        else if(hasEncounter&&!hadEncounter) showToast('⚔️ DM started an encounter!','info');
+        else if(_campaignEncounter&&_campaignEncounter.active) showToast('⚔️ Encounter updated by DM.','info');
       }
     });
   await _sessionChannel.subscribe(async(status)=>{
@@ -2239,11 +2250,16 @@ function render(){
     if(_campaign&&!_sandboxMode){root.innerHTML=renderCharacterInit();return;}
     root.innerHTML=renderUpload();return;
   }
-  const _allTabs=['combat','encounter','resources','spells','skills','levelup','inventory','log','notes'];
+  // Encounter tab shown only in sandbox/standalone — in campaign the DM controls encounters
+  const _inCampaignAsPlayer=_campaign&&!_isDM&&!_sandboxMode;
+  const _allTabs=_inCampaignAsPlayer
+    ?['combat','spells','skills','levelup','inventory','log','notes']
+    :['combat','encounter','spells','skills','levelup','inventory','log','notes'];
   let _tabs=_sessionCode?['party',..._allTabs]:_allTabs;
   if(_isDM&&_sessionCode&&!_tabs.includes('dm'))_tabs=['dm',..._tabs];
-  const _tabLabels={dm:'⚔ DM',party:'Party',combat:'Combat',encounter:'Encounter',resources:'Resources',spells:'Spells',skills:'Skills & Saves',levelup:'Level Up',inventory:'Inventory',log:'Session Log',notes:'Notes'};
-  const _tabContent=activeTab==='dm'?renderDMTab():activeTab==='party'?renderPartyTab():activeTab==='combat'?renderCombat():activeTab==='encounter'?renderEncounter():activeTab==='resources'?renderResources():activeTab==='spells'?renderSpells():activeTab==='skills'?renderSkills():activeTab==='levelup'?renderLevelUp():activeTab==='inventory'?renderInventory():activeTab==='log'?renderLog():renderNotes();
+  if(!_tabs.includes(activeTab)) activeTab='combat'; // guard stale tab (e.g. 'resources')
+  const _tabLabels={dm:'⚔ DM',party:'Party',combat:'Combat',encounter:'Encounter',spells:'Spells',skills:'Skills & Saves',levelup:'Level Up',inventory:'Inventory',log:'Session Log',notes:'Notes'};
+  const _tabContent=activeTab==='dm'?renderDMTab():activeTab==='party'?renderPartyTab():activeTab==='combat'?renderCombat():activeTab==='encounter'?renderEncounter():activeTab==='spells'?renderSpells():activeTab==='skills'?renderSkills():activeTab==='levelup'?renderLevelUp():activeTab==='inventory'?renderInventory():activeTab==='log'?renderLog():renderNotes();
   root.innerHTML=`
     <div class="${_campaign||_sandboxMode?'with-campaign':''}">
       ${renderCampaignHeader()}
@@ -2280,10 +2296,120 @@ function setTab(t){activeTab=t;rollResult=null;smiteDialogOpen=false;castDialogI
 
 // ── COMBAT TAB — shows attacks/actions + character features ──
 function renderCombat(){
+  syncResources(char);
   const attacksHTML=renderAttacks();
   const t=char.tracker;
+  const res=t.resources;
+  const cls=char.class.id;
+  const lvl=char.level;
+  const inCampaignAsPlayer=_campaign&&!_isDM&&!_sandboxMode;
 
-  // Build character info section (feats, subclass, features, currency)
+  // ── Active Encounter (campaign players see DM-broadcast encounter read-only) ──
+  let encounterHTML='';
+  if(inCampaignAsPlayer&&_campaignEncounter&&(_campaignEncounter.active||_campaignEncounter.combatants.length)){
+    const e=_campaignEncounter;
+    const sorted=[...e.combatants].sort((a,b)=>b.initiative-a.initiative);
+    const activeId=e.activeCombatantId;
+    encounterHTML=`<div class="card" style="margin-bottom:1rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="card-title" style="margin:0;">⚔️ Active Encounter</div>
+        <div style="font-size:12px;color:var(--muted);">${e.active?`Round ${e.round}`:'Not started'}</div>
+      </div>
+      ${sorted.map(c=>{
+        const isActive=e.active&&c.id===activeId;
+        const hpPct=c.maxHP>0?Math.max(0,Math.min(100,(c.hp/c.maxHP)*100)):0;
+        const hpColor=hpPct>50?'var(--green)':hpPct>25?'var(--gold)':'var(--hp-red)';
+        return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid ${isActive?'var(--gold)':'var(--border)'};border-radius:6px;margin-bottom:5px;background:${isActive?'rgba(201,168,76,.08)':'var(--surface)'};${c.defeated?'opacity:.5;':''}" >
+          <span style="font-size:12px;min-width:14px;color:${isActive?'var(--gold)':'var(--muted)'};">${isActive?'▶':''}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:600;color:${c.isPlayer?'var(--ac-blue)':'var(--ink)'};">${c.name}${c.isPlayer?' (You)':''}</div>
+            ${c.conditions.length?`<div style="display:flex;flex-wrap:wrap;gap:2px;margin-top:2px;">${c.conditions.map(cd=>`<span style="font-size:10px;background:var(--chip-bg);border:1px solid var(--red);border-radius:8px;padding:1px 5px;color:var(--red);">${cd}</span>`).join('')}</div>`:''}
+          </div>
+          <div style="text-align:right;min-width:90px;">
+            <div style="width:80px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-bottom:2px;"><div style="width:${hpPct}%;height:100%;background:${hpColor};border-radius:3px;"></div></div>
+            <div style="font-size:11px;color:var(--muted);">${c.isPlayer?`${c.hp}/${c.maxHP} HP`:'???'}</div>
+          </div>
+          <div style="text-align:center;min-width:30px;">
+            <div style="font-size:13px;font-weight:700;color:var(--ink);">${c.initiative}</div>
+            <div style="font-size:9px;color:var(--muted);">INIT</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  } else if(inCampaignAsPlayer&&!_campaignEncounter){
+    encounterHTML=`<div class="card" style="margin-bottom:1rem;text-align:center;padding:1.2rem;">
+      <div style="font-size:24px;margin-bottom:6px;">⚔️</div>
+      <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--muted);">No active encounter</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic;">Your DM will start one when combat begins.</div>
+    </div>`;
+  }
+
+  // ── Spell Slots (condensed for Combat tab) ────────────────────────────────────
+  let spellSlotsHTML='';
+  const isWarlock=cls==='warlock';
+  const hasSpells=char.class.spellcasting||(t.subclass&&(t.subclass.id==='eldritch_knight'||t.subclass.id==='arcane_trickster'));
+  if(hasSpells){
+    let slotInner='';
+    if(res.spellDC!==undefined){
+      slotInner+=`<div style="display:flex;gap:8px;margin-bottom:8px;">
+        <div class="stat-badge" style="min-width:60px;"><div class="stat-badge-val" style="font-size:16px;">${res.spellDC}</div><div class="stat-badge-label">SPELL DC</div></div>
+        <div class="stat-badge" style="min-width:60px;"><div class="stat-badge-val" style="font-size:16px;">${res.spellAttack>=0?'+':''}${res.spellAttack}</div><div class="stat-badge-label">SPELL ATK</div></div>
+      </div>`;
+    }
+    if(isWarlock&&res.warlockSlotsMax>0){
+      const cur=res.warlockSlots??res.warlockSlotsMax;
+      const max=res.warlockSlotsMax;
+      slotInner+=`<div class="slot-row"><div class="slot-label" style="color:var(--ac-blue);font-size:12px;">Pact (${ordinal(res.warlockSlotLevel)})</div><div class="slot-pips">${[...Array(max)].map((_,i)=>`<div class="slot-pip${i<cur?' warlock-full':''}" onclick="toggleSlot('warlock',${i})"></div>`).join('')}</div><span style="font-size:11px;color:var(--muted);margin-left:4px;">${cur}/${max}</span></div>`;
+    } else if(res.spellSlots){
+      const labels=['1st','2nd','3rd','4th','5th','6th','7th','8th','9th'];
+      res.spellSlots.forEach(([cur,max],i)=>{
+        if(max===0) return;
+        slotInner+=`<div class="slot-row"><div class="slot-label">${labels[i]}</div><div class="slot-pips">${[...Array(max)].map((_,j)=>`<div class="slot-pip${j<cur?' full':''}" onclick="toggleSlot(${i},${j})"></div>`).join('')}</div><span style="font-size:11px;color:var(--muted);margin-left:4px;">${cur}/${max}</span></div>`;
+      });
+    }
+    if(slotInner){
+      spellSlotsHTML=`<div class="card" style="margin-bottom:1rem;">
+        <div class="card-title">Spell Slots</div>
+        ${slotInner}
+      </div>`;
+    }
+  }
+
+  // ── Class Resources ────────────────────────────────────────────────────────────
+  let classResHTML='';
+  const prof=getProfBonus(lvl);
+  let classResItems='';
+
+  function _pipTrk(key,label,sub,pipClass,isCircle,shortRest){
+    const cur=res[key]??0;const max=res[key+'Max']??0;if(max===0)return'';
+    const pips=[...Array(max)].map((_,i)=>`<div class="res-pip${i<cur?' filled'+(pipClass?' '+pipClass:''):''}${isCircle?' circle':''}" onclick="toggleResPip('${key}',${i})"></div>`).join('');
+    return`<div class="res-tracker"><div class="res-tracker-label"><strong>${label}</strong><span>${sub||''}</span></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;"><div class="res-pips">${pips}</div><span style="font-size:10px;color:var(--muted);">${cur}/${max} · ${shortRest?'short/long rest':'long rest'}</span></div></div>`;
+  }
+  function _poolTrk(key,label,sub,color){
+    const cur=res[key]??0;const max=res[key+'Max']??0;if(max===0)return'';
+    return`<div class="res-tracker"><div class="res-tracker-label"><strong>${label}</strong><span>${sub||''}</span></div><div style="display:flex;align-items:center;gap:8px;"><button class="btn btn-ghost btn-sm" onclick="adjustResPool('${key}',-1,-1)">−</button><div style="text-align:center;"><div style="font-family:'Cinzel',serif;font-size:18px;font-weight:700;color:${color||'var(--red)'};">${cur}</div><div style="font-size:10px;color:var(--muted);">/ ${max===999?'∞':max}</div></div><button class="btn btn-ghost btn-sm" onclick="adjustResPool('${key}',1,${max===999?9999:max})">+</button></div></div>`;
+  }
+
+  if(cls==='barbarian') classResItems+=_poolTrk('rageUses','Rage Uses',`Damage: +${res.rageDmg} | Long rest`,'var(--hp-red)');
+  if(cls==='bard') classResItems+=_pipTrk('bardicInspiration','Bardic Inspiration',`${res.bardicDie}${res.bardicShortRest?' · short/long rest':' · long rest'}`,'',true,res.bardicShortRest);
+  if(cls==='cleric') classResItems+=_pipTrk('channelDivinity','Channel Divinity',`${res.channelDivinity??0}/${res.channelDivinityMax||0} · short/long rest`,'short',false,true);
+  if(cls==='druid'){const cr=res.wildShapeCR;const crStr=cr>=1?`CR ${cr}`:cr===0.5?'CR ½':'CR ¼';const flags=[crStr];if(res.wildShapeSwim)flags.push('swim');if(res.wildShapeFly)flags.push('fly');classResItems+=_pipTrk('wildShape','Wild Shape',`Max ${flags.join(', ')} · short/long rest`,'short',false,true);}
+  if(cls==='fighter'){classResItems+=_pipTrk('secondWind','Second Wind',`1d10+${lvl} HP · short/long rest`,'short',false,true);if((res.actionSurgeMax||0)>0)classResItems+=_pipTrk('actionSurge','Action Surge',`${res.actionSurgeMax} use${res.actionSurgeMax>1?'s':''} · short/long rest`,'short',false,true);if((res.indomitableMax||0)>0)classResItems+=_pipTrk('indomitable','Indomitable',`Reroll saving throw · long rest`,'',false,false);if(t.subclass&&t.subclass.id==='battlemaster')classResItems+=_pipTrk('superiorityDice','Superiority Dice',`${res.superiorityDie} · ${res.maneuverCount} maneuvers · short/long rest`,'short',false,true);}
+  if(cls==='monk') classResItems+=_poolTrk('ki','Ki Points',`DC ${res.kiDC} | Martial Arts: ${res.martialDie} | Short/long rest`,'var(--spd-green)');
+  if(cls==='paladin'){classResItems+=_poolTrk('layOnHandsHP','Lay on Hands',`HP pool | Long rest`,'var(--ac-blue)');classResItems+=_pipTrk('channelDivinity','Channel Divinity (Oath)',`${res.channelDivinity??0}/${res.channelDivinityMax||0} · short/long rest`,'short',false,true);}
+  if(cls==='rogue') classResItems+=`<div class="res-tracker"><div class="res-tracker-label"><strong>Sneak Attack</strong><span>${res.sneakAttackDice}d6 extra damage once per turn when you have advantage or ally adjacent</span></div></div>`;
+  if(cls==='sorcerer'){classResItems+=_poolTrk('sorceryPoints','Sorcery Points',`${res.metamagicCount} Metamagic option${res.metamagicCount>1?'s':''} | Long rest`,'var(--gold)');classResItems+=`<div style="font-size:11px;color:var(--muted);padding:0 8px 4px;font-style:italic;">1st=2 pts, 2nd=3 pts, 3rd=5 pts, 4th=6 pts, 5th=7 pts (slots→pts: 1st=1, 2nd=2, 3rd=3, 4th=4, 5th=5)</div>`;}
+  if(cls==='warlock'){const invocCount=lvl>=15?8:lvl>=12?7:lvl>=9?6:lvl>=7?5:lvl>=5?4:lvl>=3?3:2;classResItems+=`<div class="res-tracker"><div class="res-tracker-label"><strong>Eldritch Invocations</strong><span>${invocCount} known at Lv.${lvl}</span></div></div>`;if(lvl>=3){const pb=t.pactBoon||null;classResItems+=`<div class="res-tracker"><div class="res-tracker-label"><strong>Pact Boon</strong><span>${pb||'Not yet chosen'}</span></div>${!pb?`<select onchange="char.tracker.pactBoon=this.value;saveAndRender();" style="font-size:12px;padding:4px 6px;"><option value="">Choose...</option><option>Pact of the Blade</option><option>Pact of the Chain</option><option>Pact of the Tome</option></select>`:''}</div>`;}}
+  if(cls==='wizard') classResItems+=`<div class="res-tracker"><div class="res-tracker-label"><strong>Arcane Recovery</strong><span>Recover up to ${res.arcaneRecoverySlots} total slot levels on short rest · once per day</span></div></div>`;
+
+  if(classResItems){
+    classResHTML=`<div class="card" style="margin-bottom:1rem;">
+      <div class="card-title">Class Resources</div>
+      ${classResItems}
+    </div>`;
+  }
+
+  // ── Character features ──────────────────────────────────────────────────────
   const charInfoHTML=`
     ${char.feats&&char.feats.length?`<div class="card">
       <div class="card-title">Feats</div>
@@ -2298,8 +2424,20 @@ function renderCombat(){
       <div class="card-title">Class Features</div>
       ${t.classFeatures.map(f=>`<div class="feature-item">• ${f}</div>`).join('')}
     </div>`:''}
-`;
-  return attacksHTML+charInfoHTML;
+  `;
+
+  // ── Layout: two-column ──────────────────────────────────────────────────────
+  return`<div class="two-col">
+    <div>
+      ${encounterHTML}
+      ${attacksHTML}
+    </div>
+    <div>
+      ${spellSlotsHTML}
+      ${classResHTML}
+      ${charInfoHTML}
+    </div>
+  </div>`;
 }
 
 
@@ -4261,6 +4399,7 @@ function encounterAddEnemy(){
   });
   // Clear form
   ['enc-f-name','enc-f-hp','enc-f-ac','enc-f-init'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  broadcastEncounterUpdate();
   render();
 }
 
@@ -4277,6 +4416,7 @@ function encounterRemove(id){
     const alive=sorted.filter(c=>!c.defeated);
     encounter.activeCombatantId=alive.length?alive[0].id:null;
   }
+  broadcastEncounterUpdate();
   render();
 }
 
@@ -4287,18 +4427,21 @@ function encounterStart(){
   const sorted=getEncounterSorted();
   const first=sorted.find(c=>!c.defeated)||sorted[0];
   encounter.activeCombatantId=first?first.id:null;
+  broadcastEncounterUpdate();
   render();
 }
 
 function encounterEnd(){
   encounter.active=false;
   encounter.activeCombatantId=null;
+  broadcastEncounterUpdate();
   render();
 }
 
 function encounterReset(){
   encounter={active:false,round:1,activeCombatantId:null,combatants:[]};
   encounterCondExpanded.clear();
+  broadcastEncounterUpdate();
   render();
 }
 
@@ -4307,7 +4450,7 @@ function encounterNextTurn(){
   const sorted=getEncounterSorted();
   if(!sorted.length) return;
   const alive=sorted.filter(c=>!c.defeated);
-  if(!alive.length){encounter.active=false;render();return;}
+  if(!alive.length){encounter.active=false;broadcastEncounterUpdate();render();return;}
   const curIdx=sorted.findIndex(c=>c.id===encounter.activeCombatantId);
   let next=curIdx+1;
   let steps=0;
@@ -4319,6 +4462,7 @@ function encounterNextTurn(){
   }
   if(wrapped) encounter.round++;
   encounter.activeCombatantId=sorted[next].id;
+  broadcastEncounterUpdate();
   render();
 }
 
@@ -4335,6 +4479,7 @@ function encounterDamage(id){
   if(!c) return;
   c.hp=Math.max(0,c.hp-amt);
   if(c.hp===0&&!c.conditions.includes('Unconscious')) c.conditions.push('Unconscious');
+  broadcastEncounterUpdate();
   if(c.isPlayer){char.tracker.currentHP=c.hp;saveAndRender();}
   else render();
 }
@@ -4347,6 +4492,7 @@ function encounterHeal(id){
   c.hp=Math.min(c.maxHP,c.hp+amt);
   c.conditions=c.conditions.filter(cd=>cd!=='Unconscious');
   c.defeated=false;
+  broadcastEncounterUpdate();
   if(c.isPlayer){char.tracker.currentHP=c.hp;saveAndRender();}
   else render();
 }
@@ -4357,6 +4503,7 @@ function encounterToggleCondition(id,cond){
   const idx=c.conditions.indexOf(cond);
   if(idx>=0) c.conditions.splice(idx,1);
   else c.conditions.push(cond);
+  broadcastEncounterUpdate();
   render();
 }
 
@@ -4365,6 +4512,7 @@ function encounterToggleDefeated(id){
   if(!c) return;
   c.defeated=!c.defeated;
   if(!c.defeated&&c.hp===0) c.hp=1;
+  broadcastEncounterUpdate();
   render();
 }
 
@@ -4372,6 +4520,11 @@ function encounterToggleCondPanel(id){
   if(encounterCondExpanded.has(id)) encounterCondExpanded.delete(id);
   else encounterCondExpanded.add(id);
   render();
+}
+
+function broadcastEncounterUpdate(){
+  if(!_isDM||!_sessionChannel||!_campaign) return;
+  _sessionChannel.send({type:'broadcast',event:'encounter_update',payload:{encounter}});
 }
 
 function renderEncounter(){
@@ -5672,6 +5825,72 @@ function renderDMTab(){
       }).join('')}
     </div>`;
 
+  // ── DM Encounter section ────────────────────────────────────────────────────
+  const e=encounter;
+  const encSorted=e.active?getEncounterSorted():e.combatants;
+  const encActiveIdx=e.activeCombatantId?encSorted.findIndex(c=>c.id===e.activeCombatantId):-1;
+  let dmEncHTML=`<div class="enc-toolbar" style="margin-bottom:10px;">
+    <div>
+      <div class="enc-round">Round ${e.round}</div>
+      <div class="enc-status">${e.active
+        ?`Turn ${encActiveIdx>=0?encActiveIdx+1:'?'} of ${encSorted.length}${encSorted.length>0&&encActiveIdx>=0?` — ${encSorted[encActiveIdx].name}`:''}`
+        :'Add combatants, set initiatives, then start.'}</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-left:auto;">
+      ${!e.active
+        ?`<button class="btn btn-ghost btn-sm" onclick="encounterStart()"${!e.combatants.length?' disabled':''}>▶ Start</button>
+          <button class="btn btn-ghost btn-sm" onclick="encounterReset()">⟳ Reset</button>`
+        :`<button class="btn btn-red btn-sm" onclick="encounterNextTurn()">⏭ Next Turn</button>
+          <button class="btn btn-ghost btn-sm" onclick="encounterEnd()">■ Pause</button>
+          <button class="btn btn-ghost btn-sm" onclick="encounterReset()">⟳ Reset</button>`}
+    </div>
+  </div>`;
+  if(!e.combatants.length){
+    dmEncHTML+=`<div class="enc-empty" style="padding:1rem 0;"><div style="font-size:24px;margin-bottom:6px;">⚔️</div><p style="font-size:13px;color:var(--muted);font-style:italic;">Add enemies below to start an encounter. Players will see it in their Combat tab.</p></div>`;
+  } else {
+    dmEncHTML+=`<div class="combatant-list">`;
+    encSorted.forEach(c=>{
+      const isActive=e.active&&c.id===e.activeCombatantId;
+      const hpPct=c.maxHP>0?Math.max(0,Math.min(100,(c.hp/c.maxHP)*100)):0;
+      const hpColor=hpPct>50?'var(--green)':hpPct>25?'var(--gold)':'var(--hp-red)';
+      const condOpen=encounterCondExpanded.has(c.id);
+      dmEncHTML+=`<div class="combatant-row${isActive?' active-turn':''}${c.isPlayer?' player-row':''}${c.defeated?' defeated':''}">
+        <div class="comb-header">
+          <span class="comb-arrow">${isActive?'▶':''}</span>
+          <span class="comb-name${c.isPlayer?' player':''}">${c.name}</span>
+          <div class="init-cell"><span style="font-size:9px;color:var(--muted);">INIT</span><input type="number" value="${c.initiative}" onchange="encounterSetInit('${c.id}',this.value)" title="Initiative"/></div>
+          <div class="comb-ac">AC ${c.ac}</div>
+          ${!c.isPlayer?`<button class="btn btn-ghost btn-sm" onclick="encounterRemove('${c.id}')" style="padding:2px 7px;font-size:11px;">✕</button>`:''}
+        </div>
+        <div class="comb-hp-row">
+          <div class="comb-hp-bar-wrap"><div class="comb-hp-bar" style="width:${hpPct.toFixed(1)}%;background:${hpColor};"></div></div>
+          <span class="comb-hp-txt">${c.hp} / ${c.maxHP}</span>
+          <input type="number" id="enc-delta-${c.id}" class="enc-delta" placeholder="Amt" min="0"/>
+          <button class="btn btn-danger btn-sm" onclick="encounterDamage('${c.id}')">− Dmg</button>
+          <button class="btn btn-green btn-sm" onclick="encounterHeal('${c.id}')">+ Heal</button>
+          <button class="btn btn-ghost btn-sm" onclick="encounterToggleDefeated('${c.id}')" style="font-size:10px;padding:3px 7px;">${c.defeated?'↩':'☠'}</button>
+        </div>
+        <div class="comb-conds">
+          ${c.conditions.map(cd=>`<span class="cond-pill active">${cd} <button onclick="encounterToggleCondition('${c.id}','${cd}')">✕</button></span>`).join('')}
+          <button class="btn btn-ghost btn-sm" onclick="encounterToggleCondPanel('${c.id}')" style="font-size:10px;padding:2px 7px;">${condOpen?'▲':'＋'} Conds</button>
+        </div>
+        ${condOpen?`<div class="enc-cond-panel">${ENC_CONDITIONS.map(cd=>`<span class="cond-pill${c.conditions.includes(cd)?' active':''}" onclick="encounterToggleCondition('${c.id}','${cd}')">${c.conditions.includes(cd)?'✓ ':'+'}${cd}</span>`).join('')}</div>`:''}
+      </div>`;
+    });
+    dmEncHTML+=`</div>`;
+  }
+  // Add enemy form
+  dmEncHTML+=`<div class="enc-add-form" style="margin-top:8px;">
+    <div class="card-title" style="margin-bottom:8px;font-size:12px;">Add Combatant</div>
+    <div class="enc-form-row">
+      <div class="enc-form-field" style="flex:1;min-width:100px;"><label>Enemy Name</label><input type="text" id="enc-f-name" placeholder="Goblin" style="width:100%;"/></div>
+      <div class="enc-form-field"><label>Max HP</label><input type="number" id="enc-f-hp" placeholder="7" min="1" style="width:52px;"/></div>
+      <div class="enc-form-field"><label>AC</label><input type="number" id="enc-f-ac" placeholder="15" min="1" style="width:44px;"/></div>
+      <div class="enc-form-field"><label>Init</label><div style="display:flex;gap:4px;"><input type="number" id="enc-f-init" placeholder="0" style="width:44px;"/><button class="btn btn-ghost btn-sm" onclick="encounterRollEnemyInit()" title="Roll d20">🎲</button></div></div>
+      <div class="enc-form-field" style="justify-content:flex-end;"><label>&nbsp;</label><button class="btn btn-red btn-sm" onclick="encounterAddEnemy()">+ Add</button></div>
+    </div>
+  </div>`;
+
   return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;">
     <div>
       <div class="card" style="margin-bottom:1rem;">
@@ -5759,6 +5978,13 @@ function renderDMTab(){
           </div>`}
       </div>
     </div>
+  </div>
+  <div class="card" style="margin-top:1rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="card-title" style="margin:0;">⚔️ Encounter Manager</div>
+      <span style="font-size:11px;color:var(--muted);">Players see this in their Combat tab</span>
+    </div>
+    ${dmEncHTML}
   </div>`;
 }
 
