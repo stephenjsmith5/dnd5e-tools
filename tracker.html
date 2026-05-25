@@ -282,10 +282,17 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .char-list-sub{font-size:12px;color:var(--muted);font-style:italic;margin-top:2px;}
 .char-list-actions{display:flex;gap:6px;flex-shrink:0;}
 /* Auth bar */
-/* Session bar */
+/* Campaign header — full-width bar above sidebar+main */
+.campaign-header-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:46px;background:var(--nav-bg,var(--ink));border-bottom:2px solid var(--gold);margin:-1.5rem -1rem 1rem;position:sticky;top:50px;z-index:500;flex-wrap:nowrap;overflow:hidden;}
+.campaign-header-name{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--nav-accent,var(--gold));letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.campaign-header-badge{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--gold);background:rgba(139,105,20,0.2);border:1px solid var(--gold);border-radius:3px;padding:1px 5px;white-space:nowrap;flex-shrink:0;}
+.campaign-header-online{font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0;}
+.sandbox-banner{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 16px;height:36px;background:var(--surface2);border-bottom:1px solid var(--border);margin:-1.5rem -1rem 0.75rem;font-size:12px;color:var(--muted);}
+/* Session dot (reused in campaign header) */
+.session-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0;}
+/* Legacy session bar (kept for non-campaign standalone use) */
 .session-bar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;flex-wrap:wrap;}
 .session-code{font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:var(--gold);letter-spacing:1px;}
-.session-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0;}
 /* Party view */
 .party-player{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start;padding:10px 0;border-bottom:1px dashed var(--border);}
 .party-player:last-child{border-bottom:none;}
@@ -378,7 +385,7 @@ button[data-tip],label[data-tip]{cursor:pointer;}
   color:var(--nav-text,var(--parchment));opacity:0.65;
   padding:5px 9px;border-radius:4px;text-decoration:none;
   transition:opacity 0.15s,background 0.15s;
-  letter-spacing:0.5px;
+  letter-spacing:0.5px;background:none;border:none;cursor:pointer;
 }
 .top-nav-link:hover{opacity:1;background:rgba(255,255,255,0.08);}
 .top-nav-link.active{opacity:1;color:var(--nav-accent,var(--gold));}
@@ -391,6 +398,24 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 }
 .theme-dot:hover{transform:scale(1.25);}
 .theme-dot.active{border-color:rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px rgba(255,255,255,0.6);}
+/* Characters dropdown */
+.nav-dropdown{position:relative;display:inline-flex;}
+.nav-char-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:250px;max-width:310px;max-height:340px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:2000;scrollbar-width:thin;}
+.nav-char-menu.open{display:block;}
+.nav-char-tile{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);}
+.nav-char-info{flex:1;min-width:0;}
+.nav-char-name{font-family:'Cinzel',serif;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);}
+.nav-char-sub{font-size:11px;color:var(--muted);}
+.nav-char-actions{display:flex;gap:3px;flex-shrink:0;}
+.nav-char-action{font-family:'Cinzel',serif;font-size:10px;padding:2px 7px;border:1px solid var(--border);border-radius:3px;text-decoration:none;color:var(--ink);background:var(--surface2);white-space:nowrap;cursor:pointer;}
+.nav-char-action:hover{background:var(--border);}
+.nav-char-empty{padding:10px 12px;font-size:12px;color:var(--muted);font-style:italic;}
+.nav-char-footer{display:block;padding:8px 12px;font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-decoration:none;font-weight:600;border-top:1px solid var(--border);}
+.nav-char-footer:hover{background:var(--surface2);}
+/* Session marker pill */
+.nav-session-marker{display:inline-flex;align-items:center;gap:4px;font-family:'Cinzel',serif;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:0.5px;margin-left:6px;white-space:nowrap;}
+.nav-session-marker.in-campaign{color:var(--green);background:rgba(45,122,45,.12);border:1px solid var(--green);}
+.nav-session-marker.in-sandbox{color:var(--gold);background:rgba(139,105,20,.12);border:1px solid var(--gold);}
 
 /* ─── SIDEBAR LAYOUT ────────────────────────────────────────────────────────── */
 .tracker-layout{display:grid;grid-template-columns:230px 1fr;gap:1rem;align-items:start;}
@@ -399,6 +424,8 @@ button[data-tip],label[data-tip]{cursor:pointer;}
   max-height:calc(100vh - 66px);overflow-y:auto;
   scrollbar-width:thin;scrollbar-color:var(--border) transparent;
 }
+/* When campaign header (46px) is present, push sidebar down below it */
+.with-campaign .tracker-sidebar{top:104px;max-height:calc(100vh - 112px);}
 .tracker-sidebar::-webkit-scrollbar{width:3px;}
 .tracker-sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 .tracker-main{min-width:0;}
@@ -437,12 +464,15 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 <body>
 <nav class="top-nav">
   <div class="top-nav-inner">
-    <span class="top-nav-brand">⚔ D&amp;D 5e Tools</span>
+    <a class="top-nav-brand" href="index.html">⚔ D&amp;D 5e Tools</a>
     <div class="top-nav-links">
       <a class="top-nav-link" href="index.html">Home</a>
-      <a class="top-nav-link" href="builder.html">Builder</a>
-      <a class="top-nav-link active" href="tracker.html">Tracker</a>
+      <div class="nav-dropdown">
+        <button class="top-nav-link" onclick="toggleNavCharMenu(event)">Characters ▾</button>
+        <div class="nav-char-menu" id="navCharMenu"></div>
+      </div>
       <a class="top-nav-link" href="campaigns.html">Campaigns</a>
+      <span id="navSessionMarker"></span>
     </div>
     <div class="top-nav-right">
       <div class="theme-dots" id="themeDots"></div>
@@ -911,6 +941,34 @@ function _renderSessionModalEl(){
     </div>`;
     setTimeout(()=>{const i=document.getElementById('join-code-input');if(i)i.focus();},50);
   }
+}
+
+function renderCampaignHeader(){
+  if(_sandboxMode){
+    return`<div class="sandbox-banner">
+      <span>Sandbox mode — local only</span>
+      <a href="campaigns.html" class="btn btn-ghost btn-sm">← Campaigns</a>
+    </div>`;
+  }
+  if(!_campaign) return '';
+  const playerCount=Object.keys(_sessionPresence).length;
+  const dmBadge=_isDM?`<span class="campaign-header-badge">DM</span>`:'';
+  const inviteCode=_isDM
+    ?`<span style="font-size:11px;color:var(--muted);flex-shrink:0;">Invite: <strong style="font-family:'Cinzel',serif;color:var(--gold);letter-spacing:2px;">${_campaign.invite_code}</strong></span>`
+    :'';
+  const partyBtn=_sessionCode?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('party')">Party View</button>`:'';
+  const dmBtn=(_isDM&&_sessionCode)?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('dm')">⚔ DM Panel</button>`:'';
+  return`<div class="campaign-header-bar">
+    <span class="session-dot"></span>
+    <span class="campaign-header-name">${_campaign.name}</span>
+    ${dmBadge}
+    <span class="campaign-header-online">${playerCount} online</span>
+    ${partyBtn}
+    ${dmBtn}
+    <div style="flex:1;min-width:0;"></div>
+    ${inviteCode}
+    <button class="btn btn-danger btn-sm" style="flex-shrink:0;" onclick="leaveCampaign()">Leave</button>
+  </div>`;
 }
 
 function _renderSessionBarHTML(){
@@ -2179,6 +2237,7 @@ function showCharSelect(){char=null;activeTab='combat';render();}
 function render(){
   const root=document.getElementById('root');
   if(!char){
+    _updateNavSessionMarker();
     if(_isDM&&_campaign){root.innerHTML=renderDMOnlyView();return;}
     if(_campaign&&!_sandboxMode){root.innerHTML=renderCharacterInit();return;}
     root.innerHTML=renderUpload();return;
@@ -2189,17 +2248,20 @@ function render(){
   const _tabLabels={dm:'⚔ DM',party:'Party',combat:'Combat',encounter:'Encounter',resources:'Resources',spells:'Spells',skills:'Skills & Saves',levelup:'Level Up',inventory:'Inventory',log:'Session Log',notes:'Notes'};
   const _tabContent=activeTab==='dm'?renderDMTab():activeTab==='party'?renderPartyTab():activeTab==='combat'?renderCombat():activeTab==='encounter'?renderEncounter():activeTab==='resources'?renderResources():activeTab==='spells'?renderSpells():activeTab==='skills'?renderSkills():activeTab==='levelup'?renderLevelUp():activeTab==='inventory'?renderInventory():activeTab==='log'?renderLog():renderNotes();
   root.innerHTML=`
-    <div class="tracker-layout">
-      ${renderSidebar()}
-      <div class="tracker-main">
-        ${_renderSessionBarHTML()}
-        <div class="tab-nav">
-          ${_tabs.map(t=>`<button class="tab-btn${activeTab===t?' active':''}" onclick="setTab('${t}')">${_tabLabels[t]}</button>`).join('')}
+    <div class="${_campaign||_sandboxMode?'with-campaign':''}">
+      ${renderCampaignHeader()}
+      <div class="tracker-layout">
+        ${renderSidebar()}
+        <div class="tracker-main">
+          <div class="tab-nav">
+            ${_tabs.map(t=>`<button class="tab-btn${activeTab===t?' active':''}" onclick="setTab('${t}')">${_tabLabels[t]}</button>`).join('')}
+          </div>
+          ${_tabContent}
         </div>
-        ${_tabContent}
       </div>
     </div>
   `;
+  _updateNavSessionMarker();
   attachTrackerEvents();
   if(castDialogId&&char){
     const overlay=document.createElement('div');
@@ -5420,6 +5482,56 @@ function _removeCampaignFromRegistry(id){
   localStorage.setItem('dnd5e_my_campaigns',JSON.stringify(_getCampaignRegistry().filter(c=>c.id!==id)));
 }
 
+// ── NAV CHARACTERS DROPDOWN ───────────────────────────────────────────────────
+
+function _populateNavCharMenu(){
+  const menu=document.getElementById('navCharMenu');
+  if(!menu)return;
+  const chars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+  if(!chars.length){
+    menu.innerHTML=`<div class="nav-char-empty">No characters yet</div><a href="builder.html" class="nav-char-footer">+ Create Character</a>`;
+    return;
+  }
+  menu.innerHTML=chars.slice(0,8).map(c=>{
+    const cls=c.classId?c.classId.charAt(0).toUpperCase()+c.classId.slice(1):'';
+    return`<div class="nav-char-tile">
+      <div class="nav-char-info">
+        <div class="nav-char-name">${c.name||'Unnamed'}</div>
+        <div class="nav-char-sub">${cls?cls+' \xb7 ':''}Lv ${c.level||1}</div>
+      </div>
+      <div class="nav-char-actions">
+        <a href="builder.html?char=${c.id}" class="nav-char-action">Edit</a>
+        <a href="tracker.html?sandbox=true&char=${c.id}" class="nav-char-action">Sandbox</a>
+      </div>
+    </div>`;
+  }).join('')+`<a href="builder.html" class="nav-char-footer">+ Create Character</a>`;
+}
+
+function toggleNavCharMenu(e){
+  e&&e.stopPropagation();
+  const menu=document.getElementById('navCharMenu');
+  if(!menu)return;
+  const isOpen=menu.classList.contains('open');
+  document.querySelectorAll('.nav-char-menu.open').forEach(m=>m.classList.remove('open'));
+  if(!isOpen){_populateNavCharMenu();menu.classList.add('open');}
+}
+
+function _updateNavSessionMarker(){
+  const el=document.getElementById('navSessionMarker');
+  if(!el)return;
+  if(_campaign&&!_sandboxMode){
+    el.innerHTML=`<span class="nav-session-marker in-campaign"><span style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;"></span> In Campaign</span>`;
+  } else if(_sandboxMode){
+    el.innerHTML=`<span class="nav-session-marker in-sandbox"><span style="width:6px;height:6px;border-radius:50%;background:var(--gold);display:inline-block;"></span> In Sandbox</span>`;
+  } else {
+    el.innerHTML='';
+  }
+}
+
+document.addEventListener('click',()=>{
+  document.querySelectorAll('.nav-char-menu.open').forEach(m=>m.classList.remove('open'));
+});
+
 function _genInviteCode(){
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code='';
@@ -5643,9 +5755,9 @@ function renderDMTab(){
 }
 
 function renderDMOnlyView(){
-  return`<div style="max-width:960px;margin:0 auto;padding:1rem 1.5rem;">
-    ${_renderSessionBarHTML()}
-    <div style="margin-top:1rem;">${renderDMTab()}</div>
+  return`<div class="with-campaign">
+    ${renderCampaignHeader()}
+    <div style="max-width:960px;margin:0 auto;">${renderDMTab()}</div>
   </div>`;
 }
 
@@ -6089,7 +6201,7 @@ async function _initCampaignMode(campaignId,isDM,session){
   _isDM=isDM||(camp.created_by===session.user.id);
   _currentUserId=session.user.id;
   store.set('dnd5e_campaign_id',camp.id);
-  _saveCampaignToRegistry(camp);
+  _saveCampaignToRegistry({id:camp.id,name:camp.name,invite_code:camp.invite_code,isDM:_isDM});
   await _joinChannel(camp.id);
   if(_isDM){
     char=null;
@@ -6136,9 +6248,9 @@ function _migrateLegacyCharIfNeeded(){
 function renderCharacterInit(){
   _migrateLegacyCharIfNeeded();
   const chars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
-  return`<div style="max-width:640px;margin:4rem auto;padding:1.5rem;">
-    ${_renderSessionBarHTML()}
-    <div class="card" style="margin-top:1.5rem;">
+  return`<div class="with-campaign">
+    ${renderCampaignHeader()}
+    <div class="card" style="max-width:640px;margin:2rem auto;">
       <div class="card-title" style="margin-bottom:4px;">Joining ${_campaign?.name||'Campaign'}</div>
       <p style="color:var(--muted);font-size:14px;margin-bottom:1.25rem;">Choose a character to bring into this campaign. Once in, all your progression — levels, inventory, gold, HP — lives here and stays separate from your other campaigns.</p>
       ${chars.length>0?`<div style="margin-bottom:1.25rem;">
@@ -6203,8 +6315,21 @@ document.addEventListener('DOMContentLoaded', async function(){
 
   if(isSandbox){
     _sandboxMode=true;
-    if(!loadPendingImport()) loadSaved();
+    const sandboxCharId=params.get('char');
+    if(sandboxCharId){
+      const trackerData=CharStore.loadPart(sandboxCharId,'tracker');
+      const builderData=CharStore.loadPart(sandboxCharId,'builder');
+      if(trackerData){
+        try{char=migrateChar(trackerData);syncResources(char);syncSpells(char);CharStore.setActive(sandboxCharId);}catch(e){char=null;}
+      } else if(builderData){
+        try{applyCharData(builderData);}catch(e){char=null;}
+      }
+      if(!char&&!loadPendingImport()) loadSaved();
+    } else {
+      if(!loadPendingImport()) loadSaved();
+    }
     showToast('Sandbox mode — changes are local only','info');
+    render();
     return;
   }
 

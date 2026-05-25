@@ -58,9 +58,23 @@ input,select,textarea{color:var(--ink);background:var(--surface);border-color:va
 .top-nav-inner{width:100%;max-width:1200px;margin:0 auto;padding:0 1rem;display:flex;align-items:center;gap:1rem;}
 .top-nav-brand{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--nav-accent);letter-spacing:1px;white-space:nowrap;}
 .top-nav-links{display:flex;gap:4px;margin-left:8px;}
-.top-nav-link{color:var(--nav-text);text-decoration:none;font-size:13px;padding:4px 10px;border-radius:4px;opacity:.75;transition:opacity .15s,background .15s;}
+.top-nav-link{color:var(--nav-text);text-decoration:none;font-size:13px;padding:4px 10px;border-radius:4px;opacity:.75;transition:opacity .15s,background .15s;background:none;border:none;cursor:pointer;}
 .top-nav-link:hover{opacity:1;background:rgba(255,255,255,.08);}
 .top-nav-link.active{opacity:1;color:var(--nav-accent);font-weight:600;}
+/* Characters dropdown */
+.nav-dropdown{position:relative;display:inline-flex;}
+.nav-char-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;min-width:250px;max-width:310px;max-height:340px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:2000;scrollbar-width:thin;}
+.nav-char-menu.open{display:block;}
+.nav-char-tile{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);}
+.nav-char-info{flex:1;min-width:0;}
+.nav-char-name{font-family:'Cinzel',serif;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);}
+.nav-char-sub{font-size:11px;color:var(--muted);}
+.nav-char-actions{display:flex;gap:3px;flex-shrink:0;}
+.nav-char-action{font-family:'Cinzel',serif;font-size:10px;padding:2px 7px;border:1px solid var(--border);border-radius:3px;text-decoration:none;color:var(--ink);background:var(--surface2);white-space:nowrap;cursor:pointer;}
+.nav-char-action:hover{background:var(--border);}
+.nav-char-empty{padding:10px 12px;font-size:12px;color:var(--muted);font-style:italic;}
+.nav-char-footer{display:block;padding:8px 12px;font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-decoration:none;font-weight:600;border-top:1px solid var(--border);}
+.nav-char-footer:hover{background:var(--surface2);}
 .top-nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
 .theme-dots{display:flex;gap:5px;align-items:center;}
 .theme-dot{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .1s;}
@@ -147,11 +161,13 @@ label{font-size:12px;font-weight:600;color:var(--ink-light);display:block;margin
 <body>
 <nav class="top-nav">
   <div class="top-nav-inner">
-    <span class="top-nav-brand">⚔ D&amp;D 5e Tools</span>
+    <a class="top-nav-brand" href="index.html" style="text-decoration:none;">⚔ D&amp;D 5e Tools</a>
     <div class="top-nav-links">
       <a class="top-nav-link" href="index.html">Home</a>
-      <a class="top-nav-link" href="builder.html">Builder</a>
-      <a class="top-nav-link" href="tracker.html">Tracker</a>
+      <div class="nav-dropdown">
+        <button class="top-nav-link" onclick="toggleNavCharMenu(event)">Characters ▾</button>
+        <div class="nav-char-menu" id="navCharMenu"></div>
+      </div>
       <a class="top-nav-link active" href="campaigns.html">Campaigns</a>
     </div>
     <div class="top-nav-right">
@@ -501,6 +517,42 @@ async function render(){
       <a class="btn btn-ghost" href="tracker.html?sandbox=true" style="flex-shrink:0;">Open Sandbox →</a>
     </div>`;
 }
+
+// ── NAV CHARACTERS DROPDOWN ───────────────────────────────────────────────────
+function _populateNavCharMenu(){
+  const menu=document.getElementById('navCharMenu');
+  if(!menu)return;
+  const chars=(()=>{try{return JSON.parse(localStorage.getItem('dnd5e_chars')||'[]');}catch(e){return[];}})()
+    .sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+  if(!chars.length){
+    menu.innerHTML=`<div class="nav-char-empty">No characters yet</div><a href="builder.html" class="nav-char-footer">+ Create Character</a>`;
+    return;
+  }
+  menu.innerHTML=chars.slice(0,8).map(c=>{
+    const cls=c.classId?c.classId.charAt(0).toUpperCase()+c.classId.slice(1):'';
+    return`<div class="nav-char-tile">
+      <div class="nav-char-info">
+        <div class="nav-char-name">${c.name||'Unnamed'}</div>
+        <div class="nav-char-sub">${cls?cls+' \xb7 ':''}Lv ${c.level||1}</div>
+      </div>
+      <div class="nav-char-actions">
+        <a href="builder.html?char=${c.id}" class="nav-char-action">Edit</a>
+        <a href="tracker.html?sandbox=true&char=${c.id}" class="nav-char-action">Sandbox</a>
+      </div>
+    </div>`;
+  }).join('')+`<a href="builder.html" class="nav-char-footer">+ Create Character</a>`;
+}
+function toggleNavCharMenu(e){
+  e&&e.stopPropagation();
+  const menu=document.getElementById('navCharMenu');
+  if(!menu)return;
+  const isOpen=menu.classList.contains('open');
+  document.querySelectorAll('.nav-char-menu.open').forEach(m=>m.classList.remove('open'));
+  if(!isOpen){_populateNavCharMenu();menu.classList.add('open');}
+}
+document.addEventListener('click',()=>{
+  document.querySelectorAll('.nav-char-menu.open').forEach(m=>m.classList.remove('open'));
+});
 
 // ── INIT ───────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
