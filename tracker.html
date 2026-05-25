@@ -284,7 +284,7 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .char-list-actions{display:flex;gap:6px;flex-shrink:0;}
 /* Auth bar */
 /* Campaign header — full-width bar above sidebar+main */
-.campaign-header-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:46px;background:var(--nav-bg,var(--ink));border-bottom:2px solid var(--gold);margin:-1.5rem -1rem 1rem;position:sticky;top:50px;z-index:500;flex-wrap:nowrap;overflow:hidden;}
+.campaign-header-bar{display:flex;align-items:center;gap:10px;padding:0 16px;height:46px;background:var(--nav-bg,var(--ink));border-bottom:2px solid var(--gold);margin:calc(-1.5rem + 8px) -1rem 1rem;position:sticky;top:58px;z-index:500;flex-wrap:nowrap;overflow:hidden;}
 .campaign-header-name{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--nav-accent,var(--gold));letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .campaign-header-badge{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--gold);background:rgba(139,105,20,0.2);border:1px solid var(--gold);border-radius:3px;padding:1px 5px;white-space:nowrap;flex-shrink:0;}
 .campaign-header-online{font-size:12px;color:var(--muted);white-space:nowrap;flex-shrink:0;}
@@ -406,8 +406,8 @@ button[data-tip],label[data-tip]{cursor:pointer;}
   max-height:calc(100vh - 66px);overflow-y:auto;
   scrollbar-width:thin;scrollbar-color:var(--border) transparent;
 }
-/* When campaign header (46px) is present, push sidebar down below it */
-.with-campaign .tracker-sidebar{top:104px;max-height:calc(100vh - 112px);}
+/* When campaign header (46px) + 8px gap is present, push sidebar down below it */
+.with-campaign .tracker-sidebar{top:112px;max-height:calc(100vh - 120px);}
 .tracker-sidebar::-webkit-scrollbar{width:3px;}
 .tracker-sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 .tracker-main{min-width:0;}
@@ -801,6 +801,15 @@ async function _joinChannel(code){
         render();
       }
     })
+    .on('broadcast',{event:'player_removed'},({payload})=>{
+      if(!_isDM&&payload.userId===_currentUserId){
+        showToast('The DM approved your leave request. Redirecting…','info');
+        setTimeout(()=>leaveCampaign(),2500);
+      } else if(_isDM){
+        _dmPlayerStates=_dmPlayerStates.filter(s=>s.user_id!==payload.userId);
+        render();
+      }
+    })
     .on('broadcast',{event:'dm_edit'},({payload})=>{
       // Player receives a direct DM edit to their character
       if(!_isDM&&_currentUserId===payload.userId&&char){
@@ -940,6 +949,12 @@ function renderCampaignHeader(){
     :'';
   const partyBtn=_sessionCode?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('party')">Party View</button>`:'';
   const dmBtn=(_isDM&&_sessionCode)?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('dm')">⚔ DM Panel</button>`:'';
+  const hasPendingLeave=_pendingRequests.some(r=>r.change_type==='leave');
+  const actionBtn=_isDM
+    ?`<a href="campaigns.html" class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:10px;opacity:.7;">← Back</a>`
+    :hasPendingLeave
+      ?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;opacity:.5;cursor:default;" disabled>Leave Requested</button>`
+      :`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="requestLeave()">Request to Leave</button>`;
   return`<div class="campaign-header-bar">
     <span class="session-dot"></span>
     <span class="campaign-header-name">${_campaign.name}</span>
@@ -949,7 +964,7 @@ function renderCampaignHeader(){
     ${dmBtn}
     <div style="flex:1;min-width:0;"></div>
     ${inviteCode}
-    <button class="btn btn-danger btn-sm" style="flex-shrink:0;" onclick="leaveCampaign()">Leave</button>
+    ${actionBtn}
   </div>`;
 }
 
@@ -971,7 +986,7 @@ function _renderSessionBarHTML(){
       <button class="btn btn-ghost btn-sm" onclick="setTab('party')">Party View</button>
       <div style="flex:1;"></div>
       ${codeDisplay}
-      <button class="btn btn-danger btn-sm" onclick="leaveCampaign()">Leave</button>
+      ${_isDM?`<a href="campaigns.html" class="btn btn-ghost btn-sm" style="font-size:10px;opacity:.7;">← Back</a>`:`<button class="btn btn-ghost btn-sm" onclick="requestLeave()">Request to Leave</button>`}
     </div>`;
   }
   if(_sandboxMode) return `<div class="session-bar" style="justify-content:flex-end;">
@@ -5585,6 +5600,17 @@ async function leaveCampaign(){
   window.location.href='campaigns.html';
 }
 
+async function requestLeave(){
+  if(!_campaign||_isDM) return;
+  if(_pendingRequests.some(r=>r.change_type==='leave')){
+    showToast('Leave request already pending DM approval.','info');return;
+  }
+  if(!confirm('Request to leave "'+_campaign.name+'"?\n\nYour DM will be notified. You stay in the campaign until they approve.')) return;
+  const ok=await submitChangeRequest('leave','requests to leave the campaign',null);
+  if(ok) showToast('Leave request sent to DM.','success');
+  render();
+}
+
 async function loadActiveCampaign(){
   const campId=store.get('dnd5e_campaign_id');
   if(!campId||!_sbEnabled()) return;
@@ -5850,6 +5876,20 @@ async function approveCampaignChange(requestId){
     const{data}=await _sb.from('campaign_change_requests').select('*').eq('id',requestId).single();
     if(data) req=data;
   }
+  // Leave requests: remove the player entirely rather than writing char state
+  if(req.change_type==='leave'){
+    await _sb.from('campaign_members').delete().eq('campaign_id',_campaign.id).eq('user_id',req.user_id);
+    await _sb.from('campaign_character_state').delete().eq('campaign_id',_campaign.id).eq('user_id',req.user_id);
+    await _sb.from('campaign_change_requests').update({status:'approved',resolved_at:new Date().toISOString()}).eq('id',requestId);
+    if(_sessionChannel) _sessionChannel.send({type:'broadcast',event:'player_removed',payload:{userId:req.user_id}});
+    _dmPlayerStates=_dmPlayerStates.filter(s=>s.user_id!==req.user_id);
+    _dmPendingRequests=_dmPendingRequests.filter(r=>r.id!==requestId);
+    await logActivity('dm_action',(req.char_name||'Player')+" left the campaign");
+    showToast((req.char_name||'Player')+' removed from campaign','info');
+    render();
+    return;
+  }
+
   const proposedChar=req.change_data?.proposedChar;
   if(!proposedChar){showToast('No proposed state attached to this request.','warning');return;}
 
@@ -6273,6 +6313,10 @@ async function initCampaignCharacter(charId){
     if(_campaignSaveTimer) clearTimeout(_campaignSaveTimer);
     await _saveCampaignChar();
     if(_campaign) store.set('dnd5e_camp_'+_campaign.id,JSON.stringify(char));
+    // Persist char info to registry so campaigns.html tile can show it
+    const _regEntry=_getCampaignRegistry().find(c=>c.id===_campaign.id)||{};
+    _saveCampaignToRegistry({..._regEntry,id:_campaign.id,name:_campaign.name,invite_code:_campaign.invite_code,isDM:false,
+      charName:char.identity?.name||null,charClass:char.class?.name||null,charLevel:char.level||1});
     await logActivity('join','entered the campaign as '+char.identity?.name);
     showToast((char.identity?.name||'Character')+' is now in this campaign!','success');
     render();

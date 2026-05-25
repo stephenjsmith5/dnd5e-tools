@@ -105,6 +105,10 @@ create policy "Users can join campaigns"
 create policy "Users can leave campaigns"
   on campaign_members for delete using (auth.uid() = user_id);
 
+create policy "DM can remove members from own campaign"
+  on campaign_members for delete
+  using (exists (select 1 from campaigns where id = campaign_id and created_by = auth.uid()));
+
 -- ── Campaign character state (per player per campaign) ───────────────────────
 
 create table if not exists campaign_character_state (
@@ -132,6 +136,10 @@ create policy "Players can insert own state"
 create policy "Players can update own state"
   on campaign_character_state for update
   using (auth.uid() = user_id);
+
+create policy "DM can delete player state in own campaign"
+  on campaign_character_state for delete
+  using (exists (select 1 from campaigns where id = campaign_id and created_by = auth.uid()));
 
 create policy "DM can update any player state in own campaign"
   on campaign_character_state for update
