@@ -352,6 +352,13 @@ async function restoreCampaign(id,name){
   showToast('"'+name+'" restored!','success');
 }
 
+async function leaveCampaignLocal(id){
+  const session=await getSession();
+  if(session&&_sb) await _sb.from('campaign_members').delete().eq('campaign_id',id).eq('user_id',session.user.id);
+  removeCampaignFromRegistry(id);
+  render();
+}
+
 function _daysLeft(deletedAt){
   const expires=new Date(new Date(deletedAt).getTime()+30*86400000);
   return Math.max(0,Math.ceil((expires-Date.now())/86400000));
@@ -409,7 +416,6 @@ async function render(){
   const root=document.getElementById('root');
   if(!root)return;
   const session=await getSession();
-  const campaigns=getCampaignRegistry();
 
   // Show sign-in prompt with optional redirect message
   if(!session){
@@ -424,31 +430,44 @@ async function render(){
     return;
   }
 
-  // Fetch deleted_at status and member counts from Supabase for all known campaigns
-  const deletedAtMap={};
+  // Supabase is the source of truth — fetch everything fresh
+  const userId=session.user.id;
+  const [{data:dmData},{data:memberRows}]=await Promise.all([
+    _sb.from('campaigns').select('id,name,invite_code,created_by,deleted_at,created_at').eq('created_by',userId),
+    _sb.from('campaign_members').select('campaign_id,char_name,campaigns(id,name,invite_code,created_by,deleted_at,created_at)').eq('user_id',userId)
+  ]);
+
+  // Build unified list: DM campaigns + player campaigns (no duplicates)
+  const campaignMap=new Map();
+  (dmData||[]).forEach(c=>campaignMap.set(c.id,{...c,isDM:true}));
+  (memberRows||[]).forEach(row=>{
+    const c=row.campaigns;
+    if(c&&!campaignMap.has(c.id)) campaignMap.set(c.id,{...c,isDM:false});
+  });
+  const allCampaigns=[...campaignMap.values()];
+
+  // Member counts
   const memberCountMap={};
-  if(campaigns.length&&_sb){
-    const ids=campaigns.map(c=>c.id);
-    const[{data:campData},{data:memberData}]=await Promise.all([
-      _sb.from('campaigns').select('id,deleted_at').in('id',ids),
-      _sb.from('campaign_members').select('campaign_id').in('campaign_id',ids)
-    ]);
-    if(campData){
-      campData.forEach(c=>{deletedAtMap[c.id]=c.deleted_at||null;});
-      // Prune any registry entries that no longer exist in Supabase (hard-deleted)
-      const returnedIds=new Set(campData.map(c=>c.id));
-      ids.forEach(id=>{if(!returnedIds.has(id))removeCampaignFromRegistry(id);});
-    }
-    if(memberData) memberData.forEach(m=>{memberCountMap[m.campaign_id]=(memberCountMap[m.campaign_id]||0)+1;});
+  if(allCampaigns.length){
+    const{data:counts}=await _sb.from('campaign_members').select('campaign_id').in('campaign_id',allCampaigns.map(c=>c.id));
+    (counts||[]).forEach(m=>{memberCountMap[m.campaign_id]=(memberCountMap[m.campaign_id]||0)+1;});
   }
 
-  // Use the post-prune registry so hard-deleted campaigns don't render
-  const activeCampaigns=_sb?getCampaignRegistry():campaigns;
-  const cards=activeCampaigns.map(c=>{
+  // Sync local registry to match Supabase (local registry only used by tracker.html for char link details)
+  const localReg=getCampaignRegistry();
+  const localMap=new Map(localReg.map(c=>[c.id,c]));
+  allCampaigns.forEach(c=>{
+    const local=localMap.get(c.id)||{};
+    saveCampaignToRegistry({id:c.id,name:c.name,invite_code:c.invite_code,isDM:c.isDM,
+      charName:local.charName||null,charClass:local.charClass||null,charLevel:local.charLevel||null});
+  });
+  localReg.forEach(c=>{if(!campaignMap.has(c.id))removeCampaignFromRegistry(c.id);});
+
+  const cards=allCampaigns.map(c=>{
+    const local=localMap.get(c.id)||{};
     const safeName=c.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
-    const deletedAt=deletedAtMap[c.id]??null;
-    const isDeleted=!!deletedAt;
-    const daysLeft=isDeleted?_daysLeft(deletedAt):null;
+    const isDeleted=!!c.deleted_at;
+    const daysLeft=isDeleted?_daysLeft(c.deleted_at):null;
     const cardStyle=isDeleted?'opacity:.55;filter:grayscale(.4);':'';
 
     if(c.isDM){
@@ -492,7 +511,7 @@ async function render(){
           <div class="campaign-meta" style="font-style:italic;color:var(--muted);">This campaign was deleted by the DM.</div>
         </div>
         <div class="campaign-card-actions">
-          <button class="btn btn-ghost btn-sm" onclick="removeCampaignFromRegistry('${c.id}');render()">Remove from list</button>
+          <button class="btn btn-ghost btn-sm" onclick="leaveCampaignLocal('${c.id}')">Remove from list</button>
         </div>
       </div>`;
     }
@@ -501,10 +520,10 @@ async function render(){
       <div class="campaign-card-body">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span class="badge player-badge">Player</span><span style="font-size:12px;color:var(--muted);">${memberCountMap[c.id]||0} in party</span></div>
         <div class="campaign-name">${c.name}</div>
-        ${c.charName
+        ${local.charName
           ?`<div class="campaign-meta" style="margin-top:4px;">
-              <strong style="font-family:'Cinzel',serif;font-size:13px;">${c.charName}</strong>
-              <span style="color:var(--muted);"> · ${c.charClass||'Unknown'} · Lv ${c.charLevel||1}</span>
+              <strong style="font-family:'Cinzel',serif;font-size:13px;">${local.charName}</strong>
+              <span style="color:var(--muted);"> · ${local.charClass||'Unknown'} · Lv ${local.charLevel||1}</span>
             </div>`
           :'<div class="campaign-meta" style="font-style:italic;color:var(--muted);margin-top:4px;">No character linked — enter to choose one</div>'}
       </div>
@@ -515,7 +534,7 @@ async function render(){
   }).join('');
 
   root.innerHTML=`
-    ${activeCampaigns.length
+    ${allCampaigns.length
       ?`<div class="campaign-list">${cards}</div><div class="divider"></div>`
       :`<div class="empty-state"><p>You haven't joined any campaigns yet. Create one as DM or join an existing one below.</p></div>`}
     <div class="action-row" style="margin-bottom:1rem;">
