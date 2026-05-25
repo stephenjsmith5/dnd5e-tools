@@ -4417,10 +4417,10 @@ function renderNotes(){
   const toolProf=char.toolProficiency||null;
   const pack=char.equipmentPack||null;
   return`
-  ${backstory?`<div class="card">
+  <div class="card">
     <div class="card-title">Backstory</div>
-    <p style="font-size:14px;line-height:1.7;color:var(--ink-light);white-space:pre-wrap;">${backstory}</p>
-  </div>`:''}
+    <textarea style="width:100%;min-height:120px;resize:vertical;font-family:'Crimson Text',serif;font-size:14px;line-height:1.7;padding:8px 10px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--ink);" placeholder="Your character's origin, history, and connections…" oninput="char.identity=char.identity||{};char.identity.backstory=this.value;saveAndRender()">${backstory}</textarea>
+  </div>
   ${langs||toolProf||pack?`<div class="card">
     <div class="card-title">Proficiencies & Languages</div>
     ${langs?`<p style="font-size:13px;margin-bottom:6px;"><strong style="color:var(--gold);">Languages:</strong> ${langs.join(', ')}</p>`:''}
@@ -5428,7 +5428,7 @@ function applyCharData(data){
   // ── Normalise identity ────────────────────────────────────────────────
   if(!data.identity){
     if(data.name||data.character_name){
-      data.identity={name:data.name||data.character_name||'Unknown',alignment:data.alignment||'True Neutral',appearance:data.appearance||'',personalityTrait:data.personalityTrait||'',ideals:data.ideals||'',bonds:data.bonds||'',flaws:data.flaws||''};
+      data.identity={name:data.name||data.character_name||'Unknown',alignment:data.alignment||'True Neutral',appearance:data.appearance||'',personalityTrait:data.personalityTrait||'',ideals:data.ideals||'',bonds:data.bonds||'',flaws:data.flaws||'',backstory:data.backstory||''};
     } else {
       throw new Error('Missing "identity" block. Keys found: '+Object.keys(data).slice(0,10).join(', '));
     }
