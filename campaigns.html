@@ -322,13 +322,24 @@ async function joinCampaign(code,charId){
 }
 
 async function deleteCampaign(id,name){
-  if(!confirm('Delete "'+name+'"? All players will be disconnected and this cannot be undone.'))return;
-  const{error}=await _sb.from('campaigns').delete().eq('id',id);
+  if(!confirm('Delete "'+name+'"?\n\nPlayers will see it as deleted but it stays visible to everyone for 30 days. You can restore it any time during that window.'))return;
+  const{error}=await _sb.from('campaigns').update({deleted_at:new Date().toISOString()}).eq('id',id);
   if(error){showToast('Could not delete: '+error.message,'warning');return;}
-  removeCampaignFromRegistry(id);
   if(localStorage.getItem('dnd5e_campaign_id')===id)localStorage.removeItem('dnd5e_campaign_id');
   render();
-  showToast('Campaign deleted.','info');
+  showToast('"'+name+'" deleted — 30 days to restore.','info');
+}
+
+async function restoreCampaign(id,name){
+  const{error}=await _sb.from('campaigns').update({deleted_at:null}).eq('id',id);
+  if(error){showToast('Could not restore: '+error.message,'warning');return;}
+  render();
+  showToast('"'+name+'" restored!','success');
+}
+
+function _daysLeft(deletedAt){
+  const expires=new Date(new Date(deletedAt).getTime()+30*86400000);
+  return Math.max(0,Math.ceil((expires-Date.now())/86400000));
 }
 
 async function leaveCampaign(id,name){
@@ -403,9 +414,36 @@ async function render(){
     return;
   }
 
+  // Fetch deleted_at status from Supabase for all known campaigns
+  const deletedAtMap={};
+  if(campaigns.length&&_sb){
+    const{data}=await _sb.from('campaigns').select('id,deleted_at').in('id',campaigns.map(c=>c.id));
+    if(data) data.forEach(c=>{deletedAtMap[c.id]=c.deleted_at||null;});
+  }
+
   const cards=campaigns.map(c=>{
     const safeName=c.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    const deletedAt=deletedAtMap[c.id]??null;
+    const isDeleted=!!deletedAt;
+    const daysLeft=isDeleted?_daysLeft(deletedAt):null;
+    const cardStyle=isDeleted?'opacity:.55;filter:grayscale(.4);':'';
+
     if(c.isDM){
+      if(isDeleted){
+        return`<div class="campaign-card" style="${cardStyle}">
+          <div class="campaign-card-body">
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span class="badge dm-badge">DM</span>
+              <span class="badge" style="background:#c0392b;color:#fff;font-size:10px;">Deleted</span>
+            </div>
+            <div class="campaign-name" style="text-decoration:line-through;">${c.name}</div>
+            <div class="campaign-meta" style="color:var(--red);">Permanent deletion in ${daysLeft} day${daysLeft!==1?'s':''}.</div>
+          </div>
+          <div class="campaign-card-actions">
+            <button class="btn btn-ghost btn-sm" onclick="restoreCampaign('${c.id}','${safeName}')">↩ Restore Campaign</button>
+          </div>
+        </div>`;
+      }
       return`<div class="campaign-card">
         <div class="campaign-card-body">
           <div><span class="badge dm-badge">DM</span></div>
@@ -421,6 +459,23 @@ async function render(){
         </div>
       </div>`;
     }
+
+    if(isDeleted){
+      return`<div class="campaign-card" style="${cardStyle}">
+        <div class="campaign-card-body">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span class="badge player-badge">Player</span>
+            <span class="badge" style="background:#c0392b;color:#fff;font-size:10px;">Deleted</span>
+          </div>
+          <div class="campaign-name" style="text-decoration:line-through;">${c.name}</div>
+          <div class="campaign-meta" style="font-style:italic;color:var(--muted);">This campaign was deleted by the DM.</div>
+        </div>
+        <div class="campaign-card-actions">
+          <button class="btn btn-ghost btn-sm" onclick="removeCampaignFromRegistry('${c.id}');render()">Remove from list</button>
+        </div>
+      </div>`;
+    }
+
     return`<div class="campaign-card">
       <div class="campaign-card-body">
         <div><span class="badge player-badge">Player</span></div>

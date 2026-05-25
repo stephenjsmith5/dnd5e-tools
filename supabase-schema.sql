@@ -59,7 +59,8 @@ create table if not exists campaigns (
   created_by  uuid references auth.users(id) on delete cascade not null,
   name        text not null,
   invite_code text unique not null,  -- 6-char alphanumeric, shown to players
-  created_at  timestamptz default now()
+  created_at  timestamptz default now(),
+  deleted_at  timestamptz             -- null = active; set = soft-deleted
 );
 
 alter table campaigns enable row level security;
@@ -70,8 +71,19 @@ create policy "Authenticated users can read campaigns"
 create policy "DM can create campaigns"
   on campaigns for insert with check (auth.uid() = created_by);
 
+create policy "DM can update own campaigns"
+  on campaigns for update
+  using (auth.uid() = created_by)
+  with check (auth.uid() = created_by);
+
 create policy "DM can delete own campaigns"
   on campaigns for delete using (auth.uid() = created_by);
+
+-- Optional: schedule permanent deletion of soft-deleted campaigns after 30 days.
+-- Requires pg_cron enabled in Supabase (Database → Extensions → pg_cron).
+-- select cron.schedule('purge-deleted-campaigns','0 3 * * *',$$
+--   delete from campaigns where deleted_at < now() - interval '30 days';
+-- $$);
 
 -- Track which users/characters are in each campaign
 create table if not exists campaign_members (
