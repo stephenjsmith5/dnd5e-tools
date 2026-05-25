@@ -5306,6 +5306,10 @@ async function joinCampaign(code){
   if(!char){showToast('Load a character before joining a campaign.','warning');return;}
   const{data:camp,error}=await _sb.from('campaigns').select('*').eq('invite_code',code).single();
   if(error||!camp){showToast('Campaign not found. Check the invite code.','warning');return;}
+  // Disconnect from any existing campaign/channel before joining new one
+  if(_sessionChannel){_sessionChannel.unsubscribe();_sessionChannel=null;}
+  _sessionCode=null;_sessionPresence={};_sessionFeed=[];
+  _campaign=null;_isDM=false;
   // Upsert membership
   await _sb.from('campaign_members').upsert({campaign_id:camp.id,user_id:session.user.id,char_name:char.identity?.name||'Unknown'},{onConflict:'campaign_id,user_id'});
   const isDM=(camp.created_by===session.user.id);
@@ -5323,11 +5327,10 @@ async function joinCampaign(code){
 
 async function leaveCampaign(){
   if(_sessionChannel){_sessionChannel.unsubscribe();_sessionChannel=null;}
-  const campId=_campaign?.id;
   _sessionCode=null;_sessionPresence={};_sessionFeed=[];
   _campaign=null;_isDM=false;
   store.remove('dnd5e_campaign_id');
-  if(campId) _removeCampaignFromRegistry(campId);
+  // Keep campaign in registry so user can rejoin from campaigns.html without needing invite code again
   activeTab='combat';
   render();
   showToast('Left campaign.','info');
@@ -5335,14 +5338,14 @@ async function leaveCampaign(){
 
 async function loadActiveCampaign(){
   const campId=store.get('dnd5e_campaign_id');
-  if(!campId||!char||!_sbEnabled()) return;
+  if(!campId||!_sbEnabled()) return;
   const session=await getSession();
   if(!session) return;
   const{data:camp,error}=await _sb.from('campaigns').select('*').eq('id',campId).single();
   if(error||!camp){store.remove('dnd5e_campaign_id');return;}
   _campaign=camp;_isDM=(camp.created_by===session.user.id);
   await _joinChannel(camp.id);
-  showToast('Rejoined campaign: '+camp.name,'info');
+  showToast('Rejoined '+camp.name,'info');
 }
 
 function dmAnnounce(type){
@@ -5358,9 +5361,8 @@ async function deleteCampaign(){
   const campId=_campaign.id;
   const{error}=await _sb.from('campaigns').delete().eq('id',campId);
   if(error){showToast('Could not delete campaign: '+error.message,'warning');return;}
-  _removeCampaignFromRegistry(campId);
+  _removeCampaignFromRegistry(campId); // intentional delete — remove from registry
   await leaveCampaign();
-  showToast('Campaign deleted.','info');
 }
 
 function renderDMTab(){

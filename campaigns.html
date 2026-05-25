@@ -332,15 +332,15 @@ async function deleteCampaign(id,name){
 }
 
 async function leaveCampaign(id,name){
-  if(!confirm('Leave "'+name+'"? You can rejoin with the invite code.'))return;
+  if(!confirm('Leave "'+name+'"? Your campaign card will stay here so you can rejoin anytime.'))return;
   const session=await getSession();
   if(session&&_sb){
     await _sb.from('campaign_members').delete().eq('campaign_id',id).eq('user_id',session.user.id);
   }
-  removeCampaignFromRegistry(id);
+  // Keep in registry so user can rejoin; just clear the active pointer
   if(localStorage.getItem('dnd5e_campaign_id')===id)localStorage.removeItem('dnd5e_campaign_id');
   render();
-  showToast('Left '+name+'.','info');
+  showToast('Left '+name+'. Card stays here so you can rejoin anytime.','info');
 }
 
 // ── MODALS ─────────────────────────────────────────────────────────────────────
@@ -412,7 +412,7 @@ async function render(){
           <div class="campaign-code-label">6-character invite code</div>
         </div>
         <div class="campaign-card-actions">
-          <a class="btn btn-red" href="tracker.html?dm=${c.id}">Open DM Panel →</a>
+          <a class="btn btn-red" href="tracker.html?dm=${c.id}" onclick="localStorage.setItem('dnd5e_campaign_id','${c.id}')">Open DM Panel →</a>
           <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText('${c.invite_code}').then(()=>showToast('Copied!','success'))">Copy Code</button>
           <button class="btn btn-danger btn-sm" onclick="deleteCampaign('${c.id}','${safeName}')">Delete Campaign</button>
         </div>
@@ -427,7 +427,7 @@ async function render(){
           :'<div class="campaign-meta" style="font-style:italic;">No character linked — rejoin to select one</div>'}
       </div>
       <div class="campaign-card-actions">
-        <a class="btn btn-red" href="tracker.html?rejoin=${c.id}">Rejoin →</a>
+        <a class="btn btn-red" href="tracker.html?rejoin=${c.id}" onclick="localStorage.setItem('dnd5e_campaign_id','${c.id}')">Rejoin →</a>
         <button class="btn btn-danger btn-sm" onclick="leaveCampaign('${c.id}','${safeName}')">Leave</button>
       </div>
     </div>`;
