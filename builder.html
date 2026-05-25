@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="parchment">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -16,6 +16,7 @@
   --muted: #7a5c3a; --hp-red: #c0392b; --ac-blue: #1a4a6b; --spd-green: #1a5c2a;
 }
 body { background: var(--parchment); font-family: 'Crimson Text', Georgia, serif; color: var(--ink); min-height: 100vh; }
+input,select,textarea{color:var(--ink);background:var(--surface2);border-color:var(--border-col);}
 .app { max-width: 960px; margin: 0 auto; padding: 1.5rem 1rem; }
 .app-header { text-align: center; padding: 1.5rem 0 1rem; border-bottom: 2px solid var(--border-col); margin-bottom: 1.5rem; }
 .app-header h1 { font-family: 'Cinzel', serif; font-size: 28px; font-weight: 700; color: var(--red-accent); letter-spacing: 2px; text-shadow: 1px 1px 0 var(--gold); }
@@ -247,15 +248,68 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .auth-field label{font-size:13px;color:var(--ink-light);display:block;margin-bottom:4px;}
 .auth-error{font-size:12px;color:var(--hp-red);margin:8px 0;}
 .auth-success{font-size:12px;color:#5a9e5a;margin:8px 0;}
+
+/* ─── THEMES ────────────────────────────────────────────────────────────────── */
+[data-theme="midnight"]{
+  --parchment:#1a1a2e;--ink:#e2e4e7;--ink-light:#a0a8b2;
+  --gold:#c9a84c;--gold-light:#e8c86a;--red-accent:#b0c4d8;--on-accent:#1a1a2e;
+  --border-col:#3d3555;--surface:#22223a;--surface2:#2c2c4a;
+  --muted:#8a8099;--hp-red:#e05555;--ac-blue:#4a9fd4;--spd-green:#4caf7d;
+  --nav-bg:#0d0d1a;--nav-text:#e8e0d5;--nav-accent:#d4aa50;
+}
+[data-theme="arcane"]{
+  --parchment:#12102a;--ink:#e8d5f5;--ink-light:#c4a8e0;
+  --gold:#9b59b6;--gold-light:#b07fd4;--red-accent:#e0c055;--on-accent:#12102a;
+  --border-col:#5a3d7a;--surface:#1a1638;--surface2:#241e50;
+  --muted:#8a7aa8;--hp-red:#e74c3c;--ac-blue:#5dade2;
+  --nav-bg:#0a0818;--nav-text:#e8d5f5;--nav-accent:#e0c055;
+}
+[data-theme="forest"]{
+  --parchment:#0f1a12;--ink:#d4e8c4;--ink-light:#9fc28f;
+  --gold:#7daa3f;--gold-light:#9acf50;--red-accent:#90cc58;--on-accent:#0f1a12;
+  --border-col:#3a6a3a;--surface:#182a1a;--surface2:#213522;
+  --muted:#6a9060;--hp-red:#e05555;--ac-blue:#5dade2;
+  --nav-bg:#080f08;--nav-text:#d4e8c4;--nav-accent:#90cc58;
+}
+[data-theme="iron"]{
+  --parchment:#0e0e0e;--ink:#f0f0f0;--ink-light:#c8c8c8;
+  --gold:#e8c84a;--gold-light:#f0dc6e;--red-accent:#e84040;--on-accent:#fff;
+  --border-col:#505050;--surface:#1a1a1a;--surface2:#242424;
+  --muted:#909090;--hp-red:#ff4444;--ac-blue:#4488ee;
+  --nav-bg:#000000;--nav-text:#f0f0f0;--nav-accent:#e84040;
+}
+
+/* ─── TOP NAV ────────────────────────────────────────────────────────────────── */
+.top-nav{position:sticky;top:0;z-index:1000;background:var(--nav-bg,var(--ink));border-bottom:2px solid var(--border-col);}
+.top-nav-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:0 1rem;height:50px;}
+.top-nav-brand{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--nav-accent,var(--gold));letter-spacing:1px;white-space:nowrap;text-decoration:none;}
+.top-nav-links{display:flex;gap:2px;align-items:center;}
+.top-nav-link{font-family:'Cinzel',serif;font-size:11px;color:var(--nav-text,#f5edd6);opacity:0.65;padding:5px 9px;border-radius:4px;text-decoration:none;transition:opacity .15s,background .15s;letter-spacing:.5px;}
+.top-nav-link:hover{opacity:1;background:rgba(255,255,255,.08);}
+.top-nav-link.active{opacity:1;color:var(--nav-accent,var(--gold));}
+.top-nav-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.theme-dots{display:flex;gap:5px;align-items:center;}
+.theme-dot{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;box-shadow:0 0 0 1.5px rgba(255,255,255,0.35);}
+.theme-dot:hover{transform:scale(1.25);}
+.theme-dot.active{border-color:rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px rgba(255,255,255,0.6);}
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="app-header">
-    <h1>Seabass' DnD Character Builder</h1>
-    <p>Player's Handbook — Fifth Edition (2014) · PHB Strict</p>
+<nav class="top-nav">
+  <div class="top-nav-inner">
+    <span class="top-nav-brand">⚔ D&amp;D 5e Tools</span>
+    <div class="top-nav-links">
+      <a class="top-nav-link" href="index.html">Home</a>
+      <a class="top-nav-link active" href="builder.html">Builder</a>
+      <a class="top-nav-link" href="tracker.html">Tracker</a>
+    </div>
+    <div class="top-nav-right">
+      <div class="theme-dots" id="themeDots"></div>
+      <div id="authBarBuilder"></div>
+    </div>
   </div>
-  <div id="authBarBuilder"></div>
+</nav>
+<div class="app">
   <div id="charBar"></div>
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;">
     <div class="steps-nav" id="stepsNav" style="margin-bottom:0;flex:1;justify-content:flex-start;"></div>
@@ -267,6 +321,28 @@ button[data-tip],label[data-tip]{cursor:pointer;}
   <div id="appContent"></div>
 </div>
 <script>
+// ─── THEMES ──────────────────────────────────────────────────────────────────
+const THEME_LIST=[
+  {id:'parchment',color:'#f0dfa0',label:'Parchment'},
+  {id:'midnight',color:'#3a3a5c',label:'Midnight'},
+  {id:'arcane',color:'#6a3d9a',label:'Arcane'},
+  {id:'forest',color:'#2e6b2e',label:'Forest'},
+  {id:'iron',color:'#555555',label:'Draconic'},
+];
+function setTheme(id){
+  document.documentElement.setAttribute('data-theme',id);
+  localStorage.setItem('dnd5e_theme',id);
+  document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active',d.dataset.theme===id));
+}
+function initTheme(){
+  const saved=localStorage.getItem('dnd5e_theme')||'parchment';
+  document.documentElement.setAttribute('data-theme',saved);
+  const dotsEl=document.getElementById('themeDots');
+  if(dotsEl){
+    dotsEl.innerHTML=THEME_LIST.map(t=>`<div class="theme-dot${saved===t.id?' active':''}" data-theme="${t.id}" title="${t.label}" style="background:${t.color};" onclick="setTheme('${t.id}')"></div>`).join('');
+  }
+}
+
 const RACES = [
   { id:'human', name:'Human', icon:'🧑', sub:'Versatile',
     subraces:[
@@ -852,6 +928,7 @@ function renderCharBar(){
 }
 
 function initBuilder(){
+  initTheme();
   initSupabase();
   const activeId=CharStore.getActive();
   if(activeId){

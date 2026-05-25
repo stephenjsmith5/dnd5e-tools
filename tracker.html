@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="parchment">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -11,12 +11,14 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --parchment:#f5edd6;--ink:#2c1a0e;--ink-light:#5c3d1e;
-  --gold:#b8860b;--gold-light:#d4a017;--red:#8b1a1a;
+  --gold:#b8860b;--gold-light:#d4a017;--red:#8b1a1a;--on-accent:#fff;
   --border:#c9a84c;--surface:#fdf6e3;--surface2:#f0e2b6;
   --muted:#7a5c3a;--hp-red:#c0392b;--ac-blue:#1a4a6b;--spd-green:#1a5c2a;
   --green:#1a5c2a;--blue:#1a4a6b;
+  --chip-bg:#f9e8e8;--selected-bg:#f9e8e8;--active-row-bg:#fdf4f4;
 }
 body{background:var(--parchment);font-family:'Crimson Text',Georgia,serif;color:var(--ink);min-height:100vh;}
+input,select,textarea{color:var(--ink);background:var(--surface2);border-color:var(--border);}
 .app{max-width:1100px;margin:0 auto;padding:1.5rem 1rem;}
 .app-header{text-align:center;padding:1.25rem 0 1rem;border-bottom:2px solid var(--border);margin-bottom:1.25rem;}
 .app-header h1{font-family:'Cinzel',serif;font-size:26px;font-weight:700;color:var(--red);letter-spacing:2px;text-shadow:1px 1px 0 var(--gold);}
@@ -67,17 +69,17 @@ body{background:var(--parchment);font-family:'Crimson Text',Georgia,serif;color:
 
 /* Buttons */
 .btn{font-family:'Cinzel',serif;font-size:12px;padding:7px 16px;border-radius:4px;cursor:pointer;letter-spacing:0.5px;transition:all 0.15s;border:1px solid var(--border);}
-.btn-red{background:var(--red);color:#fff;border-color:var(--red);}
-.btn-red:hover{background:#6b1313;}
+.btn-red{background:var(--red);color:var(--on-accent,#fff);border-color:var(--red);}
+.btn-red:hover{filter:brightness(0.88);}
 .btn-gold{background:var(--surface2);color:var(--gold);border-color:var(--gold);}
 .btn-gold:hover{background:var(--border);}
 .btn-ghost{background:var(--surface2);color:var(--ink-light);border-color:var(--border);}
 .btn-ghost:hover{background:var(--border);}
 .btn-sm{font-size:11px;padding:4px 10px;}
-.btn-danger{background:#fdf0f0;color:var(--hp-red);border-color:var(--hp-red);}
+.btn-danger{background:var(--chip-bg,#fdf0f0);color:var(--hp-red);border-color:var(--hp-red);}
 .btn-danger:hover{background:var(--hp-red);color:#fff;}
-.btn-green{background:#f0faf3;color:var(--green);border-color:var(--green);}
-.btn-green:hover{background:var(--green);color:#fff;}
+.btn-green{background:var(--surface2);color:var(--green);border-color:var(--green);}
+.btn-green:hover{background:var(--green);color:var(--on-accent,#fff);}
 .btn:disabled{opacity:0.35;cursor:not-allowed;}
 
 /* Inputs */
@@ -109,7 +111,7 @@ label{font-size:13px;color:var(--ink-light);font-weight:600;display:block;margin
 /* Conditions */
 .condition-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
 .condition-chip{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:3px 10px;font-size:12px;color:var(--ink-light);display:flex;align-items:center;gap:5px;}
-.condition-chip.active{background:#f9e8e8;border-color:var(--red);color:var(--red);}
+.condition-chip.active{background:var(--chip-bg,#f9e8e8);border-color:var(--red);color:var(--red);}
 .condition-chip button{background:none;border:none;cursor:pointer;font-size:13px;color:inherit;padding:0;line-height:1;}
 
 /* Inventory */
@@ -125,7 +127,7 @@ label{font-size:13px;color:var(--ink-light);font-weight:600;display:block;margin
 .log-entry-text{color:var(--ink-light);}
 
 /* Level up panel */
-.level-up-banner{background:linear-gradient(135deg,#fdf6e3,#f0e2b6);border:2px solid var(--gold);border-radius:8px;padding:1rem;margin-bottom:1rem;text-align:center;}
+.level-up-banner{background:linear-gradient(135deg,var(--surface),var(--surface2));border:2px solid var(--gold);border-radius:8px;padding:1rem;margin-bottom:1rem;text-align:center;}
 .level-up-banner h2{font-family:'Cinzel',serif;font-size:18px;color:var(--red);margin-bottom:4px;}
 .level-up-banner p{font-size:13px;color:var(--ink-light);font-style:italic;}
 .feature-list{display:flex;flex-direction:column;gap:6px;}
@@ -135,14 +137,14 @@ label{font-size:13px;color:var(--ink-light);font-weight:600;display:block;margin
 /* ASI picker */
 .asi-pick{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
 .asi-btn{font-family:'Cinzel',serif;font-size:11px;padding:4px 10px;border:1.5px solid var(--border);background:var(--surface2);border-radius:4px;cursor:pointer;transition:all 0.15s;}
-.asi-btn.selected{background:var(--red);color:white;border-color:var(--red);}
+.asi-btn.selected{background:var(--red);color:var(--on-accent,#fff);border-color:var(--red);}
 .asi-btn:disabled{opacity:0.35;cursor:not-allowed;}
 
 /* Feat picker */
 .feat-scroll{max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;background:var(--parchment);}
 .feat-opt{padding:7px 10px;border-radius:4px;cursor:pointer;font-size:13px;transition:background 0.1s;margin-bottom:3px;}
 .feat-opt:hover{background:var(--surface2);}
-.feat-opt.selected{background:#f9e8e8;border-left:3px solid var(--red);}
+.feat-opt.selected{background:var(--selected-bg,#f9e8e8);border-left:3px solid var(--red);}
 .feat-opt-name{font-family:'Cinzel',serif;font-size:12px;font-weight:600;color:var(--ink);}
 .feat-opt-desc{font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;}
 
@@ -170,7 +172,7 @@ label{font-size:13px;color:var(--ink-light);font-weight:600;display:block;margin
 .subclass-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:7px;}
 .sc-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:6px;padding:9px 8px;cursor:pointer;transition:all 0.15s;}
 .sc-card:hover{border-color:var(--gold-light);}
-.sc-card.selected{border-color:var(--red);background:#f9e8e8;}
+.sc-card.selected{border-color:var(--red);background:var(--selected-bg,#f9e8e8);}
 .sc-card-name{font-family:'Cinzel',serif;font-size:11px;font-weight:600;color:var(--ink);}
 .sc-card-desc{font-size:10px;color:var(--muted);font-style:italic;margin-top:3px;line-height:1.3;}
 
@@ -220,8 +222,8 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .action-name-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
 .action-name{font-family:'Cinzel',serif;font-size:12px;font-weight:600;color:var(--ink);}
 .action-type-badge{font-family:'Cinzel',serif;font-size:9px;letter-spacing:0.5px;padding:2px 6px;border-radius:10px;white-space:nowrap;flex-shrink:0;}
-.action-type-badge.action{background:#fdf0f0;color:var(--red);border:1px solid var(--red);}
-.action-type-badge.bonus{background:#f0f4fd;color:var(--ac-blue);border:1px solid var(--ac-blue);}
+.action-type-badge.action{background:var(--chip-bg,#fdf0f0);color:var(--red);border:1px solid var(--red);}
+.action-type-badge.bonus{background:var(--surface2);color:var(--ac-blue);border:1px solid var(--ac-blue);}
 .action-type-badge.reaction{background:#f5f0fd;color:#7a3a9a;border:1px solid #7a3a9a;}
 .action-type-badge.free{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
 .action-desc{font-size:12px;color:var(--ink-light);line-height:1.55;}
@@ -234,7 +236,7 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .combatant-list{display:flex;flex-direction:column;gap:7px;margin-bottom:10px;}
 .combatant-row{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;transition:border-color 0.2s,box-shadow 0.2s;}
 .combatant-row.player-row{border-color:var(--gold);}
-.combatant-row.active-turn{border-color:var(--red);box-shadow:0 0 0 2px rgba(139,26,26,0.18);background:#fdf4f4;}
+.combatant-row.active-turn{border-color:var(--red);box-shadow:0 0 0 2px var(--border);background:var(--active-row-bg,#fdf4f4);}
 .combatant-row.defeated{opacity:0.38;}
 .comb-header{display:flex;align-items:center;gap:7px;margin-bottom:6px;}
 .comb-arrow{font-size:13px;color:var(--red);width:14px;flex-shrink:0;}
@@ -250,7 +252,7 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .enc-delta{width:50px;text-align:center;font-size:13px;padding:3px 5px;}
 .comb-conds{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
 .cond-pill{font-size:10px;padding:2px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.1s;display:inline-flex;align-items:center;gap:3px;white-space:nowrap;}
-.cond-pill.active{background:#f9e8e8;border-color:var(--red);color:var(--red);}
+.cond-pill.active{background:var(--chip-bg,#f9e8e8);border-color:var(--red);color:var(--red);}
 .cond-pill button{background:none;border:none;font-size:10px;cursor:pointer;padding:0;color:inherit;line-height:1;}
 .enc-cond-panel{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;padding:7px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);}
 .enc-add-form{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px;}
@@ -314,16 +316,140 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .auth-field{margin-bottom:12px;}
 .auth-field label{font-size:13px;color:var(--ink-light);display:block;margin-bottom:4px;}
 .auth-error{font-size:12px;color:var(--hp-red);margin:8px 0;}
+
+/* ─── THEMES ────────────────────────────────────────────────────────────────── */
+[data-theme="midnight"]{
+  --parchment:#1a1a2e;--ink:#e2e4e7;--ink-light:#a0a8b2;
+  --gold:#c9a84c;--gold-light:#e8c86a;--red:#b0c4d8;--on-accent:#1a1a2e;
+  --border:#3d3555;--surface:#22223a;--surface2:#2c2c4a;
+  --muted:#8a8099;--hp-red:#e05555;--ac-blue:#4a9fd4;--spd-green:#4caf7d;
+  --green:#4caf7d;--blue:#4a9fd4;
+  --nav-bg:#0d0d1a;--nav-text:#e2e4e7;--nav-accent:#b0c4d8;
+  --chip-bg:rgba(176,196,216,0.12);--selected-bg:rgba(176,196,216,0.10);--active-row-bg:rgba(176,196,216,0.08);
+}
+[data-theme="arcane"]{
+  --parchment:#12102a;--ink:#e8d5f5;--ink-light:#c4a8e0;
+  --gold:#9b59b6;--gold-light:#b07fd4;--red:#e0c055;--on-accent:#12102a;
+  --border:#5a3d7a;--surface:#1a1638;--surface2:#241e50;
+  --muted:#8a7aa8;--hp-red:#e74c3c;--ac-blue:#5dade2;--spd-green:#58d68d;
+  --green:#58d68d;--blue:#a78bda;
+  --nav-bg:#0a0818;--nav-text:#e8d5f5;--nav-accent:#e0c055;
+  --chip-bg:rgba(224,192,85,0.12);--selected-bg:rgba(224,192,85,0.10);--active-row-bg:rgba(224,192,85,0.08);
+}
+[data-theme="forest"]{
+  --parchment:#0f1a12;--ink:#d4e8c4;--ink-light:#9fc28f;
+  --gold:#7daa3f;--gold-light:#9acf50;--red:#90cc58;--on-accent:#0f1a12;
+  --border:#3a6a3a;--surface:#182a1a;--surface2:#213522;
+  --muted:#6a9060;--hp-red:#e05555;--ac-blue:#5dade2;--spd-green:#6bdb7e;
+  --green:#6bdb7e;--blue:#5dade2;
+  --nav-bg:#080f08;--nav-text:#d4e8c4;--nav-accent:#90cc58;
+  --chip-bg:rgba(144,204,88,0.12);--selected-bg:rgba(144,204,88,0.10);--active-row-bg:rgba(144,204,88,0.08);
+}
+[data-theme="iron"]{
+  --parchment:#0e0e0e;--ink:#f0f0f0;--ink-light:#c8c8c8;
+  --gold:#e8c84a;--gold-light:#f0dc6e;--red:#e84040;--on-accent:#fff;
+  --border:#505050;--surface:#1a1a1a;--surface2:#242424;
+  --muted:#909090;--hp-red:#ff4444;--ac-blue:#4488ee;--spd-green:#44ee88;
+  --green:#44ee88;--blue:#4488ee;
+  --nav-bg:#000000;--nav-text:#f0f0f0;--nav-accent:#e84040;
+  --chip-bg:rgba(232,64,64,0.12);--selected-bg:rgba(232,64,64,0.10);--active-row-bg:rgba(232,64,64,0.08);
+}
+
+/* ─── TOP NAV ────────────────────────────────────────────────────────────────── */
+.top-nav{
+  position:sticky;top:0;z-index:1000;
+  background:var(--nav-bg,var(--ink));
+  border-bottom:2px solid var(--border);
+}
+.top-nav-inner{
+  max-width:1200px;margin:0 auto;
+  display:flex;align-items:center;gap:12px;
+  padding:0 1rem;height:50px;
+}
+.top-nav-brand{
+  font-family:'Cinzel',serif;font-size:14px;font-weight:700;
+  color:var(--nav-accent,var(--gold));
+  letter-spacing:1px;white-space:nowrap;
+  text-decoration:none;
+}
+.top-nav-links{display:flex;gap:2px;align-items:center;}
+.top-nav-link{
+  font-family:'Cinzel',serif;font-size:11px;
+  color:var(--nav-text,var(--parchment));opacity:0.65;
+  padding:5px 9px;border-radius:4px;text-decoration:none;
+  transition:opacity 0.15s,background 0.15s;
+  letter-spacing:0.5px;
+}
+.top-nav-link:hover{opacity:1;background:rgba(255,255,255,0.08);}
+.top-nav-link.active{opacity:1;color:var(--nav-accent,var(--gold));}
+.top-nav-right{display:flex;align-items:center;gap:10px;margin-left:auto;}
+.theme-dots{display:flex;gap:5px;align-items:center;}
+.theme-dot{
+  width:14px;height:14px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:transform 0.15s,border-color 0.15s;
+  flex-shrink:0;box-shadow:0 0 0 1.5px rgba(255,255,255,0.35);
+}
+.theme-dot:hover{transform:scale(1.25);}
+.theme-dot.active{border-color:rgba(255,255,255,0.9);box-shadow:0 0 0 1.5px rgba(255,255,255,0.6);}
+
+/* ─── SIDEBAR LAYOUT ────────────────────────────────────────────────────────── */
+.tracker-layout{display:grid;grid-template-columns:230px 1fr;gap:1rem;align-items:start;}
+.tracker-sidebar{
+  position:sticky;top:58px;
+  max-height:calc(100vh - 66px);overflow-y:auto;
+  scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+}
+.tracker-sidebar::-webkit-scrollbar{width:3px;}
+.tracker-sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.tracker-main{min-width:0;}
+.sidebar-char-header{
+  background:var(--surface);border:2px solid var(--border);border-radius:8px;padding:10px 12px;
+  margin-bottom:8px;text-align:center;
+}
+.sidebar-char-name{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--red);}
+.sidebar-char-sub{font-size:11px;color:var(--muted);font-style:italic;margin-top:2px;}
+.sidebar-hp-num{font-family:'Cinzel',serif;font-size:30px;font-weight:700;color:var(--hp-red);}
+.sidebar-stat-row{display:flex;gap:5px;margin-bottom:0;}
+.sidebar-stat-badge{
+  flex:1;background:var(--surface2);border:1px solid var(--border);
+  border-radius:6px;padding:5px 3px;text-align:center;
+}
+.sidebar-stat-val{font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:var(--ink);}
+.sidebar-stat-label{font-size:8px;color:var(--muted);letter-spacing:0.8px;font-family:'Cinzel',serif;}
+.sidebar-ab-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;}
+.sidebar-ab-box{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:5px;padding:5px 3px;text-align:center;
+}
+.sidebar-ab-label{font-family:'Cinzel',serif;font-size:7.5px;color:var(--muted);letter-spacing:0.8px;}
+.sidebar-ab-score{font-family:'Cinzel',serif;font-size:16px;font-weight:700;color:var(--ink);}
+.sidebar-ab-mod{font-size:11px;font-weight:600;color:var(--red);}
+.sidebar-saves{display:flex;flex-direction:column;gap:2px;}
+.sidebar-save-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:3px 5px;border-radius:3px;cursor:pointer;font-size:12px;
+  transition:background 0.1s;
+}
+.sidebar-save-row:hover{background:var(--surface2);}
+.sidebar-rest-row{display:flex;gap:5px;}
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="app-header">
-    <h1>Seabass' DnD Tracker</h1>
-    <p id="header-sub">Import your character to begin</p>
-  <div id="header-controls" style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;"></div>
-  <div id="authBarTracker"></div>
+<nav class="top-nav">
+  <div class="top-nav-inner">
+    <span class="top-nav-brand">⚔ D&amp;D 5e Tools</span>
+    <div class="top-nav-links">
+      <a class="top-nav-link" href="index.html">Home</a>
+      <a class="top-nav-link" href="builder.html">Builder</a>
+      <a class="top-nav-link active" href="tracker.html">Tracker</a>
+    </div>
+    <div class="top-nav-right">
+      <div class="theme-dots" id="themeDots"></div>
+      <div id="authBarTracker"></div>
+    </div>
   </div>
+</nav>
+<div class="app">
   <div id="root">
     <div class="upload-screen">
       <div class="upload-box" onclick="document.getElementById('static-file-input').click()">
@@ -342,6 +468,28 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 </div>
 
 <script>
+// ─── THEMES ──────────────────────────────────────────────────────────────────
+const THEME_LIST=[
+  {id:'parchment',color:'#f0dfa0',label:'Parchment'},
+  {id:'midnight',color:'#3a3a5c',label:'Midnight'},
+  {id:'arcane',color:'#6a3d9a',label:'Arcane'},
+  {id:'forest',color:'#2e6b2e',label:'Forest'},
+  {id:'iron',color:'#555555',label:'Draconic'},
+];
+function setTheme(id){
+  document.documentElement.setAttribute('data-theme',id);
+  localStorage.setItem('dnd5e_theme',id);
+  document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active',d.dataset.theme===id));
+}
+function initTheme(){
+  const saved=localStorage.getItem('dnd5e_theme')||'parchment';
+  document.documentElement.setAttribute('data-theme',saved);
+  const dotsEl=document.getElementById('themeDots');
+  if(dotsEl){
+    dotsEl.innerHTML=THEME_LIST.map(t=>`<div class="theme-dot${saved===t.id?' active':''}" data-theme="${t.id}" title="${t.label}" style="background:${t.color};" onclick="setTheme('${t.id}')"></div>`).join('');
+  }
+}
+
 // ─── GLOBAL STATE (all declared first to avoid temporal dead zone errors) ──────
 let char=null;
 let activeTab='combat';
@@ -731,7 +879,7 @@ function renderPartyTab(){
                 <div class="party-sub">${p.className||''} · Lv ${p.level||1}${p.tempHP?` · <span style="color:var(--ac-blue);">+${p.tempHP} tmp</span>`:''}</div>
                 <div class="hp-mini-bar" style="margin-top:5px;"><div class="hp-mini-fill" style="width:${pct}%;background:${hpColor};"></div></div>
                 ${p.conditions&&p.conditions.length
-                  ?`<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px;">${p.conditions.map(c=>`<span style="font-size:10px;background:#f9e8e8;border:1px solid var(--red);border-radius:8px;padding:1px 6px;color:var(--red);">${c}</span>`).join('')}</div>`
+                  ?`<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px;">${p.conditions.map(c=>`<span style="font-size:10px;background:var(--chip-bg,#f9e8e8);border:1px solid var(--red);border-radius:8px;padding:1px 6px;color:var(--red);">${c}</span>`).join('')}</div>`
                   :''}
               </div>
               <div class="party-hp-val">${p.currentHP??'?'}<span style="font-size:11px;font-weight:400;color:var(--muted);">/${p.maxHP||'?'}</span></div>
@@ -1831,32 +1979,133 @@ function syncResources(char){
 
 // ─── STATE (all variables declared at top of script) ────────────────────────
 
+// ─── SIDEBAR ─────────────────────────────────────────────────────────────────
+function renderSidebar(){
+  if(!char) return '';
+  const t=char.tracker;
+  const eff=char.effectiveAbilities;
+  const maxHP=computeMaxHP();
+  const hpPct=Math.max(0,Math.min(100,(t.currentHP/maxHP)*100));
+  const hpColor=hpPct>50?'var(--green)':hpPct>25?'var(--gold)':'var(--hp-red)';
+  const prof=getProfBonus(char.level);
+  return`<div class="tracker-sidebar">
+    <div class="sidebar-char-header">
+      <div class="sidebar-char-name">${char.identity.name}</div>
+      <div class="sidebar-char-sub">${char.race.name} ${char.class.name} · Lv ${char.level}</div>
+    </div>
+    <div class="card" style="margin-bottom:8px;">
+      <div class="card-title">Hit Points</div>
+      <div style="text-align:center;margin-bottom:6px;">
+        <span class="sidebar-hp-num">${t.currentHP}</span>
+        <span style="font-size:14px;color:var(--muted);"> / ${maxHP}</span>
+        ${t.tempHP>0?`<div style="font-size:11px;color:var(--ac-blue);margin-top:1px;">+${t.tempHP} temp</div>`:''}
+      </div>
+      <div class="hp-bar-wrap" style="margin-bottom:8px;"><div class="hp-bar" style="width:${hpPct.toFixed(1)}%;background:${hpColor};"></div></div>
+      <div style="display:flex;gap:4px;margin-bottom:4px;">
+        <input type="number" id="hp-delta" class="hp-input" placeholder="Amt" min="0" style="width:56px;"/>
+        <button class="btn btn-danger btn-sm" onclick="adjustHP(-1)" style="flex:1;padding:5px 2px;">−&nbsp;Dmg</button>
+        <button class="btn btn-green btn-sm" onclick="adjustHP(1)" style="flex:1;padding:5px 2px;">+&nbsp;Heal</button>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="adjustTempHP()" style="width:100%;font-size:11px;">Temp HP</button>
+      ${t.currentHP<=0?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+        <div style="font-size:10px;font-family:'Cinzel',serif;color:var(--hp-red);margin-bottom:4px;letter-spacing:1px;">DEATH SAVES</div>
+        <div class="ds-row"><span style="font-size:10px;color:var(--green);min-width:52px;">Success</span>${[0,1,2].map(i=>`<div class="ds-pip${i<t.deathSaves.successes?' success':''}" onclick="toggleDS('success',${i})"></div>`).join('')}</div>
+        <div class="ds-row"><span style="font-size:10px;color:var(--hp-red);min-width:52px;">Failure</span>${[0,1,2].map(i=>`<div class="ds-pip${i<t.deathSaves.failures?' failure':''}" onclick="toggleDS('failure',${i})"></div>`).join('')}</div>
+      </div>`:''}
+    </div>
+    <div class="card" style="margin-bottom:8px;">
+      <div class="sidebar-stat-row">
+        <div class="sidebar-stat-badge" title="Armor Class"><div class="sidebar-stat-val">${char.ac}</div><div class="sidebar-stat-label">AC</div></div>
+        <div class="sidebar-stat-badge" title="Speed (ft)"><div class="sidebar-stat-val">${char.speed}</div><div class="sidebar-stat-label">SPD</div></div>
+        <div class="sidebar-stat-badge" title="Proficiency Bonus"><div class="sidebar-stat-val">+${prof}</div><div class="sidebar-stat-label">PROF</div></div>
+        <div class="sidebar-stat-badge" title="Initiative"><div class="sidebar-stat-val">${getModNum(eff.dex)>=0?'+':''}${getModNum(eff.dex)+prof}</div><div class="sidebar-stat-label">INIT</div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:8px;">
+      <div class="card-title" style="font-size:11px;margin-bottom:7px;">Abilities</div>
+      <div class="sidebar-ab-grid">
+        ${STAT_NAMES.map(s=>{const v=eff[s];return`<div class="sidebar-ab-box">
+          <div class="sidebar-ab-label">${STAT_LABELS[s]}</div>
+          <div class="sidebar-ab-score">${v}</div>
+          <div class="sidebar-ab-mod">${getMod(v)}</div>
+        </div>`;}).join('')}
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:8px;">
+      <div class="card-title" style="font-size:11px;margin-bottom:6px;">Saving Throws</div>
+      <div class="sidebar-saves">
+        ${STAT_NAMES.map(s=>{
+          const isProf=char.class.saves.includes(s);
+          const mod=getModNum(eff[s])+(isProf?prof:0);
+          return`<div class="sidebar-save-row" onclick="rollCheck('${STAT_LABELS[s]} Save',${mod})" title="Roll ${STAT_LABELS[s]} save">
+            <span style="color:${isProf?'var(--ink)':'var(--muted)'};">${isProf?'●':'○'}&nbsp;${STAT_LABELS[s]}</span>
+            <span style="font-family:'Cinzel',serif;font-size:12px;font-weight:600;">${(mod>=0?'+':'')+mod}</span>
+          </div>`;}).join('')}
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:8px;">
+      <div class="card-title" style="font-size:11px;margin-bottom:6px;">Conditions</div>
+      <div class="condition-chips" style="margin-bottom:5px;">
+        ${t.conditions.length?t.conditions.map(c=>`<div class="condition-chip active" style="font-size:11px;">${c}<button onclick="removeCondition('${c}')">✕</button></div>`).join(''):'<span style="font-size:11px;color:var(--muted);font-style:italic;">None</span>'}
+      </div>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <select id="cond-select" style="font-size:12px;padding:3px 5px;flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--ink);">
+          <option value="">Add condition…</option>
+          ${CONDITIONS.filter(c=>!t.conditions.includes(c)).map(c=>`<option value="${c}">${c}</option>`).join('')}
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="addCondition()" style="padding:4px 8px;">+</button>
+      </div>
+      ${t.exhaustion>0||true?`<div style="margin-top:6px;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px;">Exhaustion ${t.exhaustion}/6</div>
+        <div class="exhaustion-pips">${[1,2,3,4,5,6].map(i=>`<div class="ex-pip${t.exhaustion>=i?' active':''}" onclick="setExhaustion(${i})" title="Level ${i}"></div>`).join('')}</div>
+      </div>`:''}
+    </div>
+    <div class="card" style="margin-bottom:8px;">
+      <div class="card-title" style="font-size:11px;margin-bottom:6px;">Currency</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:5px;">
+        ${[['cp','CP'],['sp','SP'],['gp','GP'],['pp','PP']].map(([k,label])=>`
+          <div class="currency-box">
+            <div class="currency-label">${label}</div>
+            <input class="currency-input" type="number" min="0" value="${t.currency[k]}" id="cur-${k}" onchange="updateCurrency('${k}',this.value)" style="font-size:13px;"/>
+          </div>`).join('')}
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:8px;">
+      <div class="sidebar-rest-row">
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="doShortRest()">Short Rest</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="doLongRest()">Long Rest</button>
+      </div>
+      <div style="display:flex;gap:5px;margin-top:5px;">
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="exportJSON()">💾 Save</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="showCharSelect()">Characters</button>
+      </div>
+    </div>
+  </div>`;
+}
+function showCharSelect(){char=null;activeTab='combat';render();}
+
 // ─── RENDER ───────────────────────────────────────────────────────────────────
 
 function render(){
   const root=document.getElementById('root');
   if(!char){root.innerHTML=renderUpload();return;}
-  document.getElementById('header-sub').textContent=
-    `${char.identity.name} · ${char.race.name} ${char.class.name} · Level ${char.level}`;
-  // Inject header action buttons
-  const _hctrl=document.getElementById('header-controls');
-  if(_hctrl){
-    _hctrl.innerHTML=`
-      <button class="btn btn-ghost btn-sm" onclick="exportJSON()" style="border-color:var(--gold);color:var(--gold-light);">💾 Save Character</button>
-      <label class="btn btn-ghost btn-sm" style="cursor:pointer;">📂 Import Different Character<input type="file" accept=".json" onchange="handleFileInput(this)" style="display:none;"/></label>`;
-  }
-  const _allTabs=['combat','encounter','resources','spells','attacks','skills','levelup','inventory','log','notes'];
+  const _allTabs=['combat','encounter','resources','spells','skills','levelup','inventory','log','notes'];
   const _tabs=_sessionCode?['party',..._allTabs]:_allTabs;
-  const _tabLabels={party:'⚡ Party',combat:'Combat & Stats',encounter:'⚔ Encounter',resources:'Resources',spells:'Spells',attacks:'Actions',skills:'Skills & Saves',levelup:'Level Up',inventory:'Inventory',log:'Session Log',notes:'Notes'};
+  const _tabLabels={party:'⚡ Party',combat:'Combat',encounter:'⚔ Encounter',resources:'Resources',spells:'Spells',skills:'Skills & Saves',levelup:'Level Up',inventory:'Inventory',log:'Session Log',notes:'Notes'};
+  const _tabContent=activeTab==='party'?renderPartyTab():activeTab==='combat'?renderCombat():activeTab==='encounter'?renderEncounter():activeTab==='resources'?renderResources():activeTab==='spells'?renderSpells():activeTab==='skills'?renderSkills():activeTab==='levelup'?renderLevelUp():activeTab==='inventory'?renderInventory():activeTab==='log'?renderLog():renderNotes();
   root.innerHTML=`
-    ${_renderSessionBarHTML()}
-    <div class="tab-nav">
-      ${_tabs.map(t=>`<button class="tab-btn${activeTab===t?' active':''}" onclick="setTab('${t}')">${_tabLabels[t]}</button>`).join('')}
+    <div class="tracker-layout">
+      ${renderSidebar()}
+      <div class="tracker-main">
+        ${_renderSessionBarHTML()}
+        <div class="tab-nav">
+          ${_tabs.map(t=>`<button class="tab-btn${activeTab===t?' active':''}" onclick="setTab('${t}')">${_tabLabels[t]}</button>`).join('')}
+        </div>
+        ${_tabContent}
+      </div>
     </div>
-    ${activeTab==='party'?renderPartyTab():activeTab==='combat'?renderCombat():activeTab==='encounter'?renderEncounter():activeTab==='resources'?renderResources():activeTab==='spells'?renderSpells():activeTab==='attacks'?renderAttacks():activeTab==='skills'?renderSkills():activeTab==='levelup'?renderLevelUp():activeTab==='inventory'?renderInventory():activeTab==='log'?renderLog():renderNotes()}
   `;
   attachTrackerEvents();
-  // Inject cast dialog overlay if open
   if(castDialogId&&char){
     const overlay=document.createElement('div');
     overlay.innerHTML=renderCastDialog();
@@ -1866,135 +2115,28 @@ function render(){
 
 function setTab(t){activeTab=t;rollResult=null;smiteDialogOpen=false;castDialogId=null;render();}
 
-// ── COMBAT TAB ──
+// ── COMBAT TAB — shows attacks/actions + character features ──
 function renderCombat(){
-  const AB={str:'Strength — melee attacks &amp; damage, Athletics, carrying capacity, STR saves.',dex:'Dexterity — ranged attacks, AC (light/unarmored), Acrobatics/Stealth, initiative, DEX saves.',con:'Constitution — HP maximum, concentration saves, CON saves.',int:'Intelligence — Arcana/History/Investigation/Nature/Religion, wizard spellcasting, INT saves.',wis:'Wisdom — Insight/Medicine/Perception/Survival, cleric &amp; druid spellcasting, WIS saves.',cha:'Charisma — Deception/Intimidation/Performance/Persuasion, bard/sorcerer/warlock spellcasting, CHA saves.'};
+  const attacksHTML=renderAttacks();
   const t=char.tracker;
-  const eff=char.effectiveAbilities;
-  const maxHP=computeMaxHP();
-  const hpPct=Math.max(0,Math.min(100,(t.currentHP/maxHP)*100));
-  const hpColor=hpPct>50?'var(--green)':hpPct>25?'var(--gold)':'var(--hp-red)';
-  const prof=getProfBonus(char.level);
 
-  return`<div class="two-col">
-    <div>
-      <!-- Core stats -->
-      <div class="card">
-        <div class="card-title">Hit Points</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">
-          <span style="font-family:'Cinzel',serif;font-size:32px;font-weight:700;color:var(--hp-red);">${t.currentHP}</span>
-          <span style="font-size:16px;color:var(--muted);">/ ${maxHP}</span>
-          ${t.tempHP>0?`<span style="font-size:13px;color:var(--ac-blue);margin-left:4px;">(+${t.tempHP} temp)</span>`:''}
-        </div>
-        <div class="hp-bar-wrap"><div class="hp-bar" style="width:${hpPct.toFixed(1)}%;background:${hpColor};"></div></div>
-        <div class="hp-controls">
-          <input type="number" id="hp-delta" class="hp-input" placeholder="Amt" min="0"/>
-          <button class="btn btn-danger btn-sm" onclick="adjustHP(-1)">− Damage</button>
-          <button class="btn btn-green btn-sm" onclick="adjustHP(1)">+ Heal</button>
-          <button class="btn btn-ghost btn-sm" onclick="adjustTempHP()">Temp HP</button>
-        </div>
-        ${t.currentHP<=0?`<div style="margin-top:10px;"><div class="card-title" style="color:var(--hp-red);">Death Saves</div>
-          <div class="ds-row"><span style="font-size:12px;color:var(--green);min-width:60px;">Successes</span>
-            ${[0,1,2].map(i=>`<div class="ds-pip${i<t.deathSaves.successes?' success':''}" onclick="toggleDS('success',${i})"></div>`).join('')}</div>
-          <div class="ds-row"><span style="font-size:12px;color:var(--hp-red);min-width:60px;">Failures</span>
-            ${[0,1,2].map(i=>`<div class="ds-pip${i<t.deathSaves.failures?' failure':''}" onclick="toggleDS('failure',${i})"></div>`).join('')}</div>
-        </div>`:''}
-      </div>
-
-      <!-- Combat stats -->
-      <div class="card">
-        <div class="card-title">Combat Stats</div>
-        <div class="stat-row">
-          <div class="stat-badge ac-badge" data-tip="Armor Class — how hard you are to hit. Attackers must roll this number or higher on a d20 to land an attack."><div class="stat-badge-val">${char.ac}</div><div class="stat-badge-label">AC</div></div>
-          <div class="stat-badge spd-badge" data-tip="Movement Speed — feet you can move per turn. Difficult terrain costs 2 ft per 1 ft moved. Dash doubles it."><div class="stat-badge-val">${char.speed}</div><div class="stat-badge-label">SPEED</div></div>
-          <div class="stat-badge"><div class="stat-badge-val">+${prof}</div><div class="stat-badge-label" data-tip="Proficiency Bonus — added to attack rolls, saving throws, and skill/tool checks you are proficient in.">PROF</div></div>
-          <div class="stat-badge"><div class="stat-badge-val">${getModNum(eff.dex)>=0?'+':''}${getModNum(eff.dex)+prof}</div><div class="stat-badge-label">INIT</div></div>
-        </div>
-      </div>
-
-      <!-- Conditions -->
-      <div class="card">
-        <div class="card-title">Conditions</div>
-        <div class="condition-chips">
-          ${t.conditions.length?t.conditions.map(c=>`<div class="condition-chip active">${c}<button onclick="removeCondition('${c}')">✕</button></div>`).join(''):'<span style="font-size:12px;color:var(--muted);font-style:italic;">None active</span>'}
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;margin-top:4px;">
-          <select id="cond-select" style="font-size:13px;padding:5px 8px;">
-            <option value="">Add condition…</option>
-            ${CONDITIONS.filter(c=>!t.conditions.includes(c)).map(c=>`<option value="${c}">${c}</option>`).join('')}
-          </select>
-          <button class="btn btn-ghost btn-sm" onclick="addCondition()">Add</button>
-        </div>
-        <div style="margin-top:10px;">
-          <div style="font-size:12px;color:var(--ink-light);margin-bottom:4px;font-weight:600;">Exhaustion (${t.exhaustion}/6)</div>
-          <div class="exhaustion-pips">
-            ${[1,2,3,4,5,6].map(i=>`<div class="ex-pip${t.exhaustion>=i?' active':''}" onclick="setExhaustion(${i})" title="Level ${i}"></div>`).join('')}
-          </div>
-        </div>
-      </div>
-
-      <!-- Currency -->
-      <div class="card">
-        <div class="card-title">Currency</div>
-        <div class="currency-grid">
-          ${[['cp','Copper'],['sp','Silver'],['gp','Gold'],['pp','Platinum']].map(([k,label])=>`
-            <div class="currency-box">
-              <div class="currency-label">${label}</div>
-              <input class="currency-input" type="number" min="0" value="${t.currency[k]}" id="cur-${k}" onchange="updateCurrency('${k}',this.value)"/>
-            </div>`).join('')}
-        </div>
-      </div>
-    </div>
-
-    <div>
-      <!-- Ability scores -->
-      <div class="card">
-        <div class="card-title">Ability Scores</div>
-        <div class="ab-grid">
-          ${STAT_NAMES.map(s=>{const v=eff[s];return`
-            <div class="ab-box">
-              <div class="ab-label">${STAT_LABELS[s]}</div>
-              <div class="ab-score">${v}</div>
-              <div class="ab-mod">${getMod(v)}</div>
-            </div>`;}).join('')}
-        </div>
-      </div>
-
-      <!-- Saving throws -->
-      <div class="card">
-        <div class="card-title">Saving Throws</div>
-        <div class="save-list">
-          ${STAT_NAMES.map(s=>{
-            const SAVE_TIPS_MAP={str:'STR Save — resist being moved or overpowered by physical force.',dex:'DEX Save — dodge area attacks, traps, and explosions.',con:'CON Save — maintain concentration spells, withstand poison, resist endurance.',int:'INT Save — resist psychic intrusion, illusions, mental domination.',wis:'WIS Save — resist charm, fear, and perception-bending magic.',cha:'CHA Save — resist possession, banishment, and soul-affecting magic.'};
-      const isProf=char.class.saves.includes(s);
-            const mod=getModNum(eff[s])+(isProf?prof:0);
-            return`<div class="save-item" data-tip="${SAVE_TIPS_MAP[s]}">
-              <span style="color:${isProf?'var(--ink)':'var(--muted)'};">${isProf?'●':'○'} ${STAT_LABELS[s]}</span>
-              <span class="save-val">${(mod>=0?'+':'')+mod}</span>
-            </div>`;}).join('')}
-        </div>
-      </div>
-
-      <!-- Feats -->
-      ${char.feats&&char.feats.length?`<div class="card">
-        <div class="card-title">Feats</div>
-        ${char.feats.map(f=>`<div class="feature-item"><strong>${f.name}</strong>${f.desc}</div>`).join('')}
-        ${char.tracker.featChoices&&char.tracker.featChoices.length?char.tracker.featChoices.map(f=>`<div class="feature-item" style="margin-top:6px;"><strong>${f.name}</strong>${f.desc}</div>`).join(''):''}
-      </div>`:''}
-
-      <!-- Subclass -->
-      ${char.tracker.subclass?`<div class="card">
-        <div class="card-title">Subclass</div>
-        <div class="feature-item"><strong>${char.tracker.subclass.name}</strong>${char.tracker.subclass.desc}</div>
-      </div>`:''}
-
-      <!-- Class features unlocked -->
-      ${char.tracker.classFeatures&&char.tracker.classFeatures.length?`<div class="card">
-        <div class="card-title">Class Features Gained</div>
-        ${char.tracker.classFeatures.map(f=>`<div class="feature-item">• ${f}</div>`).join('')}
-      </div>`:''}
-    </div>
-  </div>`;
+  // Build character info section (feats, subclass, features, currency)
+  const charInfoHTML=`
+    ${char.feats&&char.feats.length?`<div class="card">
+      <div class="card-title">Feats</div>
+      ${char.feats.map(f=>`<div class="feature-item"><strong>${f.name}</strong>${f.desc}</div>`).join('')}
+      ${t.featChoices&&t.featChoices.length?t.featChoices.map(f=>`<div class="feature-item" style="margin-top:6px;"><strong>${f.name}</strong>${f.desc}</div>`).join(''):''}
+    </div>`:''}
+    ${t.subclass?`<div class="card">
+      <div class="card-title">Subclass — ${t.subclass.name}</div>
+      <div class="feature-item">${t.subclass.desc}</div>
+    </div>`:''}
+    ${t.classFeatures&&t.classFeatures.length?`<div class="card">
+      <div class="card-title">Class Features</div>
+      ${t.classFeatures.map(f=>`<div class="feature-item">• ${f}</div>`).join('')}
+    </div>`:''}
+`;
+  return attacksHTML+charInfoHTML;
 }
 
 
@@ -3362,7 +3504,7 @@ function renderManeuversTab(){
           const isChosen=chosen.includes(m.id);
           const canAdd=!isChosen&&chosen.length<maxManeuvers;
           const typeColor=MANEUVER_TYPE_COLORS[m.type]||'#666';
-          return`<div style="display:flex;align-items:start;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);background:${isChosen?'#f9e8e8':'var(--surface)'};">
+          return`<div style="display:flex;align-items:start;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);background:${isChosen?'var(--selected-bg,#f9e8e8)':'var(--surface)'};">
             <div style="flex:1;">
               <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
                 <span style="font-family:'Cinzel',serif;font-size:12px;font-weight:600;color:var(--ink);">${m.name}</span>
@@ -3747,7 +3889,7 @@ function renderLevelUp(){
             ${SKILLS_LIST.filter(sk=>char.skillProficiencies.includes(sk.name)&&!(char.tracker.expertiseSkills||[]).includes(sk.name)).map(sk=>{
               const picked=lu.expertisePicks.includes(sk.name);
               const full=lu.expertisePicks.length>=newExpertiseSlots;
-              return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;background:${picked?'#f9e8e8':'var(--surface2)'};border:1px solid ${picked?'var(--red)':'var(--border)'};cursor:${!picked&&full?'not-allowed':'pointer'};opacity:${!picked&&full?0.4:1};"
+              return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;background:${picked?'var(--selected-bg,#f9e8e8)':'var(--surface2)'};border:1px solid ${picked?'var(--red)':'var(--border)'};cursor:${!picked&&full?'not-allowed':'pointer'};opacity:${!picked&&full?0.4:1};"
                 onclick="${!picked&&full?'':`toggleExpertisePick('${sk.name}')`}">
                 <span style="font-size:13px;color:${picked?'var(--red)':'var(--muted)'};">${picked?'★':'☆'}</span>
                 <span style="font-size:13px;flex:1;">${sk.name}</span>
@@ -4551,7 +4693,7 @@ function renderLevelUpSpellSection(classId, subId, nextLevel){
         ${availableCantrips.map(s=>{
           const picked=lu.spellPicks.cantrips.includes(s[SP.id]);
           const full=!picked&&cantripsPicked>=needed;
-          return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border);background:${picked?'#f9e8e8':'var(--surface)'};">
+          return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border);background:${picked?'var(--selected-bg,#f9e8e8)':'var(--surface)'};">
             <div style="flex:1;font-size:12px;"><strong>${s[SP.name]}</strong> <span style="color:var(--muted);">${SCHOOL_LABELS[s[SP.school]]}</span></div>
             <button onclick="toggleLuSpell('cantrips','${s[SP.id]}')" style="font-size:10px;padding:2px 8px;background:${picked?'var(--hp-red)':'var(--surface2)'};color:${picked?'#fff':'var(--ink)'};border:1px solid ${picked?'var(--hp-red)':'var(--border)'};border-radius:3px;cursor:pointer;"${full?'disabled':''}>${picked?'✕':'+'}</button>
           </div>`;
@@ -4572,7 +4714,7 @@ function renderLevelUpSpellSection(classId, subId, nextLevel){
         ${availableSpells.map(s=>{
           const picked=lu.spellPicks.spells.includes(s[SP.id]);
           const full=!picked&&spellsPicked>=needed;
-          return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border);background:${picked?'#f9e8e8':'var(--surface)'};">
+          return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border);background:${picked?'var(--selected-bg,#f9e8e8)':'var(--surface)'};">
             <div style="flex:1;font-size:12px;">
               <strong>${s[SP.name]}</strong>
               <span style="color:var(--muted);margin-left:4px;">${ordinal(s[SP.level])} · ${SCHOOL_LABELS[s[SP.school]]}</span>
@@ -4597,7 +4739,7 @@ function renderLevelUpSpellSection(classId, subId, nextLevel){
         ${availableSpells.map(s=>{
           const picked=lu.spellPicks.spells.includes(s[SP.id]);
           const full=!picked&&spellsPicked>=needed;
-          return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border);background:${picked?'#f9e8e8':'var(--surface)'};">
+          return`<div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--border);background:${picked?'var(--selected-bg,#f9e8e8)':'var(--surface)'};">
             <div style="flex:1;font-size:12px;">
               <strong>${s[SP.name]}</strong>
               <span style="color:var(--muted);margin-left:4px;">${ordinal(s[SP.level])} · ${SCHOOL_LABELS[s[SP.school]]}</span>
@@ -4647,7 +4789,7 @@ function renderPostLevelUpBanner(){
     ...(spellGains.newAlwaysPrepared.length?[`⭐ Domain/oath spells added: ${spellGains.newAlwaysPrepared.map(id=>spName(id)).join(', ')}`]:[]),
   ];
   if(lines.length===0) return '';
-  return`<div class="level-up-banner" style="border-color:var(--spd-green);background:linear-gradient(135deg,#f0faf3,#d5f0de);margin-bottom:1rem;">
+  return`<div class="level-up-banner" style="border-color:var(--spd-green);background:linear-gradient(135deg,var(--surface),var(--surface2));margin-bottom:1rem;">
     <h2 style="color:var(--spd-green);">Level ${char.level} — What Changed</h2>
     ${lines.map(l=>`<p style="font-size:13px;color:var(--ink-light);margin-top:4px;">${l}</p>`).join('')}
     <button class="btn btn-ghost btn-sm" style="margin-top:8px;" onclick="levelUpState.summary=null;render()">Dismiss</button>
@@ -5101,6 +5243,7 @@ async function autoRejoinSession(){
 
 // Initialize after deferred scripts (Supabase SDK) have loaded
 document.addEventListener('DOMContentLoaded', function(){
+  initTheme();
   initSupabase();
   renderTrackerAuthBar();
   if(!loadPendingImport()) loadSaved();
