@@ -92,8 +92,15 @@ const CharStore={
   _idx(){try{return JSON.parse(localStorage.getItem('dnd5e_chars')||'[]');}catch(e){return[];}},
   _saveIdx(arr){try{localStorage.setItem('dnd5e_chars',JSON.stringify(arr));}catch(e){}},
   index(){return this._idx();},
+  genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);},
   loadPart(id,part){
     try{const raw=localStorage.getItem('dnd5e_char_'+id);if(!raw)return null;return JSON.parse(raw)[part]??null;}catch(e){return null;}
+  },
+  loadFull(id){
+    try{const raw=localStorage.getItem('dnd5e_char_'+id);return raw?JSON.parse(raw):null;}catch(e){return null;}
+  },
+  saveFull(id,data){
+    try{localStorage.setItem('dnd5e_char_'+id,JSON.stringify(data));}catch(e){}
   },
   delete(id){
     this._saveIdx(this._idx().filter(c=>c.id!==id));
@@ -150,6 +157,7 @@ function render(){
       <div class="char-card-actions">
         <a class="char-btn" href="builder.html?char=${c.id}">Edit</a>
         <a class="char-btn" href="tracker.html?sandbox=true&char=${c.id}">Sandbox</a>
+        <button class="char-btn" onclick="duplicateChar('${c.id}')" title="Duplicate character" style="padding:5px 8px;">⎘</button>
         <button class="char-btn char-btn-del" onclick="deleteChar('${c.id}','${(c.name||'Unnamed').replace(/'/g,"\\'")}')" title="Delete character"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="5" x2="15" y2="5"/><path d="M7 5V3.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V5"/><path d="M4.5 5l.8 9.5a1 1 0 0 0 1 .9h5.4a1 1 0 0 0 1-.9L13.5 5"/><line x1="7" y1="8.5" x2="7" y2="12"/><line x1="11" y1="8.5" x2="11" y2="12"/></svg></button>
       </div>
     </div>
@@ -157,8 +165,41 @@ function render(){
 }
 
 function deleteChar(id,name){
-  if(!confirm('Delete ‘'+name+'’ permanently? This cannot be undone.'))return;
+  if(!confirm(‘Delete ‘’+name+’’ permanently? This cannot be undone.’))return;
   CharStore.delete(id);
+  render();
+  _populateNavCharMenu();
+}
+
+function duplicateChar(id){
+  const meta=CharStore.index().find(c=>c.id===id);
+  if(!meta)return;
+  const fullData=CharStore.loadFull(id);
+  // Generate unique name: "Name (2)", "Name (3)", ...
+  const allNames=CharStore.index().map(c=>c.name||’Unnamed’);
+  const baseName=meta.name||’Unnamed’;
+  let newName=baseName+’ (2)’;
+  let n=2;
+  while(allNames.includes(newName)){n++;newName=baseName+’ (‘+n+’)’;}
+  const newId=CharStore.genId();
+  const now=new Date().toISOString();
+  // Duplicate index entry
+  const newMeta={...meta,id:newId,name:newName,updatedAt:now};
+  CharStore._saveIdx([...CharStore.index(),newMeta]);
+  // Duplicate full data if present
+  if(fullData){
+    const newData=JSON.parse(JSON.stringify(fullData));
+    // Update all embedded name/id references
+    if(newData.builder){
+      if(newData.builder.identity)newData.builder.identity.name=newName;
+      newData.builder.charId=newId;
+    }
+    if(newData.tracker){
+      if(newData.tracker.identity)newData.tracker.identity.name=newName;
+      newData.tracker._charId=newId;
+    }
+    CharStore.saveFull(newId,newData);
+  }
   render();
   _populateNavCharMenu();
 }

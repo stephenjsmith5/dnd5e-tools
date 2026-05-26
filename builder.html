@@ -476,6 +476,347 @@ const CLASSES = [
   { id:'wizard',    name:'Wizard',    icon:'🧙', sub:'Arcane Recovery',             hitDie:6,  saves:['int','wis'], skills:['Arcana','History','Insight','Investigation','Medicine','Religion'], numSkills:2, armor:'None', weapons:'Daggers, darts, slings, quarterstaffs, light crossbows', spellcasting:true, spellAbility:'int', packChoices:["Scholar's Pack","Explorer's Pack"], equipment:["Quarterstaff or dagger","Component pouch or arcane focus","Spellbook"] },
 ];
 
+// ── Class features per level ────────────────────────────────────────────────
+const CLASS_FEATURES={
+  barbarian:[
+    {level:1,name:'Rage',desc:'Bonus action: rage for 1 min. Advantage on STR checks/saves, bonus melee damage (+2/+3/+4 scaling), resistance to B/P/S damage. Uses: 2→3→4→5→6→∞ at levels 1/3/6/12/17/20.'},
+    {level:1,name:'Unarmored Defense',desc:'While not wearing armor: AC = 10 + DEX mod + CON mod.'},
+    {level:2,name:'Reckless Attack',desc:'First attack each turn can be made with advantage. Until your next turn, attacks against you have advantage.'},
+    {level:2,name:'Danger Sense',desc:'Advantage on DEX saves against effects you can see (traps, spells, etc.) while not blinded, deafened, or incapacitated.'},
+    {level:3,name:'Primal Path',desc:'Choose your subclass (Berserker or Totem Warrior). Grants features at levels 3, 6, 10, and 14.'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two different scores (max 20).'},
+    {level:5,name:'Extra Attack',desc:'Attack twice whenever you take the Attack action on your turn.'},
+    {level:5,name:'Fast Movement',desc:'Your speed increases by 10 ft while not wearing heavy armor.'},
+    {level:6,name:'Path Feature',desc:'Your Primal Path grants an additional feature.'},
+    {level:7,name:'Feral Instinct',desc:'Advantage on Initiative rolls. You can act normally on a surprise round if you enter a rage on your first turn.'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:9,name:'Brutal Critical',desc:'Roll one extra weapon damage die on a melee critical hit.'},
+    {level:10,name:'Path Feature',desc:'Your Primal Path grants an additional feature.'},
+    {level:11,name:'Relentless Rage',desc:'When reduced to 0 HP while raging, make DC 10 CON save (DC +5 each use) to drop to 1 HP instead.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:13,name:'Brutal Critical (2 dice)',desc:'Roll two extra weapon damage dice on a melee critical hit.'},
+    {level:14,name:'Path Feature',desc:'Your Primal Path grants an additional feature.'},
+    {level:15,name:'Persistent Rage',desc:'Your rage no longer ends early from lack of attacking or taking damage.'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:17,name:'Brutal Critical (3 dice)',desc:'Roll three extra weapon damage dice on a melee critical hit.'},
+    {level:18,name:'Indomitable Might',desc:"If your STR check result is lower than your STR score, use your score instead."},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Primal Champion',desc:'STR and CON each increase by 4 (max 24).'},
+  ],
+  bard:[
+    {level:1,name:'Bardic Inspiration',desc:'Bonus action: one creature within 60 ft gains an inspiration die (d6→d8→d10→d12 at levels 1/5/10/15). Used on one ability check, attack, or save within 10 min. Uses = CHA mod/long rest (short rest at L5).'},
+    {level:1,name:'Spellcasting',desc:'CHA-based. You know cantrips and spells permanently. Spell save DC = 8 + proficiency + CHA mod.'},
+    {level:2,name:'Jack of All Trades',desc:'Add half your proficiency bonus (round down) to any ability check you are not already proficient in.'},
+    {level:2,name:'Song of Rest',desc:'During a short rest, creatures who hear your performance regain extra HP when spending hit dice: d6/d8/d10/d12 at levels 2/9/13/17.'},
+    {level:3,name:'Bard College',desc:'Choose your subclass (College of Lore or College of Valor). Grants features at levels 3, 6, and 14.'},
+    {level:3,name:'Expertise',desc:'Double proficiency bonus for two skill proficiencies of your choice (or one skill + thieves\' tools).'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:5,name:"Font of Inspiration",desc:'You regain Bardic Inspiration uses on a short rest. Die increases to d8.'},
+    {level:6,name:'Countercharm',desc:'Action: perform for 1 minute. Friendly creatures within 30 ft have advantage on saves vs. being frightened or charmed.'},
+    {level:6,name:'College Feature',desc:'Your Bard College grants an additional feature.'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:10,name:'Bardic Inspiration (d10)',desc:'Inspiration die increases to d10. Choose two more Expertise skills.'},
+    {level:10,name:'Magical Secrets',desc:'Learn two spells of your choice from any class spell list.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:14,name:'Magical Secrets (2nd)',desc:'Learn two more spells from any class spell list.'},
+    {level:14,name:'College Feature',desc:'Your Bard College grants an additional feature.'},
+    {level:15,name:'Bardic Inspiration (d12)',desc:'Inspiration die increases to d12.'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:18,name:'Magical Secrets (3rd)',desc:'Learn two more spells from any class spell list.'},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Superior Inspiration',desc:'When you roll initiative with no Bardic Inspiration remaining, you regain one use.'},
+  ],
+  cleric:[
+    {level:1,name:'Divine Domain',desc:'Choose your subclass (Knowledge, Life, Light, Nature, Tempest, Trickery, or War). Grants domain spells and features at levels 1, 2, 6, 8, and 17.'},
+    {level:1,name:'Spellcasting',desc:'WIS-based. Prepare WIS mod + cleric level spells after each long rest. Spell save DC = 8 + proficiency + WIS mod.'},
+    {level:2,name:'Channel Divinity (1/rest)',desc:'Choose one Channel Divinity option. All clerics have Turn Undead; your domain provides additional options.'},
+    {level:2,name:'Turn Undead',desc:'Channel Divinity: each undead within 30 ft must make a WIS save or be turned for 1 minute (must flee, can\'t take actions near you).'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:5,name:'Destroy Undead (CR ½)',desc:'Undead that fail their saving throw against Turn Undead are instantly destroyed if CR ≤ ½.'},
+    {level:6,name:'Channel Divinity (2/rest)',desc:'You can use Channel Divinity twice between rests.'},
+    {level:6,name:'Domain Feature',desc:'Your Divine Domain grants an additional feature.'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:8,name:'Destroy Undead (CR 1)',desc:'Undead destroyed by Turn Undead if CR ≤ 1. Domain also grants Divine Strike or Potent Spellcasting.'},
+    {level:10,name:'Divine Intervention',desc:'Action: call for direct aid from your deity. Roll d100; succeeds if result ≤ your cleric level. 7-day recharge on success.'},
+    {level:11,name:'Destroy Undead (CR 2)',desc:'Undead destroyed if CR ≤ 2.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:14,name:'Destroy Undead (CR 3)',desc:'Undead destroyed if CR ≤ 3.'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:17,name:'Destroy Undead (CR 4)',desc:'Undead destroyed if CR ≤ 4. Channel Divinity increases to 3/rest. Domain feature.'},
+    {level:18,name:'Channel Divinity (3/rest)',desc:'You can use Channel Divinity three times between rests.'},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Divine Intervention (Improved)',desc:'Your Divine Intervention automatically succeeds.'},
+  ],
+  druid:[
+    {level:1,name:'Druidic',desc:'You know Druidic, the secret language of druids. You can speak it and leave hidden messages.'},
+    {level:1,name:'Spellcasting',desc:'WIS-based. Prepare WIS mod + druid level spells after each long rest. Spell save DC = 8 + proficiency + WIS mod.'},
+    {level:2,name:'Wild Shape',desc:'Action: transform into a beast you\'ve seen. CR limits: ¼ (no fly/swim, L2), ½ (no fly, L4), 1 (L8). 2 uses/short rest. Duration: min(hours = CR, 1 minute in combat). Retain mental stats; gain beast physical stats and HP.'},
+    {level:2,name:'Druid Circle',desc:'Choose your subclass (Circle of the Land or Circle of the Moon). Grants features at levels 2, 6, 10, and 14.'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20). Wild Shape can now include beasts with swim speed (CR ≤ ½).'},
+    {level:6,name:'Circle Feature',desc:'Your Druid Circle grants an additional feature.'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20). Wild Shape now includes fly speed (CR ≤ 1).'},
+    {level:10,name:'Circle Feature',desc:'Your Druid Circle grants an additional feature.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:14,name:'Circle Feature',desc:'Your Druid Circle grants an additional feature.'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:18,name:'Timeless Body',desc:"You age ten times more slowly than normal and can't be magically aged."},
+    {level:18,name:'Beast Spells',desc:'You can cast druid spells while in Wild Shape (somatic and verbal components still work).'},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Archdruid',desc:'Unlimited Wild Shape uses.'},
+  ],
+  fighter:[
+    {level:1,name:'Fighting Style',desc:'Choose one: Archery (+2 ranged attack rolls), Defense (+1 AC in armor), Dueling (+2 damage with one-handed melee and no other weapon), Great Weapon Fighting (reroll 1s/2s on damage with two-handed or versatile weapons), Protection (reaction: impose disadvantage on attack against adjacent ally), Two-Weapon Fighting (add ability mod to off-hand attack damage).'},
+    {level:1,name:'Second Wind',desc:'Bonus action: regain 1d10 + fighter level HP. 1 use per short or long rest.'},
+    {level:2,name:'Action Surge',desc:'On your turn, take one additional action. 1 use per short or long rest (2 uses at level 17).'},
+    {level:3,name:'Martial Archetype',desc:'Choose your subclass (Champion, Battle Master, or Eldritch Knight). Grants features at levels 3, 7, 10, 15, and 18.'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:5,name:'Extra Attack',desc:'Attack twice whenever you take the Attack action.'},
+    {level:6,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:7,name:'Archetype Feature',desc:'Your Martial Archetype grants an additional feature.'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:9,name:'Indomitable (1/rest)',desc:'Reroll a saving throw you fail, keeping the new result. 1 use/long rest.'},
+    {level:10,name:'Archetype Feature',desc:'Your Martial Archetype grants an additional feature.'},
+    {level:11,name:'Extra Attack (3)',desc:'You can attack three times with the Attack action.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:13,name:'Indomitable (2/rest)',desc:'Indomitable can now be used twice per long rest.'},
+    {level:14,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:15,name:'Archetype Feature',desc:'Your Martial Archetype grants an additional feature.'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:17,name:'Action Surge (2 uses)',desc:'Action Surge can now be used twice before a rest.'},
+    {level:17,name:'Indomitable (3/rest)',desc:'Indomitable can now be used three times per long rest.'},
+    {level:18,name:'Archetype Feature',desc:'Your Martial Archetype grants an additional feature.'},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Extra Attack (4)',desc:'You can attack four times with the Attack action.'},
+  ],
+  monk:[
+    {level:1,name:'Unarmored Defense',desc:'While not wearing armor or shield: AC = 10 + DEX mod + WIS mod.'},
+    {level:1,name:'Martial Arts',desc:'Use DEX for unarmed strikes and monk weapons. Unarmed damage: d4/d6/d8/d10 at levels 1/5/11/17. Make one unarmed strike as a bonus action when you attack with a monk weapon or unarmed strike.'},
+    {level:2,name:'Ki',desc:'Ki points = monk level. Recharge on short or long rest. Ki save DC = 8 + proficiency + WIS mod. Flurry of Blows (1 ki): 2 unarmed strikes as bonus action. Patient Defense (1 ki): Dodge as bonus action. Step of the Wind (1 ki): Dash or Disengage as bonus action.'},
+    {level:2,name:'Unarmored Movement',desc:'Speed +10 ft while not wearing armor or shield. Increases at higher levels.'},
+    {level:3,name:'Monastic Tradition',desc:'Choose your subclass (Way of the Open Hand, Shadow, or Four Elements). Grants features at levels 3, 6, 11, and 17.'},
+    {level:3,name:'Deflect Missiles',desc:'Reaction when hit by a ranged attack: reduce damage by 1d10 + DEX mod + monk level. If reduced to 0, catch the missile and throw it back (costs 1 ki).'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:4,name:'Slow Fall',desc:'Reaction: reduce falling damage by 5 × monk level.'},
+    {level:5,name:'Extra Attack',desc:'Attack twice whenever you take the Attack action.'},
+    {level:5,name:'Stunning Strike',desc:'When you hit a creature with a melee attack, spend 1 ki. Target makes CON save or is stunned until end of your next turn.'},
+    {level:6,name:'Ki-Empowered Strikes',desc:'Your unarmed strikes count as magical for overcoming resistances and immunities.'},
+    {level:6,name:'Tradition Feature',desc:'Your Monastic Tradition grants an additional feature.'},
+    {level:7,name:'Evasion',desc:'When subject to a DEX save for half damage, take no damage on a success and half on a failure.'},
+    {level:7,name:'Stillness of Mind',desc:'Action: end one effect on yourself causing you to be charmed or frightened.'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:9,name:'Unarmored Movement Improvement',desc:'You can move along vertical surfaces and across liquids without falling.'},
+    {level:10,name:'Purity of Body',desc:'Immune to disease and poison.'},
+    {level:11,name:'Tradition Feature',desc:'Your Monastic Tradition grants an additional feature.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:13,name:'Tongue of Sun and Moon',desc:'You understand all spoken languages and all creatures with a language understand you.'},
+    {level:14,name:'Diamond Soul',desc:'Proficiency in all saving throws. When you fail a save, spend 1 ki to reroll.'},
+    {level:15,name:'Timeless Body',desc:"You don't suffer old age penalties and can't be magically aged."},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:17,name:'Tradition Feature',desc:'Your Monastic Tradition grants an additional feature.'},
+    {level:18,name:'Empty Body',desc:'Action, 4 ki: invisible for 1 minute with resistance to all damage except force. 8 ki: cast Astral Projection on yourself.'},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Perfect Self',desc:'When you roll initiative with no ki points, you regain 4 ki points.'},
+  ],
+  paladin:[
+    {level:1,name:'Divine Sense',desc:'Action: detect celestials, fiends, and undead within 60 ft until end of next turn. Uses = 1 + CHA mod per long rest.'},
+    {level:1,name:'Lay on Hands',desc:'Pool = paladin level × 5 HP. Action: restore any HP from pool to a touched creature, or spend 5 HP to cure one disease or neutralize one poison.'},
+    {level:2,name:'Fighting Style',desc:'Choose one: Defense (+1 AC in armor), Dueling (+2 damage with one-handed weapon, no other weapon), Great Weapon Fighting (reroll 1s/2s on two-handed weapon damage), Protection (reaction: impose disadvantage on attack against adjacent ally).'},
+    {level:2,name:'Spellcasting',desc:'CHA-based. Prepare CHA mod + half paladin level (round down) spells after each long rest. Spell save DC = 8 + proficiency + CHA mod.'},
+    {level:2,name:'Divine Smite',desc:'When you hit a melee attack, expend a spell slot: +2d8 radiant damage (+1d8 per slot level above 1st, max 5d8). +1d8 extra vs undead or fiends.'},
+    {level:3,name:'Divine Health',desc:'Immune to disease.'},
+    {level:3,name:'Sacred Oath',desc:'Choose your subclass (Oath of Devotion, Ancients, or Vengeance). Grants oath spells and Channel Divinity options. Features at levels 3, 7, 15, and 20.'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:5,name:'Extra Attack',desc:'Attack twice whenever you take the Attack action.'},
+    {level:6,name:'Aura of Protection',desc:'You and friendly creatures within 10 ft (30 ft at L18) add your CHA mod (min +1) to all saving throws while you are conscious.'},
+    {level:7,name:'Oath Feature',desc:'Your Sacred Oath grants an additional feature (often an aura).'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:10,name:"Aura of Courage",desc:"You and friendly creatures within 10 ft (30 ft at L18) can't be frightened while you're conscious."},
+    {level:11,name:'Improved Divine Smite',desc:'Your melee weapon hits deal an extra 1d8 radiant damage at all times.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:14,name:'Cleansing Touch',desc:'Action: end one spell on a willing touched creature. Uses = CHA mod per long rest.'},
+    {level:15,name:'Oath Feature',desc:'Your Sacred Oath grants an additional feature.'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:18,name:'Aura Improvements',desc:'Aura of Protection and Aura of Courage now extend to 30 ft.'},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Sacred Oath Capstone',desc:'Your Sacred Oath grants its most powerful feature.'},
+  ],
+  ranger:[
+    {level:1,name:'Favored Enemy',desc:'Choose a creature type (or two humanoid races). Advantage on Survival to track them and Intelligence to recall information about them.'},
+    {level:1,name:'Natural Explorer',desc:'Choose a favored terrain. Proficiency bonus doubles for INT and WIS checks you are proficient in while in that terrain. Additional travel benefits (no slowdown for difficult terrain, extra food, etc.).'},
+    {level:2,name:'Fighting Style',desc:'Choose one: Archery (+2 ranged attack rolls), Defense (+1 AC in armor), Dueling (+2 damage with one-handed weapon), Two-Weapon Fighting (add ability mod to off-hand damage).'},
+    {level:2,name:'Spellcasting',desc:'WIS-based. You know a set number of spells. Spell save DC = 8 + proficiency + WIS mod.'},
+    {level:3,name:'Ranger Archetype',desc:'Choose your subclass (Hunter or Beast Master). Grants features at levels 3, 7, 11, and 15.'},
+    {level:3,name:'Primeval Awareness',desc:'Expend a spell slot to sense presence of certain creature types within 1 mile (6 miles in favored terrain) for 1 min per slot level.'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:5,name:'Extra Attack',desc:'Attack twice whenever you take the Attack action.'},
+    {level:6,name:'Favored Enemy (2nd)',desc:'Choose a second favored enemy. Learn a language spoken by a humanoid favored enemy.'},
+    {level:6,name:'Natural Explorer (2nd)',desc:'Choose a second favored terrain.'},
+    {level:7,name:'Archetype Feature',desc:'Your Ranger Archetype grants an additional feature.'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:8,name:"Land's Stride",desc:'Move through nonmagical difficult terrain at no cost. Advantage on saves against plants that impede movement.'},
+    {level:10,name:'Natural Explorer (3rd)',desc:'Choose a third favored terrain.'},
+    {level:10,name:'Hide in Plain Sight',desc:'Spend 1 min camouflaging. +10 to Stealth checks while motionless and not attacking.'},
+    {level:11,name:'Archetype Feature',desc:'Your Ranger Archetype grants an additional feature.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:14,name:'Favored Enemy (3rd)',desc:'Choose a third favored enemy.'},
+    {level:14,name:'Vanish',desc:'Use Hide as a bonus action. You cannot be tracked by nonmagical means unless you choose to leave a trail.'},
+    {level:15,name:'Archetype Feature',desc:'Your Ranger Archetype grants an additional feature.'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:18,name:'Feral Senses',desc:'No disadvantage on attacks against unseen creatures. Aware of all invisible creatures within 30 ft.'},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Foe Slayer',desc:'Once per turn when you hit a favored enemy, add your WIS mod to the attack roll or the damage roll.'},
+  ],
+  rogue:[
+    {level:1,name:'Expertise',desc:'Double your proficiency bonus for two skill proficiencies of your choice, or one skill and thieves\' tools.'},
+    {level:1,name:'Sneak Attack',desc:'Once per turn, deal extra damage (1d6 per 2 rogue levels) when you have advantage on the attack or when an ally is adjacent to the target. Requires a finesse or ranged weapon.'},
+    {level:1,name:"Thieves' Cant",desc:"You know the secret language and signals of the thieves' guild."},
+    {level:2,name:'Cunning Action',desc:'Bonus action: Dash, Disengage, or Hide.'},
+    {level:3,name:'Roguish Archetype',desc:'Choose your subclass (Thief, Assassin, or Arcane Trickster). Grants features at levels 3, 9, 13, and 17.'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:5,name:'Uncanny Dodge',desc:'Reaction: halve the damage of one attack that hits you (attacker must be visible).'},
+    {level:6,name:'Expertise (2nd)',desc:'Double your proficiency bonus for two more skill proficiencies.'},
+    {level:7,name:'Evasion',desc:'When subject to a DEX save for half damage, take no damage on success and half on failure.'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:9,name:'Archetype Feature',desc:'Your Roguish Archetype grants an additional feature.'},
+    {level:10,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:11,name:'Reliable Talent',desc:'On proficient ability checks, treat d20 rolls of 9 or lower as 10.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:13,name:'Archetype Feature',desc:'Your Roguish Archetype grants an additional feature.'},
+    {level:14,name:'Blindsense',desc:'Aware of hidden and invisible creatures within 10 ft (if you can hear).'},
+    {level:15,name:'Slippery Mind',desc:'Proficiency in WIS saving throws.'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:17,name:'Archetype Feature',desc:'Your Roguish Archetype grants an additional feature.'},
+    {level:18,name:'Elusive',desc:"Attackers never have advantage on attack rolls against you while you aren't incapacitated."},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Stroke of Luck',desc:'Turn a miss into a hit or a failed ability check into a 20. Recharges on short or long rest.'},
+  ],
+  sorcerer:[
+    {level:1,name:'Sorcerous Origin',desc:'Choose your subclass (Draconic Bloodline or Wild Magic). Grants features at levels 1, 6, 14, and 18.'},
+    {level:1,name:'Spellcasting',desc:'CHA-based. You know spells permanently. Spell save DC = 8 + proficiency + CHA mod.'},
+    {level:2,name:'Font of Magic',desc:'Sorcery points = sorcerer level. Regain on long rest. Flexible Casting: convert spell slots to points (= slot level) or points to slots (L1=2pts, L2=3, L3=5, L4=6, L5=7).'},
+    {level:3,name:'Metamagic',desc:'Choose 2 options (gain more at L10/17): Careful (1 SP: allies succeed on spell saves), Distant (1 SP: double range), Empowered (1 SP: reroll up to CHA mod damage dice), Extended (1 SP: double duration), Heightened (3 SP: one target has disadvantage on save), Quickened (2 SP: cast as bonus action), Subtle (1 SP: no V/S components), Twinned (SP = spell level: hit second creature).'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:6,name:'Origin Feature',desc:'Your Sorcerous Origin grants an additional feature.'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:10,name:'Metamagic (3rd)',desc:'Choose one additional Metamagic option.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:14,name:'Origin Feature',desc:'Your Sorcerous Origin grants an additional feature.'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:17,name:'Metamagic (4th)',desc:'Choose one additional Metamagic option.'},
+    {level:18,name:'Origin Feature',desc:'Your Sorcerous Origin grants an additional feature.'},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Sorcerous Restoration',desc:'Regain 4 expended sorcery points on a short rest.'},
+  ],
+  warlock:[
+    {level:1,name:'Otherworldly Patron',desc:'Choose your subclass (The Archfey, The Fiend, or The Great Old One). Grants expanded spell list and features at levels 1, 6, 10, and 14.'},
+    {level:1,name:'Pact Magic',desc:'CHA-based. Spell slots: 1 slot (L1-2), 2 slots (L3+). Slot level scales 1st→2nd→3rd→4th→5th. All slots return on short or long rest.'},
+    {level:2,name:'Eldritch Invocations',desc:'Choose 2 invocations from the list. Gain more at higher levels (up to 8 at L15). Each provides a permanent magical benefit or new spell.'},
+    {level:3,name:'Pact Boon',desc:'Choose one: Pact of the Chain (enhanced Find Familiar + unique familiar types), Pact of the Blade (create magical pact weapon), Pact of the Tome (Book of Shadows: 3 cantrips from any class).'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:5,name:'Eldritch Invocations (+1)',desc:'Learn one additional invocation (3 total). Access to 5th-level prerequisites.'},
+    {level:6,name:'Patron Feature',desc:'Your Otherworldly Patron grants an additional feature.'},
+    {level:7,name:'Eldritch Invocations (+1)',desc:'Learn one additional invocation (4 total).'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:9,name:'Eldritch Invocations (+1)',desc:'Learn one additional invocation (5 total). Access to 9th-level prerequisites.'},
+    {level:10,name:'Patron Feature',desc:'Your Otherworldly Patron grants an additional feature.'},
+    {level:11,name:'Mystic Arcanum (6th)',desc:'Choose one 6th-level spell from your patron\'s list. Cast it once per long rest without a spell slot.'},
+    {level:11,name:'Eldritch Invocations (+1)',desc:'Learn one additional invocation (6 total).'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:13,name:'Mystic Arcanum (7th)',desc:'Choose one 7th-level spell. Cast once per long rest.'},
+    {level:13,name:'Eldritch Invocations (+1)',desc:'Learn one additional invocation (7 total).'},
+    {level:14,name:'Patron Feature',desc:'Your Otherworldly Patron grants its capstone feature.'},
+    {level:15,name:'Mystic Arcanum (8th)',desc:'Choose one 8th-level spell. Cast once per long rest.'},
+    {level:15,name:'Eldritch Invocations (+1)',desc:'Learn one additional invocation (8 total).'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:17,name:'Mystic Arcanum (9th)',desc:'Choose one 9th-level spell. Cast once per long rest.'},
+    {level:17,name:'Eldritch Invocations (+1)',desc:'Learn one additional invocation (9 total).'},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Eldritch Master',desc:'Action: regain all expended Pact Magic slots. 1 use per long rest.'},
+  ],
+  wizard:[
+    {level:1,name:'Arcane Recovery',desc:'Once per day during a short rest: recover spell slots with combined levels ≤ half wizard level (round up). No slot recovered can be 6th level or higher.'},
+    {level:1,name:'Spellcasting',desc:'INT-based. Spellbook starts with 6 spells (+2 copied per level). Prepare INT mod + wizard level spells after each long rest. Spell save DC = 8 + proficiency + INT mod.'},
+    {level:2,name:'Arcane Tradition',desc:'Choose your subclass (Abjuration, Conjuration, Divination, Enchantment, Evocation, Illusion, Necromancy, or Transmutation). Grants features at levels 2, 6, 10, and 14.'},
+    {level:4,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:6,name:'Tradition Feature',desc:'Your Arcane Tradition grants an additional feature.'},
+    {level:8,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:10,name:'Tradition Feature',desc:'Your Arcane Tradition grants an additional feature.'},
+    {level:12,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:14,name:'Tradition Feature',desc:'Your Arcane Tradition grants an additional feature.'},
+    {level:16,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:18,name:'Spell Mastery',desc:'Choose one 1st-level and one 2nd-level spell. Cast them at their lowest level at will without expending spell slots.'},
+    {level:19,name:'Ability Score Improvement',desc:'+2 to one ability score or +1 to two (max 20).'},
+    {level:20,name:'Signature Spells',desc:'Choose two 3rd-level wizard spells. Always prepared (don\'t count against limit). Cast each once without a slot; recharge on short rest.'},
+  ],
+};
+
+const SUBCLASSES={
+  barbarian:{level:3,label:'Primal Path',options:[
+    {id:'berserker',name:'Path of the Berserker',desc:'Frenzy (bonus attack while raging at cost of exhaustion), Mindless Rage (immune to charm/fright during rage), Intimidating Presence, Retaliation.'},
+    {id:'totem_warrior',name:'Path of the Totem Warrior',desc:'Gain spiritual totemic powers. Choose Bear, Eagle, or Wolf at each feature level. Spirit Seeker, Totemic Attunement.'},
+  ]},
+  bard:{level:3,label:'Bard College',options:[
+    {id:'lore',name:'College of Lore',desc:'Bonus Proficiencies (3 skills), Cutting Words (Bardic Inspiration as reaction to hinder enemies), Additional Magical Secrets (L6), Peerless Skill (L14).'},
+    {id:'valor',name:'College of Valor',desc:'Bonus Proficiencies (medium armor, shields, martial weapons), Combat Inspiration (use die for damage or AC), Extra Attack (L6), Battle Magic (L14).'},
+  ]},
+  cleric:{level:1,label:'Divine Domain',options:[
+    {id:'knowledge',name:'Knowledge Domain',desc:'Blessings of Knowledge (expertise in 2 skills), Channel Divinity: Knowledge of the Ages, Read Thoughts. Visions of the Past.'},
+    {id:'life',name:'Life Domain',desc:'Heavy armor prof, Disciple of Life (extra healing), Channel Divinity: Preserve Life, Blessed Healer, Divine Strike (radiant), Supreme Healing.'},
+    {id:'light',name:'Light Domain',desc:'Light cantrip, Warding Flare (impose disadvantage on attacks), Channel Divinity: Radiance of the Dawn, Improved Flare, Potent Spellcasting, Corona of Light.'},
+    {id:'nature',name:'Nature Domain',desc:'Heavy armor + one druid cantrip, Acolyte of Nature, Channel Divinity: Charm Animals and Plants, Dampen Elements, Divine Strike, Master of Nature.'},
+    {id:'tempest',name:'Tempest Domain',desc:'Heavy armor + martial weapons, Wrath of the Storm (reaction damage), Channel Divinity: Destructive Wrath, Thunderbolt Strike, Divine Strike (thunder), Stormborn.'},
+    {id:'trickery',name:'Trickery Domain',desc:'Blessing of the Trickster (Stealth advantage for ally), Channel Divinity: Invoke Duplicity, Cloak of Shadows, Divine Strike (poison), Improved Duplicity.'},
+    {id:'war',name:'War Domain',desc:'Heavy armor + martial weapons, War Priest (bonus weapon attacks), Channel Divinity: Guided Strike and War God\'s Blessing, Divine Strike, Avatar of Battle.'},
+  ]},
+  druid:{level:2,label:'Druid Circle',options:[
+    {id:'land',name:'Circle of the Land',desc:'Choose a terrain type. Natural Recovery (short-rest spell slot recovery), Circle Spells (bonus terrain spells), Land\'s Stride, Nature\'s Ward, Nature\'s Sanctuary.'},
+    {id:'moon',name:'Circle of the Moon',desc:'Combat Wild Shape (bonus action, bonus HP), Circle Forms (higher CR beasts), Elemental Wild Shape (L10), Thousand Forms (L14).'},
+  ]},
+  fighter:{level:3,label:'Martial Archetype',options:[
+    {id:'champion',name:'Champion',desc:'Improved Critical (19-20), Remarkable Athlete, Additional Fighting Style (L10), Superior Critical (18-20), Survivor.'},
+    {id:'battle_master',name:'Battle Master',desc:'Maneuvers (combat techniques using Superiority Dice d8s), Student of War (artisan tool prof), Know Your Enemy, Relentless.'},
+    {id:'eldritch_knight',name:'Eldritch Knight',desc:'Spellcasting (INT-based, 1/3 caster, abjuration/evocation), Weapon Bond, War Magic, Eldritch Strike, Arcane Charge, Improved War Magic.'},
+  ]},
+  monk:{level:3,label:'Monastic Tradition',options:[
+    {id:'open_hand',name:'Way of the Open Hand',desc:'Open Hand Technique (effects on Flurry of Blows), Wholeness of Body (self-heal), Tranquility (sanctuary aura), Quivering Palm.'},
+    {id:'shadow',name:'Way of Shadow',desc:'Shadow Arts (cast darkness spells with ki), Shadow Step (teleport in dim light), Cloak of Shadows, Opportunist.'},
+    {id:'four_elements',name:'Way of the Four Elements',desc:'Elemental Disciplines (spend ki to cast elemental spells). Choose disciplines at levels 3, 6, 11, 17.'},
+  ]},
+  paladin:{level:3,label:'Sacred Oath',options:[
+    {id:'devotion',name:'Oath of Devotion',desc:'Channel Divinity: Sacred Weapon and Turn the Unholy. Aura of Devotion (immune to charm), Purity of Spirit, Holy Nimbus.'},
+    {id:'ancients',name:'Oath of the Ancients',desc:'Channel Divinity: Nature\'s Wrath and Turn the Faithless. Aura of Warding (spell damage resistance), Undying Sentinel, Elder Champion.'},
+    {id:'vengeance',name:'Oath of Vengeance',desc:'Channel Divinity: Abjure Enemy and Vow of Enmity. Relentless Avenger, Soul of Vengeance, Avenging Angel.'},
+  ]},
+  ranger:{level:3,label:'Ranger Archetype',options:[
+    {id:'hunter',name:'Hunter',desc:"Hunter's Prey (Colossus Slayer/Giant Killer/Horde Breaker), Defensive Tactics, Multiattack (Volley or Whirlwind), Superior Hunter's Defense."},
+    {id:'beast_master',name:'Beast Master',desc:"Ranger's Companion (bond with a beast), Exceptional Training, Bestial Fury, Share Spells."},
+  ]},
+  rogue:{level:3,label:'Roguish Archetype',options:[
+    {id:'thief',name:'Thief',desc:'Fast Hands (bonus action for tools/objects), Second-Story Work (climb speed = movement), Supreme Sneak, Use Magic Device, Thief\'s Reflexes.'},
+    {id:'assassin',name:'Assassin',desc:'Bonus Proficiencies (disguise kit, poisoner\'s kit), Assassinate (advantage + auto-crit on surprised creatures), Infiltration Expertise, Impostor, Death Strike.'},
+    {id:'arcane_trickster',name:'Arcane Trickster',desc:'Spellcasting (INT-based, 1/3 caster, enchantment/illusion), Mage Hand Legerdemain, Magical Ambush, Versatile Trickster, Spell Thief.'},
+  ]},
+  sorcerer:{level:1,label:'Sorcerous Origin',options:[
+    {id:'draconic',name:'Draconic Bloodline',desc:'Choose a dragon ancestor type. Draconic Resilience (AC 13+DEX if unarmored; +1 HP/level), Elemental Affinity, Dragon Wings (L14), Draconic Presence (L18).'},
+    {id:'wild_magic',name:'Wild Magic',desc:'Wild Magic Surge (random effects after casting), Tides of Chaos (advantage on one roll), Bend Luck (L6), Controlled Chaos (L14), Spell Bombardment (L18).'},
+  ]},
+  warlock:{level:1,label:'Otherworldly Patron',options:[
+    {id:'archfey',name:'The Archfey',desc:'Fey Presence (charm/frighten in 10-ft cube), Misty Escape (teleport + invisible as reaction), Beguiling Defenses (immune to charm), Dark Delirium.'},
+    {id:'fiend',name:'The Fiend',desc:'Dark One\'s Blessing (temp HP on kill), Dark One\'s Own Luck (d10 to check/save), Fiendish Resilience (resistance), Hurl Through Hell.'},
+    {id:'great_old_one',name:'The Great Old One',desc:'Awakened Mind (telepathy 30 ft), Entropic Ward (impose disadvantage + advantage), Thought Shield (psychic resistance), Create Thrall.'},
+  ]},
+  wizard:{level:2,label:'Arcane Tradition',options:[
+    {id:'abjuration',name:'School of Abjuration',desc:'Arcane Ward (absorbs damage), Projected Ward, Improved Abjuration (+proficiency to counterspell/dispel checks), Spell Resistance.'},
+    {id:'conjuration',name:'School of Conjuration',desc:'Minor Conjuration (conjure small objects), Benign Transposition (teleport), Focused Conjuration, Durable Summons.'},
+    {id:'divination',name:'School of Divination',desc:'Portent (replace any roll with a pre-rolled d20), Expert Divination (regain slots), The Third Eye, Greater Portent.'},
+    {id:'enchantment',name:'School of Enchantment',desc:'Hypnotic Gaze (incapacitate creature), Instinctive Charm (redirect attacks), Split Enchantment, Alter Memories.'},
+    {id:'evocation',name:'School of Evocation',desc:'Sculpt Spells (protect allies from AoE), Potent Cantrip (half damage on saved cantrips), Empowered Evocation (+INT to damage), Overchannel.'},
+    {id:'illusion',name:'School of Illusion',desc:'Improved Minor Illusion (sound + image), Malleable Illusions (change illusions), Illusory Self (decoy reaction), Illusory Reality (make part of illusion real).'},
+    {id:'necromancy',name:'School of Necromancy',desc:'Grim Harvest (regain HP from killing spells), Undead Thralls (animate extra undead, buffed stats), Inured to Undeath, Command Undead.'},
+    {id:'transmutation',name:'School of Transmutation',desc:"Minor Alchemy (transform materials), Transmuter's Stone (ongoing benefit), Shapechanger (polymorph self), Master Transmuter."},
+  ]},
+};
+
 const LANGUAGES=['Abyssal','Celestial','Deep Speech','Draconic','Dwarvish','Elvish','Giant','Gnomish','Goblin','Halfling','Infernal','Orc','Primordial','Sylvan',"Thieves' Cant",'Undercommon'];
 const GAMING_SETS=['Dice Set','Dragonchess Set','Playing Card Set','Three-Dragon Ante Set'];
 const ARTISAN_TOOLS=["Alchemist's Supplies","Brewer's Supplies","Calligrapher's Supplies","Carpenter's Tools","Cartographer's Tools","Cobbler's Tools","Cook's Utensils","Glassblower's Tools","Jeweler's Tools","Leatherworker's Tools","Mason's Tools","Painter's Supplies","Potter's Tools","Smith's Tools","Tinker's Tools","Weaver's Tools","Woodcarver's Tools"];
@@ -775,6 +1116,9 @@ let state={
   variantASI:[],halfElfASI:[],variantSkill:null,variantFeat:null,
   halfElfSkills:[],
   class:null,level:1,
+  subclass:null,
+  fightingStyle:null,
+  expertiseChoices:[],
   abilities:{str:10,dex:10,con:10,int:10,wis:10,cha:10},
   skillProficiencies:[],
   abilityMode:'free',
@@ -1116,17 +1460,74 @@ function renderRace(){
 
 function renderClass(){
   const sel=state.class?CLASSES.find(c=>c.id===state.class):null;
+  const lvl=state.level||1;
+  const features=sel?(CLASS_FEATURES[sel.id]||[]).filter(f=>f.level<=lvl):[];
+  const subclassDef=sel?SUBCLASSES[sel.id]:null;
+  const showSubclass=subclassDef&&lvl>=subclassDef.level;
+  const FIGHTING_STYLE_OPTIONS={
+    fighter:['Archery','Defense','Dueling','Great Weapon Fighting','Protection','Two-Weapon Fighting'],
+    paladin:['Defense','Dueling','Great Weapon Fighting','Protection'],
+    ranger:['Archery','Defense','Dueling','Two-Weapon Fighting'],
+  };
+  const fightingStyleChoices=sel&&FIGHTING_STYLE_OPTIONS[sel.id]&&lvl>=2?FIGHTING_STYLE_OPTIONS[sel.id]:null;
+
+  let extraHtml='';
+  if(sel){
+    extraHtml=`<div class="info-box"><strong>${sel.name}</strong> — Hit Die: d${sel.hitDie}<br>
+      <strong>Saving Throws:</strong> ${sel.saves.map(s=>STAT_LABELS[s]).join(', ')}<br>
+      <strong>Armor:</strong> ${sel.armor}<br>
+      <strong>Weapons:</strong> ${sel.weapons}<br>
+      <strong>Skills:</strong> Choose ${sel.numSkills} from ${sel.skills.length} options<br>
+      ${sel.spellcasting?`<strong>Spellcasting:</strong> ${STAT_LABELS[sel.spellAbility]}-based<br>`:''}
+      <strong>Starting Equipment:</strong> ${sel.equipment.join('; ')}
+    </div>`;
+
+    if(fightingStyleChoices){
+      extraHtml+=`<div class="section-card" style="margin-top:12px;">
+        <div class="section-title" style="font-size:14px;">Fighting Style</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Choose one fighting style:</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;">
+          ${fightingStyleChoices.map(s=>`<div class="choice-card${state.fightingStyle===s?' selected':''}" onclick="state.fightingStyle='${s}';render();" style="padding:8px 10px;text-align:left;">
+            <div style="font-size:12px;font-weight:600;">${s}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    if(showSubclass){
+      extraHtml+=`<div class="section-card" style="margin-top:12px;">
+        <div class="section-title" style="font-size:14px;">${subclassDef.label} (Level ${subclassDef.level})</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">Choose your subclass:</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          ${subclassDef.options.map(o=>`<div class="choice-card${state.subclass&&state.subclass.id===o.id?' selected':''}" onclick="state.subclass={id:'${o.id}',name:'${o.name.replace(/'/g,"\\'")}'};render();" style="text-align:left;padding:10px 12px;">
+            <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:600;margin-bottom:4px;">${o.name}</div>
+            <div style="font-size:12px;color:var(--ink-light);line-height:1.5;">${o.desc}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+
+    if(features.length){
+      extraHtml+=`<div class="section-card" style="margin-top:12px;">
+        <div class="section-title" style="font-size:14px;">Class Features at Level ${lvl}</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px;">
+          ${features.map(f=>`<div style="border-left:3px solid var(--gold);padding:6px 10px;background:var(--surface2);border-radius:0 4px 4px 0;">
+            <div style="display:flex;align-items:baseline;gap:8px;">
+              <span style="font-family:'Cinzel',serif;font-size:12px;font-weight:600;">${f.name}</span>
+              <span style="font-size:10px;color:var(--muted);background:var(--border);border-radius:3px;padding:1px 5px;">Lv ${f.level}</span>
+            </div>
+            <div style="font-size:12px;color:var(--ink-light);margin-top:3px;line-height:1.5;">${f.desc}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+  }
+
   return`<div class="section-card">
     <div class="section-title">Choose Your Class</div>
     <div class="class-grid">${CLASSES.map(c=>`<div class="choice-card${state.class===c.id?' selected':''}" onclick="selectClass('${c.id}')">
       <div class="choice-icon">${c.icon}</div><div class="choice-name">${c.name}</div><div class="choice-sub">${c.sub}</div></div>`).join('')}</div>
-    ${sel?`<div class="info-box"><strong>${sel.name}</strong> — Hit Die: d${sel.hitDie}<br>
-      <strong>Saving Throws:</strong> ${sel.saves.map(s=>STAT_LABELS[s]).join(', ')}<br>
-      <strong>Armor:</strong> ${sel.armor}<br><strong>Weapons:</strong> ${sel.weapons}<br>
-      <strong>Skills:</strong> Choose ${sel.numSkills} from: ${sel.skills.join(', ')}<br>
-      ${sel.spellcasting?`<strong>Spellcasting:</strong> ${STAT_LABELS[sel.spellAbility]}-based<br>`:''}
-      <strong>Starting Equipment:</strong> ${sel.equipment.join('; ')}
-    </div>`:'<div class="info-box">Select a class to see details.</div>'}
+    ${sel?extraHtml:'<div class="info-box">Select a class to see details.</div>'}
   </div>
   <div class="nav-btns">
     <button class="btn-secondary" onclick="goStep(1)">← Back</button>
@@ -1362,6 +1763,30 @@ function renderSkills(){
     </div>
     <p class="prof-bonus-note">★ = Auto-granted | Class skills in full color | Prof bonus: <span data-tip="Proficiency Bonus — added to all proficient skill checks. +${prof} at your current level.">+${prof}</span></p>
   </div>
+  ${(()=>{
+    const id=state.class;
+    const lv=state.level||1;
+    let slots=0;
+    if(id==='rogue'){slots=lv>=6?4:2;}
+    else if(id==='bard'){slots=lv>=10?4:lv>=3?2:0;}
+    if(!slots)return'';
+    const allProf=[...new Set([...allGranted,...state.skillProficiencies])].filter(s=>SKILLS_LIST.some(sk=>sk.name===s));
+    const chosen=state.expertiseChoices.filter(s=>allProf.includes(s));
+    if(chosen.length!==state.expertiseChoices.length){state.expertiseChoices=chosen;}
+    return`<div class="section-card" style="margin-top:1rem;">
+      <div class="section-title">Expertise</div>
+      <p style="font-size:13px;color:var(--ink-light);margin-bottom:12px;">Choose <strong>${slots}</strong> proficient skill${slots>1?'s':''} to gain expertise (double proficiency bonus) — ${chosen.length}/${slots} chosen:</p>
+      <div class="skills-grid">${allProf.map(sk=>{
+        const isChosen=chosen.includes(sk);
+        const canPick=chosen.length<slots||isChosen;
+        return`<div class="skill-row${canPick?' clickable':''}" onclick="${canPick?`toggleExpertise('${sk}')`:''}" style="${!canPick&&!isChosen?'opacity:.45':''}">
+          <div class="skill-check${isChosen?' checked':''}"></div>
+          <div class="skill-name" style="color:${isChosen?'var(--gold)':'var(--ink)'};">${sk}${isChosen?' ★★':''}</div>
+        </div>`;
+      }).join('')}
+      </div>
+    </div>`;
+  })()}
   <div class="nav-btns">
     <button class="btn-secondary" onclick="goStep(4)">← Back</button>
     <button class="btn-primary" onclick="goStep(6)">Next: Equipment →</button>
@@ -1559,6 +1984,9 @@ function renderSummary(){
           <div class="cs-line">Armor: ${cls.armor}</div>
           <div class="cs-line">Weapons: ${cls.weapons}</div>
           ${cls.spellcasting?`<div class="cs-line">Spellcasting: ${STAT_LABELS[cls.spellAbility]}-based · DC ${8+prof+getModNum(getEffectiveAbility(cls.spellAbility))} · +${prof+getModNum(getEffectiveAbility(cls.spellAbility))} to hit</div>`:''}
+          ${(()=>{const scData=SUBCLASSES[state.class];if(!scData||!state.subclass)return'';const opt=scData.options.find(o=>o.id===state.subclass);return opt?`<div class="cs-line" style="margin-top:4px;"><strong>${scData.label}:</strong> ${opt.name}</div>`:'';})()}
+          ${state.fightingStyle?`<div class="cs-line"><strong>Fighting Style:</strong> ${state.fightingStyle}</div>`:''}
+          ${state.expertiseChoices&&state.expertiseChoices.length?`<div class="cs-line"><strong>Expertise (2×):</strong> ${state.expertiseChoices.join(', ')}</div>`:''}
         </div>`:''}
         ${bg?`<div class="cs-sec">
           <div class="cs-sec-title">Background — ${bg.name}</div>
@@ -1575,6 +2003,10 @@ function renderSummary(){
           <div class="cs-sec-title">Feat — ${feat.name}</div>
           <div class="cs-line">${feat.desc}</div>
         </div>`:''}
+        ${(()=>{const feats=(CLASS_FEATURES[state.class]||[]).filter(f=>f.level<=state.level);if(!feats.length)return'';return`<div class="cs-sec">
+          <div class="cs-sec-title">Class Features (Lv 1–${state.level})</div>
+          ${feats.map(f=>`<div class="cs-line" style="margin-bottom:4px;"><strong>${f.name}</strong> <em style="font-size:11px;color:var(--muted);">(Lv ${f.level})</em><br><span style="font-size:12px;color:var(--ink-light);">${f.desc}</span></div>`).join('')}
+        </div>`;})()}
       </div>
     </div>
 
@@ -1650,7 +2082,7 @@ function selectSubrace(id){
   state.bonusLanguages=[];
   render();
 }
-function selectClass(id){state.class=id;state.skillProficiencies=[];state.equipmentPack=null;render();}
+function selectClass(id){state.class=id;state.skillProficiencies=[];state.equipmentPack=null;state.subclass=null;state.fightingStyle=null;state.expertiseChoices=[];render();}
 function selectBg(id){state.background=id;state.bonusLanguages=[];state.backgroundToolChoice=null;render();}
 
 function toggleVarASI(s){
@@ -1690,6 +2122,17 @@ function toggleSk(n){
   else{const p=state.skillProficiencies.filter(s=>cls.skills.includes(s));if(p.length>=np)return;state.skillProficiencies.push(n);}
   render();
 }
+function toggleExpertise(n){
+  const id=state.class;const lv=state.level||1;
+  let slots=0;
+  if(id==='rogue')slots=lv>=6?4:2;
+  else if(id==='bard')slots=lv>=10?4:lv>=3?2:0;
+  if(!slots)return;
+  const i=state.expertiseChoices.indexOf(n);
+  if(i>-1)state.expertiseChoices.splice(i,1);
+  else if(state.expertiseChoices.length<slots)state.expertiseChoices.push(n);
+  render();
+}
 
 function setArr(a,mode){state.abilityMode=mode||'free';STAT_NAMES.forEach((s,i)=>{state.abilities[s]=a[i]||10;});render();}
 function rollAbs(){
@@ -1724,6 +2167,18 @@ function buildExportData(){
   const allGranted=[...new Set([...bgSk,...srProfs,...varSk,...heSk])];
   const allSkillProfs=[...new Set([...state.skillProficiencies,...allGranted])];
   const feat=state.variantFeat?PHB_FEATS.find(f=>f.id===state.variantFeat):null;
+  const lv=state.level||1;
+  const classId=state.class||'';
+  const rawFeatures=(CLASS_FEATURES[classId]||[]).filter(f=>f.level<=lv);
+  const scData=SUBCLASSES[classId];
+  let subclassObj=null;
+  if(state.subclass&&scData){
+    const opt=scData.options.find(o=>o.id===state.subclass);
+    if(opt)subclassObj={id:opt.id,name:opt.name};
+  }
+  const armorProfs=cls?cls.armor:[];
+  const weaponProfs=cls?cls.weapons:[];
+  const toolProfs=[...(bg&&bg.tools?bg.tools:[]),...(state.backgroundToolChoice?[state.backgroundToolChoice]:[]),...(state.instrumentChoices||[])];
   return {
     version:1,
     charId:state.charId||null,
@@ -1734,6 +2189,13 @@ function buildExportData(){
     race:{id:state.race,subraceId:state.subrace,name:sr?sr.name:'',raceName:race?race.name:''},
     class:{id:state.class,name:cls?cls.name:'',hitDie:cls?cls.hitDie:8,spellcasting:cls?cls.spellcasting:false,spellAbility:cls?cls.spellAbility:null,saves:cls?cls.saves:[]},
     background:{id:state.background,name:bg?bg.name:''},
+    subclass:subclassObj,
+    fightingStyle:state.fightingStyle||null,
+    classFeatures:rawFeatures,
+    expertiseSkills:state.expertiseChoices||[],
+    armorProficiencies:armorProfs,
+    weaponProficiencies:weaponProfs,
+    toolProficiencies:toolProfs,
     level:state.level,
     abilityMode:state.abilityMode,
     baseAbilities:{...state.abilities},
@@ -1756,7 +2218,7 @@ function buildExportData(){
       weapons:[...state.equipment.weapons],
       weaponDetails:state.equipment.weapons.map(id=>{const w=WEAPONS.find(ww=>ww.id===id);return w?{id:w.id,name:w.name,dmg:w.dmg,dmgType:w.dmgType,props:w.props,profCat:w.profCat,proficient:hasWeaponProf(w)}:{id,name:id};}),
     },
-    tracker:{currentHP:getMaxHP(),tempHP:0,deathSaves:{successes:0,failures:0},conditions:[],exhaustion:0,currency:{cp:0,sp:0,gp:0,pp:0},inventory:[],notes:[],sessionLog:[],asiChoices:[],featChoices:[],subclass:null,classFeatures:[]}
+    tracker:{currentHP:getMaxHP(),tempHP:0,deathSaves:{successes:0,failures:0},conditions:[],exhaustion:0,currency:{cp:0,sp:0,gp:0,pp:0},inventory:[],notes:[],sessionLog:[],asiChoices:[],featChoices:[],subclass:subclassObj,classFeatures:rawFeatures,expertiseSkills:state.expertiseChoices||[],fightingStyle:state.fightingStyle||null}
   };
 }
 
