@@ -64,6 +64,27 @@
   .empty-sub{font-size:.95rem;color:var(--ink-light);margin-bottom:1.5rem;}
   /* Divider */
   .divider{width:200px;height:1px;background:linear-gradient(to right,transparent,var(--gold),transparent);margin:0 auto 1.5rem;}
+  /* Auth */
+  .top-nav-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+  .auth-bar{display:flex;align-items:center;gap:8px;}
+  .auth-email{font-size:12px;color:var(--nav-text);opacity:.8;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .btn{font-family:'Cinzel',serif;font-size:13px;padding:7px 16px;border-radius:4px;border:1px solid transparent;cursor:pointer;transition:filter .15s;font-weight:600;white-space:nowrap;}
+  .btn-gold{background:var(--gold);color:#fff;border-color:var(--gold);}
+  .btn-gold:hover{filter:brightness(.88);}
+  .btn-ghost{background:transparent;color:var(--nav-text);border-color:rgba(255,255,255,.3);}
+  .btn-ghost:hover{background:rgba(255,255,255,.08);}
+  .btn-red{background:var(--red);color:#fff;border-color:var(--red);}
+  .btn-red:hover{filter:brightness(.88);}
+  .btn-sm{font-size:11px;padding:4px 10px;}
+  .auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:300;}
+  .auth-modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.75rem;min-width:320px;max-width:420px;width:90%;}
+  .auth-modal h3{font-family:'Cinzel',serif;font-size:1.1rem;margin-bottom:1rem;color:var(--ink);}
+  .auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1rem;}
+  .auth-tab{background:none;border:none;padding:6px 14px;font-family:'Cinzel',serif;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;}
+  .auth-tab.active{color:var(--red);border-bottom-color:var(--red);}
+  .auth-field{margin-bottom:12px;}
+  .auth-field label{font-size:12px;font-weight:600;color:var(--ink-light);display:block;margin-bottom:4px;}
+  .auth-field input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:14px;font-family:inherit;}
 </style>
 </head>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -79,6 +100,7 @@
       </div>
       <a class="top-nav-link" href="campaigns.html">Campaigns</a>
     </div>
+    <div class="top-nav-right"><div id="authBar"></div></div>
   </div>
 </nav>
 <div class="page">
@@ -285,6 +307,24 @@ const SUPABASE_KEY='sb_publishable_pDMmhqzBWnSYqNYC9m0KaA_2R3haySF';
 let _sb=null;
 try{if(typeof supabase!=='undefined')_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){}
 
+// Add upsertMeta to CharStore
+CharStore.upsertMeta=function(meta){
+  const arr=this._idx();const i=arr.findIndex(c=>c.id===meta.id);
+  if(i>=0)arr[i]={...arr[i],...meta};else arr.push(meta);
+  this._saveIdx(arr);
+};
+
+function showToast(msg,type='info'){
+  let c=document.getElementById('toast-container');
+  if(!c){c=document.createElement('div');c.id='toast-container';c.style.cssText='position:fixed;bottom:1rem;right:1rem;display:flex;flex-direction:column;gap:6px;z-index:9999;';document.body.appendChild(c);}
+  const t=document.createElement('div');
+  t.style.cssText='background:#2c2416;color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;font-family:inherit;max-width:280px;';
+  if(type==='warning')t.style.background='#8b6914';
+  if(type==='success')t.style.background='#2d7a2d';
+  t.textContent=msg;c.appendChild(t);
+  setTimeout(()=>t.remove(),2800);
+}
+
 async function _pullCloudChars(){
   if(!_sb)return;
   try{
@@ -301,15 +341,62 @@ async function _pullCloudChars(){
   }catch(e){}
 }
 
-// Add upsertMeta to CharStore
-CharStore.upsertMeta=function(meta){
-  const arr=this._idx();const i=arr.findIndex(c=>c.id===meta.id);
-  if(i>=0)arr[i]={...arr[i],...meta};else arr.push(meta);
-  this._saveIdx(arr);
-};
+function renderAuthBar(){
+  const el=document.getElementById('authBar');if(!el||!_sb)return;
+  _sb.auth.getSession().then(({data:{session}})=>{
+    el.innerHTML=session
+      ?`<div class="auth-bar"><span class="auth-email">${session.user.email}</span><button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button></div>`
+      :`<div class="auth-bar"><button class="btn btn-gold btn-sm" onclick="openAuthModal()">☁ Sign In</button></div>`;
+  });
+}
+
+let _authMode='signin';
+function openAuthModal(){
+  let el=document.getElementById('auth-modal-root');
+  if(!el){el=document.createElement('div');el.id='auth-modal-root';document.body.appendChild(el);}
+  _renderAuthModal();
+}
+function _renderAuthModal(){
+  const el=document.getElementById('auth-modal-root');if(!el)return;
+  el.innerHTML=`<div class="auth-overlay" onclick="if(event.target===this)closeAuthModal()">
+    <div class="auth-modal">
+      <h3>☁ Sign In</h3>
+      <div class="auth-tabs">
+        <button class="auth-tab${_authMode==='signin'?' active':''}" onclick="_authMode='signin';_renderAuthModal()">Sign In</button>
+        <button class="auth-tab${_authMode==='signup'?' active':''}" onclick="_authMode='signup';_renderAuthModal()">Create Account</button>
+      </div>
+      <div class="auth-field"><label>Email</label><input type="email" id="auth-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('auth-pass').focus()"/></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="auth-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doAuth()"/></div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-red" style="flex:1;" onclick="doAuth()">${_authMode==='signin'?'Sign In':'Create Account'}</button>
+        <button class="btn btn-ghost" style="color:var(--ink);border-color:var(--border);" onclick="closeAuthModal()">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+  setTimeout(()=>{const i=document.getElementById('auth-email');if(i)i.focus();},50);
+}
+function closeAuthModal(){const el=document.getElementById('auth-modal-root');if(el)el.innerHTML='';}
+async function doAuth(){
+  const email=document.getElementById('auth-email')?.value?.trim();
+  const pass=document.getElementById('auth-pass')?.value;
+  if(!email||!pass){showToast('Enter email and password.','warning');return;}
+  const{error}=_authMode==='signin'
+    ?await _sb.auth.signInWithPassword({email,password:pass})
+    :await _sb.auth.signUp({email,password:pass});
+  if(error){showToast(error.message,'warning');return;}
+  closeAuthModal();
+  renderAuthBar();
+  showToast(_authMode==='signin'?'Signed in! Loading characters...':'Account created — check your email.','success');
+  if(_authMode==='signin')_pullCloudChars();
+}
+async function signOut(){
+  if(_sb)await _sb.auth.signOut();
+  renderAuthBar();
+}
 
 render();
 _populateNavCharMenu();
+renderAuthBar();
 _pullCloudChars();
 </script>
 </body>
