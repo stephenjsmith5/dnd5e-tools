@@ -194,7 +194,7 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .cs-divider{border:none;border-top:1px solid var(--border-col);margin:8px 0;}
 @media print{
   @page{size:letter portrait;margin:0.4in;}
-  .steps-nav,.nav-btns{display:none!important;}
+  .steps-nav,.nav-btns,.top-nav,#charBar,#builderToolbar{display:none!important;}
   body{background:white!important;}
   .character-sheet{border:none!important;background:white!important;padding:0!important;box-shadow:none!important;}
   .cs-sheet{font-size:10px;}
@@ -330,7 +330,7 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 </nav>
 <div class="app">
   <div id="charBar"></div>
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;">
+  <div id="builderToolbar" style="display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;">
     <div class="steps-nav" id="stepsNav" style="margin-bottom:0;flex:1;justify-content:flex-start;"></div>
     <label style="font-family:'Cinzel',serif;font-size:11px;padding:5px 12px;background:var(--surface2);border:1px solid var(--border-col);border-radius:4px;cursor:pointer;color:var(--ink-light);letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;" title="Load an existing character JSON to edit">
       📂 Import Character JSON
