@@ -91,7 +91,32 @@
 const CharStore={
   _idx(){try{return JSON.parse(localStorage.getItem('dnd5e_chars')||'[]');}catch(e){return[];}},
   _saveIdx(arr){try{localStorage.setItem('dnd5e_chars',JSON.stringify(arr));}catch(e){}},
-  index(){return this._idx();},
+  index(){
+    const idx=this._idx();
+    if(idx.length)return idx;
+    // Fallback: scan dnd5e_char_* keys to rebuild list if index is missing
+    const found=[];const seen=new Set();
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const key=localStorage.key(i);
+        if(!key||!key.startsWith('dnd5e_char_'))continue;
+        const id=key.slice('dnd5e_char_'.length);
+        if(seen.has(id))continue;seen.add(id);
+        try{
+          const raw=JSON.parse(localStorage.getItem(key)||'{}');
+          const b=raw.builder,t=raw.tracker;
+          const name=(b&&b.name)||(t&&t.identity&&t.identity.name)||'Unnamed';
+          const classId=(b&&b.class)||(t&&t.class&&t.class.id)||null;
+          const level=(b&&b.level)||(t&&t.level)||1;
+          const updatedAt=(b&&b.updatedAt)||(t&&t.updatedAt)||null;
+          if(name!=='Unnamed'||classId)found.push({id,name,classId,level,updatedAt});
+        }catch(e){}
+      }
+    }catch(e){}
+    // Write rebuilt index back so future reads are fast
+    if(found.length)this._saveIdx(found);
+    return found;
+  },
   genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);},
   loadPart(id,part){
     try{const raw=localStorage.getItem('dnd5e_char_'+id);if(!raw)return null;return JSON.parse(raw)[part]??null;}catch(e){return null;}
