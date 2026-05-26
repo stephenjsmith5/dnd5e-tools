@@ -168,6 +168,7 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .ac-preview-val{font-family:'Cinzel',serif;font-size:26px;font-weight:700;color:var(--ac-blue);}
 /* ── Print-ready Character Sheet ─────────────────────────────────────── */
 .cs-sheet{font-family:'Crimson Text',serif;color:var(--ink);font-size:12px;line-height:1.45;}
+.cs-print-title{display:none;}
 .cs-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--red-accent);padding-bottom:8px;margin-bottom:10px;gap:16px;}
 .cs-name{font-family:'Cinzel',serif;font-size:24px;font-weight:700;color:var(--ink);line-height:1.1;}
 .cs-meta{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6;}
@@ -198,6 +199,9 @@ button[data-tip],label[data-tip]{cursor:pointer;}
   body{background:white!important;}
   .character-sheet{border:none!important;background:white!important;padding:0!important;box-shadow:none!important;}
   .cs-sheet{font-size:10px;}
+  .cs-print-title{display:block;text-align:center;margin-bottom:8px;border-bottom:1px solid var(--border-col);padding-bottom:6px;}
+  .cs-print-title-main{font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:var(--ink);letter-spacing:0.5px;}
+  .cs-print-title-sub{font-size:9px;color:var(--muted);margin-top:1px;}
   .cs-name{font-size:19px;}
   .cs-meta{font-size:10px;}
   .cs-badge-val{font-size:15px;}
@@ -1903,6 +1907,12 @@ function renderSummary(){
 
   return`<div class="character-sheet">
   <div class="cs-sheet">
+
+    <!-- ── PRINT TITLE (hidden on screen) ── -->
+    <div class="cs-print-title">
+      <div class="cs-print-title-main">Seabass' D&amp;D Character Builder</div>
+      <div class="cs-print-title-sub">D&amp;D 5e · Player's Handbook 2014</div>
+    </div>
 
     <!-- ── HEADER ── -->
     <div class="cs-head">
