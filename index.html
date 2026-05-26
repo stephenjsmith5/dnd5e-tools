@@ -112,12 +112,13 @@ let _sb=null;
 try{if(typeof supabase!=='undefined')_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){}
 
 function renderAuthBar(){
-  const el=document.getElementById('authBar');if(!el||!_sb)return;
+  const el=document.getElementById('authBar');if(!el)return;
+  el.innerHTML=`<div class="auth-bar"><button class="btn btn-gold btn-sm" onclick="openAuthModal()">☁ Sign In</button></div>`;
+  if(!_sb)return;
   _sb.auth.getSession().then(({data:{session}})=>{
-    el.innerHTML=session
-      ?`<div class="auth-bar"><span class="auth-email">${session.user.email}</span><button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button></div>`
-      :`<div class="auth-bar"><button class="btn btn-gold btn-sm" onclick="openAuthModal()">☁ Sign In</button></div>`;
-  });
+    if(!session)return;
+    el.innerHTML=`<div class="auth-bar"><span class="auth-email">${session.user.email}</span><button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button></div>`;
+  }).catch(()=>{});
 }
 
 let _authMode='signin';

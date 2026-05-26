@@ -1994,7 +1994,7 @@ function renderSummary(){
           <div class="cs-line">Armor: ${cls.armor}</div>
           <div class="cs-line">Weapons: ${cls.weapons}</div>
           ${cls.spellcasting?`<div class="cs-line">Spellcasting: ${STAT_LABELS[cls.spellAbility]}-based · DC ${8+prof+getModNum(getEffectiveAbility(cls.spellAbility))} · +${prof+getModNum(getEffectiveAbility(cls.spellAbility))} to hit</div>`:''}
-          ${(()=>{const scData=SUBCLASSES[state.class];if(!scData||!state.subclass)return'';const opt=scData.options.find(o=>o.id===state.subclass);return opt?`<div class="cs-line" style="margin-top:4px;"><strong>${scData.label}:</strong> ${opt.name}</div>`:'';})()}
+          ${(()=>{const scData=SUBCLASSES[state.class];if(!scData||!state.subclass)return'';const scId=state.subclass.id||state.subclass;const opt=scData.options.find(o=>o.id===scId);const scName=opt?opt.name:(state.subclass.name||scId);return scName?`<div class="cs-line" style="margin-top:4px;"><strong>${scData.label}:</strong> ${scName}</div>`:'';})()}
           ${state.fightingStyle?`<div class="cs-line"><strong>Fighting Style:</strong> ${state.fightingStyle}</div>`:''}
           ${state.expertiseChoices&&state.expertiseChoices.length?`<div class="cs-line"><strong>Expertise (2×):</strong> ${state.expertiseChoices.join(', ')}</div>`:''}
         </div>`:''}
@@ -2183,8 +2183,10 @@ function buildExportData(){
   const scData=SUBCLASSES[classId];
   let subclassObj=null;
   if(state.subclass&&scData){
-    const opt=scData.options.find(o=>o.id===state.subclass);
+    const scId=state.subclass.id||state.subclass;
+    const opt=scData.options.find(o=>o.id===scId);
     if(opt)subclassObj={id:opt.id,name:opt.name};
+    else if(typeof state.subclass==='object')subclassObj=state.subclass;
   }
   const armorProfs=cls?cls.armor:[];
   const weaponProfs=cls?cls.weapons:[];
@@ -2357,6 +2359,22 @@ function importCharacter(input){
       // Background
       if(d.background) state.background = d.background.id || null;
 
+      // Subclass
+      if(d.subclass&&d.subclass.id) state.subclass={id:d.subclass.id,name:d.subclass.name||d.subclass.id};
+      else state.subclass=null;
+
+      // Fighting style
+      state.fightingStyle=d.fightingStyle||null;
+
+      // Expertise choices
+      state.expertiseChoices=Array.isArray(d.expertiseSkills)?[...d.expertiseSkills]:[];
+
+      // Background tool choice (gaming set, instrument, etc.)
+      state.backgroundToolChoice=d.toolProficiency||null;
+
+      // Equipment pack
+      state.equipmentPack=d.equipmentPack||null;
+
       // Base abilities
       if(d.baseAbilities){
         state.abilities = {
@@ -2381,14 +2399,32 @@ function importCharacter(input){
         }
       }
 
-      // Skills — always start fresh so the Skills step re-derives from class/race/background
-      state.skillProficiencies = [];
-
       // Variant human free skill — now stored directly in export
       state.variantSkill = d.variantSkill || null;
 
       // Half-elf bonus skills — now stored directly in export
       state.halfElfSkills = Array.isArray(d.halfElfSkills) ? d.halfElfSkills : [];
+
+      // Bonus languages (restore user-chosen ones; auto-granted come from race)
+      if(Array.isArray(d.languages)){
+        const raceGranted=new Set(getRaceGrantedLanguages());
+        state.bonusLanguages=d.languages.filter(l=>!raceGranted.has(l));
+      } else {
+        state.bonusLanguages=[];
+      }
+
+      // Skills — restore class-chosen proficiencies (subtract auto-granted)
+      if(Array.isArray(d.skillProficiencies)){
+        const _bg=state.background?BACKGROUNDS.find(b=>b.id===state.background):null;
+        const _sr=getSubrace();
+        const skillNames=new Set(SKILLS_LIST.map(sk=>sk.name));
+        const autoGr=new Set(
+          [...(_bg?_bg.skills:[]),...(_sr?_sr.proficiencies||[]:[]),(state.variantSkill?[state.variantSkill]:[]),...(state.halfElfSkills||[])].filter(s=>skillNames.has(s))
+        );
+        state.skillProficiencies=d.skillProficiencies.filter(s=>skillNames.has(s)&&!autoGr.has(s));
+      } else {
+        state.skillProficiencies=[];
+      }
 
       // Variant human feat
       if(Array.isArray(d.feats)&&d.feats.length>0){
