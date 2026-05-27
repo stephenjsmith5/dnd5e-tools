@@ -1427,11 +1427,21 @@ function switchChar(id){
   render();
 }
 
+async function _deleteCloudChar(id){
+  if(!_sb)return;
+  try{
+    const session=await getSession();
+    if(!session)return;
+    await _sb.from('characters').delete().eq('local_id',id).eq('user_id',session.user.id);
+  }catch(e){}
+}
+
 function deleteChar(id){
   const chars=CharStore.index();
   const c=chars.find(x=>x.id===id);
   if(!confirm('Delete '+(c?.name||'this character')+'? This cannot be undone.'))return;
   CharStore.delete(id);
+  _deleteCloudChar(id);
   if(state.charId===id){
     const remaining=CharStore.index();
     if(remaining.length)switchChar(remaining[0].id);
