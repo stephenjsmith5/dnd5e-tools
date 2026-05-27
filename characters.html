@@ -213,6 +213,29 @@ function _clsLabel(classId){
   return classId.charAt(0).toUpperCase()+classId.slice(1);
 }
 
+function _charCard(c,isDraft){
+  const cl=_clsLabel(c.classId);
+  const safeName=(c.name||'Unnamed').replace(/'/g,"\\'").replace(/"/g,'&quot;');
+  const safeId=String(c.id||'');
+  return`<div class="char-card"${isDraft?' style="opacity:.88;"':''}>
+    <div class="char-card-header">
+      <div class="char-avatar">${_classIcon(c.classId)}</div>
+      <div class="char-card-info">
+        <div class="char-card-name">${c.name||'Unnamed'}${isDraft?` <span style="font-size:10px;font-family:'Cinzel',serif;color:var(--gold);border:1px solid var(--gold);padding:1px 5px;border-radius:3px;letter-spacing:.5px;vertical-align:middle;">DRAFT</span>`:''}
+        </div>
+        <div class="char-card-sub">${cl?cl+' &middot; ':''}Level ${c.level||1}</div>
+      </div>
+    </div>
+    <div class="char-card-meta">${isDraft?'Last edited: ':'Last played: '}${_relDate(c.updatedAt)}</div>
+    <div class="char-card-actions">
+      <a class="char-btn" href="builder.html?char=${safeId}">${isDraft?'Continue Editing':'Edit'}</a>
+      ${!isDraft?`<a class="char-btn" href="tracker.html?sandbox=true&char=${safeId}">Sandbox</a>`:''}
+      ${!isDraft?`<button class="char-btn" onclick="duplicateChar('${safeId}')" title="Duplicate character" style="padding:5px 8px;">⎘</button>`:''}
+      <button class="char-btn char-btn-del" onclick="deleteChar('${safeId}','${safeName}')" title="Delete character"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="5" x2="15" y2="5"/><path d="M7 5V3.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V5"/><path d="M4.5 5l.8 9.5a1 1 0 0 0 1 .9h5.4a1 1 0 0 0 1-.9L13.5 5"/><line x1="7" y1="8.5" x2="7" y2="12"/><line x1="11" y1="8.5" x2="11" y2="12"/></svg></button>
+    </div>
+  </div>`;
+}
+
 function render(){
   const grid=document.getElementById('charGrid');
   let chars=[];
@@ -228,27 +251,29 @@ function render(){
     return;
   }
   try{
-    grid.innerHTML=`<div class="char-grid">${chars.map(c=>{
-      const cl=_clsLabel(c.classId);
-      const safeName=(c.name||'Unnamed').replace(/'/g,"\\'").replace(/"/g,'&quot;');
-      const safeId=String(c.id||'');
-      return`<div class="char-card">
-        <div class="char-card-header">
-          <div class="char-avatar">${_classIcon(c.classId)}</div>
-          <div class="char-card-info">
-            <div class="char-card-name">${c.name||'Unnamed'}</div>
-            <div class="char-card-sub">${cl?cl+' &middot; ':''}Level ${c.level||1}</div>
-          </div>
-        </div>
-        <div class="char-card-meta">Last played: ${_relDate(c.updatedAt)}</div>
-        <div class="char-card-actions">
-          <a class="char-btn" href="builder.html?char=${safeId}">Edit</a>
-          <a class="char-btn" href="tracker.html?sandbox=true&char=${safeId}">Sandbox</a>
-          <button class="char-btn" onclick="duplicateChar('${safeId}')" title="Duplicate character" style="padding:5px 8px;">⎘</button>
-          <button class="char-btn char-btn-del" onclick="deleteChar('${safeId}','${safeName}')" title="Delete character"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="5" x2="15" y2="5"/><path d="M7 5V3.5a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 .5.5V5"/><path d="M4.5 5l.8 9.5a1 1 0 0 0 1 .9h5.4a1 1 0 0 0 1-.9L13.5 5"/><line x1="7" y1="8.5" x2="7" y2="12"/><line x1="11" y1="8.5" x2="11" y2="12"/></svg></button>
-        </div>
+    // status undefined = old char before this feature → treat as saved
+    const saved=chars.filter(c=>c.status!=='draft');
+    const drafts=chars.filter(c=>c.status==='draft');
+    let html='';
+    if(saved.length){
+      html+=`<div class="char-grid">${saved.map(c=>_charCard(c,false)).join('')}</div>`;
+    }
+    if(drafts.length){
+      html+=`<div style="margin-top:2rem;">
+        <div style="font-family:'Cinzel',serif;font-size:12px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border);">Drafts</div>
+        <div class="char-grid">${drafts.map(c=>_charCard(c,true)).join('')}</div>
       </div>`;
-    }).join('')}</div>`;
+    }
+    if(!saved.length){
+      html=`<div class="empty" style="margin-bottom:1.5rem;">
+        <div class="empty-icon">📜</div>
+        <div class="empty-title">No Saved Characters</div>
+        <p class="empty-sub">Finish a draft and save it to play in campaigns.</p>
+        <div class="divider"></div>
+        <a class="btn-create" href="builder.html">+ Create Character</a>
+      </div>`+html;
+    }
+    grid.innerHTML=html;
   }catch(e){
     grid.innerHTML=`<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Error loading characters</div><p class="empty-sub" style="color:var(--red);">${e.message}</p></div>`;
   }

@@ -5644,8 +5644,10 @@ function attachTrackerEvents(){
 // ─── UPLOAD SCREEN ────────────────────────────────────────────────────────────
 
 function renderUpload(){
-  const chars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
-  const hasLegacy=!chars.length&&!!store.get('dnd5e_tracker_char');
+  const allChars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+  const chars=allChars.filter(c=>c.status!=='draft');
+  const drafts=allChars.filter(c=>c.status==='draft');
+  const hasLegacy=!allChars.length&&!!store.get('dnd5e_tracker_char');
   return`<div class="upload-screen">
     ${chars.length?`
     <div style="width:100%;max-width:560px;margin-bottom:28px;">
@@ -5660,6 +5662,25 @@ function renderUpload(){
             <div class="char-list-actions">
               <button class="btn btn-gold btn-sm" onclick="loadCharById('${c.id}')">▶ Play</button>
               <button class="btn btn-ghost btn-sm" onclick="editInBuilder('${c.id}')">✏ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteTrackerChar('${c.id}')">✕</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    `:''}
+    ${drafts.length?`
+    <div style="width:100%;max-width:560px;margin-bottom:28px;">
+      <div style="font-family:'Cinzel',serif;font-size:12px;color:var(--muted);margin-bottom:10px;text-align:center;letter-spacing:1px;text-transform:uppercase;">Drafts — finish in builder to play</div>
+      <div class="char-list">
+        ${drafts.map(c=>`
+          <div class="char-list-item" style="opacity:.75;">
+            <div class="char-list-info">
+              <div class="char-list-name">${c.name||'Unnamed'} <span style="font-size:10px;color:var(--gold);border:1px solid var(--gold);padding:1px 4px;border-radius:2px;font-family:'Cinzel',serif;">DRAFT</span></div>
+              <div class="char-list-sub">${c.classId?c.classId.charAt(0).toUpperCase()+c.classId.slice(1):'Unknown'} · Level ${c.level||1}</div>
+            </div>
+            <div class="char-list-actions">
+              <button class="btn btn-ghost btn-sm" onclick="editInBuilder('${c.id}')">✏ Finish</button>
               <button class="btn btn-danger btn-sm" onclick="deleteTrackerChar('${c.id}')">✕</button>
             </div>
           </div>
@@ -6651,7 +6672,9 @@ function _migrateLegacyCharIfNeeded(){
 
 function renderCharacterInit(){
   _migrateLegacyCharIfNeeded();
-  const chars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+  const allChars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+  const chars=allChars.filter(c=>c.status!=='draft');
+  const drafts=allChars.filter(c=>c.status==='draft');
   return`<div class="with-campaign">
     ${renderCampaignHeader()}
     <div class="card" style="max-width:640px;margin:2rem auto;">
@@ -6667,7 +6690,17 @@ function renderCharacterInit(){
           <button class="btn btn-sm" onclick="initCampaignCharacter('${c.id}')">Bring In →</button>
           <button class="btn btn-ghost btn-sm" onclick="if(confirm('Delete \\'${(c.name||'Unnamed').replace(/'/g,"\\'")}\\' from your character list?')){CharStore.delete('${c.id}');render();}" style="font-size:11px;color:var(--muted);padding:3px 7px;" title="Delete this character">✕</button>
         </div>`).join('')}
-      </div>`:'<p style="font-size:13px;color:var(--muted);font-style:italic;margin-bottom:1rem;">No characters found — build one first.</p>'}
+      </div>`:'<p style="font-size:13px;color:var(--muted);font-style:italic;margin-bottom:1rem;">No saved characters yet — finish a draft in the builder first.</p>'}
+      ${drafts.length>0?`<div style="margin-bottom:1.25rem;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--ink-light);">Drafts <span style="font-weight:400;color:var(--muted);font-size:12px;">(save to make playable)</span></div>
+        ${drafts.map(c=>`<div class="party-player" style="opacity:.75;">
+          <div style="flex:1;min-width:0;">
+            <div class="party-name">${c.name||'Unnamed'} <span style="font-size:10px;font-weight:700;background:#666;color:#fff;padding:1px 5px;border-radius:3px;letter-spacing:.5px;">DRAFT</span></div>
+            <div class="party-sub">${c.classId?c.classId.charAt(0).toUpperCase()+c.classId.slice(1):''} · Lv ${c.level||1}</div>
+          </div>
+          <a href="builder.html?char=${c.id}" class="btn btn-ghost btn-sm">Finish →</a>
+        </div>`).join('')}
+      </div>`:``}
       <div style="border-top:1px solid var(--border);padding-top:1rem;">
         <a href="builder.html" class="btn btn-ghost btn-sm" style="margin-right:8px;">Open Character Builder</a>
         <a href="campaigns.html" class="btn btn-ghost btn-sm">Back to Campaigns</a>
@@ -6680,10 +6713,11 @@ let _initCampaignCharBusy=false;
 async function initCampaignCharacter(charId){
   if(_initCampaignCharBusy) return; // prevent double-click duplicates
   _initCampaignCharBusy=true;
-  // Try tracker part first (character has been played before), then builder part (fresh build)
+  // Try tracker part first (character has been played before), then export format, then raw builder
   const trackerData=CharStore.loadPart(charId,'tracker');
+  const exportData=CharStore.loadPart(charId,'export');
   const builderData=CharStore.loadPart(charId,'builder');
-  const rawData=trackerData||builderData;
+  const rawData=trackerData||exportData||builderData;
   if(!rawData){
     _initCampaignCharBusy=false;
     showToast('Character data not found — try rebuilding in the Character Builder.','warning');
@@ -6693,6 +6727,8 @@ async function initCampaignCharacter(charId){
     if(trackerData){
       char=migrateChar(trackerData);
       char._charId=charId; // ensure stable ID is preserved
+    } else if(exportData){
+      applyCharData(exportData);
     } else {
       // Builder-only: inject stable ID before applyCharData so it doesn't generate a new one
       builderData._charId=charId;
