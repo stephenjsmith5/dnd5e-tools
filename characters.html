@@ -221,7 +221,7 @@ function render(){
 }
 
 function deleteChar(id,name){
-  if(!confirm(‘Delete ‘’+name+’’ permanently? This cannot be undone.’))return;
+  if(!confirm('Delete "'+name+'" permanently? This cannot be undone.'))return;
   CharStore.delete(id);
   render();
   _populateNavCharMenu();
@@ -232,11 +232,11 @@ function duplicateChar(id){
   if(!meta)return;
   const fullData=CharStore.loadFull(id);
   // Generate unique name: "Name (2)", "Name (3)", ...
-  const allNames=CharStore.index().map(c=>c.name||’Unnamed’);
-  const baseName=meta.name||’Unnamed’;
-  let newName=baseName+’ (2)’;
+  const allNames=CharStore.index().map(c=>c.name||'Unnamed');
+  const baseName=meta.name||'Unnamed';
+  let newName=baseName+' (2)';
   let n=2;
-  while(allNames.includes(newName)){n++;newName=baseName+’ (‘+n+’)’;}
+  while(allNames.includes(newName)){n++;newName=baseName+' ('+n+')';}
   const newId=CharStore.genId();
   const now=new Date().toISOString();
   // Duplicate index entry
