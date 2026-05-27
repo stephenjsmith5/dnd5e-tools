@@ -2107,11 +2107,7 @@ function renderSummary(){
     <button class="btn-secondary" onclick="goStep(6)">← Back</button>
     <div style="display:flex;gap:8px;">
       <button class="btn-primary" onclick="openInSandbox()" style="background:var(--gold);color:#1a0a00;border-color:var(--gold);">▶ Open in Campaign Sandbox</button>
-      <button class="btn-secondary" onclick="exportCharacter()" style="border-color:var(--gold);color:var(--gold-light);">⬇ Export JSON</button>
-      <label class="btn-secondary" style="cursor:pointer;display:inline-block;" title="Load an existing character JSON back into the builder">
-        📂 Import Character
-        <input type="file" accept=".json" onchange="importCharacter(this)" style="display:none;"/>
-      </label>
+      <button class="btn-primary" onclick="exportCharacter()" style="background:var(--red-accent);color:#fff;border-color:var(--red-accent);">⬇ Export JSON</button>
       <button class="btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
     </div>
   </div>`;
@@ -2402,6 +2398,7 @@ function importCharacter(input){
         state.ideals          = d.identity.ideals          || '';
         state.bonds           = d.identity.bonds           || '';
         state.flaws           = d.identity.flaws           || '';
+        state.backstory       = d.identity.backstory       || '';
       }
 
       // Level

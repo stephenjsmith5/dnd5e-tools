@@ -4467,17 +4467,17 @@ function renderLog(){
 function renderNotes(){
   const backstory=(char.identity&&char.identity.backstory)||'';
   const langs=Array.isArray(char.languages)&&char.languages.length?char.languages:null;
-  const toolProf=char.toolProficiency||null;
+  const toolProfs=(Array.isArray(char.toolProficiencies)&&char.toolProficiencies.length)?char.toolProficiencies:(char.toolProficiency?[char.toolProficiency]:null);
   const pack=char.equipmentPack||null;
   return`
   <div class="card">
     <div class="card-title">Backstory</div>
     <textarea style="width:100%;min-height:120px;resize:vertical;font-family:'Crimson Text',serif;font-size:14px;line-height:1.7;padding:8px 10px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--ink);" placeholder="Your character's origin, history, and connections…" oninput="char.identity=char.identity||{};char.identity.backstory=this.value;saveAndRender()">${backstory}</textarea>
   </div>
-  ${langs||toolProf||pack?`<div class="card">
+  ${langs||toolProfs||pack?`<div class="card">
     <div class="card-title">Proficiencies & Languages</div>
     ${langs?`<p style="font-size:13px;margin-bottom:6px;"><strong style="color:var(--gold);">Languages:</strong> ${langs.join(', ')}</p>`:''}
-    ${toolProf?`<p style="font-size:13px;margin-bottom:6px;"><strong style="color:var(--gold);">Tool Proficiency:</strong> ${toolProf}</p>`:''}
+    ${toolProfs?`<p style="font-size:13px;margin-bottom:6px;"><strong style="color:var(--gold);">Tool Proficiencies:</strong> ${toolProfs.join(', ')}</p>`:''}
     ${pack?`<p style="font-size:13px;"><strong style="color:var(--gold);">Starting Pack:</strong> ${pack}</p>`:''}
   </div>`:''}
   <div class="card">
@@ -5573,9 +5573,11 @@ function applyCharData(data){
   if(isReimport){
     const et=existingSave.tracker;
     const PRESERVE=['currentHP','tempHP','deathSaves','conditions','exhaustion',
-      'currency','inventory','notes','sessionLog','asiChoices','featChoices',
+      'currency','notes','sessionLog','asiChoices','featChoices',
       'subclass','classFeatures','hpGains','expertiseSkills','resources','spells','attacks','maneuvers'];
     PRESERVE.forEach(k=>{if(et[k]!==undefined)char.tracker[k]=et[k];});
+    // Preserve inventory only if it has items; empty old inventory lets equipment re-seeding stand
+    if(Array.isArray(et.inventory)&&et.inventory.length>0) char.tracker.inventory=et.inventory;
   }
 
   CharStore.setActive(charId);
