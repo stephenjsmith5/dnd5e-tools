@@ -86,7 +86,6 @@
   .auth-field label{font-size:12px;font-weight:600;color:var(--ink-light);display:block;margin-bottom:4px;}
   .auth-field input{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:4px;font-size:14px;font-family:inherit;}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <nav class="top-nav">
@@ -305,7 +304,12 @@ document.addEventListener('click',()=>{
 const SUPABASE_URL='https://vjwefnkgclkczfwkvqis.supabase.co';
 const SUPABASE_KEY='sb_publishable_pDMmhqzBWnSYqNYC9m0KaA_2R3haySF';
 let _sb=null;
-try{if(typeof supabase!=='undefined')_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){}
+// _sb initialized in initSupa() once the CDN script loads below
+function initSupa(){
+  try{if(typeof supabase!=='undefined')_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){}
+  renderAuthBar();
+  _pullCloudChars();
+}
 
 // Add upsertMeta to CharStore
 CharStore.upsertMeta=function(meta){
@@ -398,8 +402,8 @@ async function signOut(){
 
 render();
 _populateNavCharMenu();
-renderAuthBar();
-_pullCloudChars();
+renderAuthBar(); // shows Sign In button immediately; initSupa() updates it once CDN loads
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="initSupa()" onerror="initSupa()"></script>
 </body>
 </html>
