@@ -15,6 +15,8 @@
   --border-col: #c9a84c; --surface: #fdf6e3; --surface2: #f0e2b6;
   --muted: #7a5c3a; --hp-red: #c0392b; --ac-blue: #1a4a6b; --spd-green: #1a5c2a;
   --nav-bg:#2c1810;--nav-text:#f5e6d0;--nav-accent:#c9a84c;
+  /* aliases so shared CSS (auth wall, toasts, nav dropdowns) can use --border/--red */
+  --border:var(--border-col);--red:var(--red-accent);
 }
 body { background: var(--parchment); font-family: 'Crimson Text', Georgia, serif; color: var(--ink); min-height: 100vh; }
 input,select,textarea{color:var(--ink);background:var(--surface2);border-color:var(--border-col);}
@@ -242,6 +244,15 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 /* Auth bar */
 .auth-bar{display:flex;align-items:center;gap:10px;justify-content:flex-end;padding:4px 0 8px;font-size:12px;color:var(--muted);}
 .auth-email{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);}
+/* Shared button variants used by auth bar and auth wall */
+.btn{font-family:'Cinzel',serif;font-size:13px;padding:7px 16px;border-radius:4px;border:1px solid transparent;cursor:pointer;transition:filter .15s;font-weight:600;white-space:nowrap;display:inline-block;}
+.btn-sm{font-size:11px;padding:4px 10px;}
+.btn-gold{background:var(--gold);color:#fff;border-color:var(--gold);}
+.btn-gold:hover{filter:brightness(.88);}
+.btn-ghost{background:transparent;color:var(--nav-text);border-color:rgba(255,255,255,.3);}
+.btn-ghost:hover{background:rgba(255,255,255,.08);}
+.btn-red{background:var(--red-accent);color:#fff;border-color:var(--red-accent);}
+.btn-red:hover{filter:brightness(.88);}
 /* Auth modal */
 .auth-overlay{position:fixed;inset:0;background:rgba(44,26,14,.7);z-index:10000;display:flex;align-items:center;justify-content:center;}
 .auth-modal{background:var(--surface);border:2px solid var(--border-col);border-radius:10px;padding:2rem;max-width:380px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.6);}
@@ -266,28 +277,32 @@ button[data-tip],label[data-tip]{cursor:pointer;}
   --gold:#c9a84c;--gold-light:#e8c86a;--red-accent:#b0c4d8;--on-accent:#1a1a2e;
   --border-col:#3d3555;--surface:#22223a;--surface2:#2c2c4a;
   --muted:#8a8099;--hp-red:#e05555;--ac-blue:#4a9fd4;--spd-green:#4caf7d;
-  --nav-bg:#0d0d1a;--nav-text:#e8e0d5;--nav-accent:#d4aa50;
+  --border:var(--border-col);--red:var(--red-accent);
+  --nav-bg:#0d0d1a;--nav-text:#e2e4e7;--nav-accent:#b0c4d8;
 }
 [data-theme="arcane"]{
   --parchment:#12102a;--ink:#e8d5f5;--ink-light:#c4a8e0;
   --gold:#9b59b6;--gold-light:#b07fd4;--red-accent:#e0c055;--on-accent:#12102a;
   --border-col:#5a3d7a;--surface:#1a1638;--surface2:#241e50;
-  --muted:#8a7aa8;--hp-red:#e74c3c;--ac-blue:#5dade2;
+  --muted:#8a7aa8;--hp-red:#e74c3c;--ac-blue:#5dade2;--spd-green:#58d68d;
+  --border:var(--border-col);--red:var(--red-accent);--green:#58d68d;
   --nav-bg:#0a0818;--nav-text:#e8d5f5;--nav-accent:#e0c055;
 }
 [data-theme="forest"]{
   --parchment:#0f1a12;--ink:#d4e8c4;--ink-light:#9fc28f;
   --gold:#7daa3f;--gold-light:#9acf50;--red-accent:#90cc58;--on-accent:#0f1a12;
   --border-col:#3a6a3a;--surface:#182a1a;--surface2:#213522;
-  --muted:#6a9060;--hp-red:#e05555;--ac-blue:#5dade2;
+  --muted:#6a9060;--hp-red:#e05555;--ac-blue:#5dade2;--spd-green:#6bdb7e;
+  --border:var(--border-col);--red:var(--red-accent);--green:#6bdb7e;
   --nav-bg:#080f08;--nav-text:#d4e8c4;--nav-accent:#90cc58;
 }
 [data-theme="iron"]{
   --parchment:#0e0e0e;--ink:#f0f0f0;--ink-light:#c8c8c8;
   --gold:#e8c84a;--gold-light:#f0dc6e;--red-accent:#e84040;--on-accent:#fff;
   --border-col:#505050;--surface:#1a1a1a;--surface2:#242424;
-  --muted:#909090;--hp-red:#ff4444;--ac-blue:#4488ee;
-  --nav-bg:#000000;--nav-text:#f0f0f0;--nav-accent:#e84040;
+  --muted:#909090;--hp-red:#ff4444;--ac-blue:#4488ee;--spd-green:#44ee88;
+  --border:var(--border-col);--red:var(--red-accent);--green:#44ee88;
+  --nav-bg:#000;--nav-text:#f0f0f0;--nav-accent:#e84040;
 }
 
 /* ─── TOP NAV ────────────────────────────────────────────────────────────────── */
