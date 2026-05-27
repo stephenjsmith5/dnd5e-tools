@@ -5737,7 +5737,13 @@ function loadCharById(id){
     }catch(e){showToast('Error loading character: '+e.message,'warning');}
     return;
   }
-  // Fall back to builder data (character built but never opened in tracker)
+  // Prefer export-format data written by autoSaveBuilder
+  const exportData=CharStore.loadPart(id,'export');
+  if(exportData){
+    try{applyCharData(exportData);loadActiveCampaign();}catch(e){showToast('Error loading character: '+e.message,'warning');}
+    return;
+  }
+  // Legacy fallback: old saves that pre-date the 'export' part
   const builderData=CharStore.loadPart(id,'builder');
   if(builderData){
     try{
@@ -6731,9 +6737,13 @@ document.addEventListener('DOMContentLoaded', async function(){
     if(sandboxCharId){
       const trackerData=CharStore.loadPart(sandboxCharId,'tracker');
       const builderData=CharStore.loadPart(sandboxCharId,'builder');
+      const exportData=CharStore.loadPart(sandboxCharId,'export');
       if(trackerData){
         try{char=migrateChar(trackerData);syncResources(char);syncSpells(char);CharStore.setActive(sandboxCharId);}catch(e){char=null;}
+      } else if(exportData){
+        try{applyCharData(exportData);}catch(e){char=null;}
       } else if(builderData){
+        // Legacy fallback: old saves that pre-date the 'export' part
         try{builderData.charId=sandboxCharId;applyCharData(builderData);}catch(e){char=null;}
       }
       if(!char&&!loadPendingImport()) loadSaved();

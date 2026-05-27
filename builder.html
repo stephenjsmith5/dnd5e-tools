@@ -1092,7 +1092,8 @@ async function signUp(email,pass){if(!_sb)return{error:{message:'Cloud sync not 
 async function signOut(){if(_sb)await _sb.auth.signOut();updateAuthBar();}
 async function pushToCloud(charId){
   if(!_sb)return;const session=await getSession();if(!session)return;
-  const meta=CharStore.index().find(c=>c.id===charId);const data=CharStore.loadPart(charId,'builder');
+  const meta=CharStore.index().find(c=>c.id===charId);
+  const data=CharStore.loadPart(charId,'export')||CharStore.loadPart(charId,'builder');
   if(!meta||!data)return;
   await _sb.from('characters').upsert({local_id:charId,user_id:session.user.id,name:meta.name,class_id:meta.classId,level:meta.level,builder_data:data,updated_at:new Date().toISOString()},{onConflict:'user_id,local_id'});
 }
@@ -1345,7 +1346,8 @@ function render(){
 function autoSaveBuilder(){
   if(!state.charId||!state.name.trim())return;
   const{charId,...rest}=state;
-  CharStore.savePart(charId,'builder',rest);
+  CharStore.savePart(charId,'builder',rest);           // raw state — builder restoration
+  CharStore.savePart(charId,'export',buildExportData()); // export format — tracker + Supabase
   CharStore.upsertMeta({id:charId,name:state.name.trim(),classId:state.class||null,level:state.level||1,updatedAt:new Date().toISOString()});
   if(_sbEnabled())pushToCloud(charId).catch(()=>{});
 }
