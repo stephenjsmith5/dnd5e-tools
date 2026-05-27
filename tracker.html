@@ -5726,15 +5726,28 @@ function loadSaved(){
 }
 
 function loadCharById(id){
-  const saved=CharStore.loadPart(id,'tracker');
-  if(!saved){showToast('Character data not found.','warning');return;}
-  try{
-    char=migrateChar(saved);char._charId=id;
-    CharStore.setActive(id);
-    syncResources(char);syncSpells(char);
-    activeTab='combat';render();
-    loadActiveCampaign();
-  }catch(e){showToast('Error loading character: '+e.message,'warning');}
+  const trackerSave=CharStore.loadPart(id,'tracker');
+  if(trackerSave){
+    try{
+      char=migrateChar(trackerSave);char._charId=id;
+      CharStore.setActive(id);
+      syncResources(char);syncSpells(char);
+      activeTab='combat';render();
+      loadActiveCampaign();
+    }catch(e){showToast('Error loading character: '+e.message,'warning');}
+    return;
+  }
+  // Fall back to builder data (character built but never opened in tracker)
+  const builderData=CharStore.loadPart(id,'builder');
+  if(builderData){
+    try{
+      builderData.charId=id;
+      applyCharData(builderData);
+      loadActiveCampaign();
+    }catch(e){showToast('Error loading character: '+e.message,'warning');}
+    return;
+  }
+  showToast('Character data not found.','warning');
 }
 
 function editInBuilder(id){
@@ -6721,7 +6734,7 @@ document.addEventListener('DOMContentLoaded', async function(){
       if(trackerData){
         try{char=migrateChar(trackerData);syncResources(char);syncSpells(char);CharStore.setActive(sandboxCharId);}catch(e){char=null;}
       } else if(builderData){
-        try{applyCharData(builderData);}catch(e){char=null;}
+        try{builderData.charId=sandboxCharId;applyCharData(builderData);}catch(e){char=null;}
       }
       if(!char&&!loadPendingImport()) loadSaved();
     } else {
