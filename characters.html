@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="parchment">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +7,23 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script>(function(){const t=localStorage.getItem('dnd5e_theme');if(t&&t!=='parchment')document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   :root{--parchment:#fdf8f0;--surface:#fff;--surface2:#fdf4e8;--border:#d4c5a0;--ink:#2c2416;--ink-light:#5a4a2a;--gold:#8b6914;--red:#8b1a1a;--muted:#9a8a6a;--nav-bg:#2c1810;--nav-text:#f5e6d0;--nav-accent:#c9a84c;--green:#2d7a2d;}
+  [data-theme="midnight"]{--parchment:#1a1a2e;--ink:#e2e4e7;--ink-light:#a0a8b2;--gold:#c9a84c;--red:#b0c4d8;--border:#3d3555;--surface:#22223a;--surface2:#2c2c4a;--muted:#8a8099;--nav-bg:#0d0d1a;--nav-text:#e2e4e7;--nav-accent:#c9a84c;--green:#4caf7d;}
+  [data-theme="arcane"]{--parchment:#12102a;--ink:#e8d5f5;--ink-light:#c4a8e0;--gold:#9b59b6;--red:#e0c055;--border:#5a3d7a;--surface:#1a1638;--surface2:#241e50;--muted:#8a7aa8;--nav-bg:#0a0818;--nav-text:#e8d5f5;--nav-accent:#e0c055;--green:#58d68d;}
+  [data-theme="forest"]{--parchment:#0f1a12;--ink:#d4e8c4;--ink-light:#9fc28f;--gold:#7daa3f;--red:#90cc58;--border:#3a6a3a;--surface:#182a1a;--surface2:#213522;--muted:#6a9060;--nav-bg:#080f08;--nav-text:#d4e8c4;--nav-accent:#90cc58;--green:#6bdb7e;}
+  [data-theme="iron"]{--parchment:#0e0e0e;--ink:#f0f0f0;--ink-light:#c8c8c8;--gold:#e8c84a;--red:#e84040;--border:#505050;--surface:#1a1a1a;--surface2:#242424;--muted:#909090;--nav-bg:#000;--nav-text:#f0f0f0;--nav-accent:#e84040;--green:#44ee88;}
+  /* Theme dots */
+  .theme-dots{display:flex;gap:5px;align-items:center;}
+  .theme-dot{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .1s;}
+  .theme-dot.active,.theme-dot:hover{border-color:#fff;transform:scale(1.15);}
+  /* Auth wall */
+  #authWall{position:fixed;inset:0;background:var(--parchment);z-index:999;display:flex;align-items:center;justify-content:center;padding:2rem;flex-direction:column;}
+  #authWall.hidden{display:none;}
+  .auth-wall-inner{display:flex;flex-direction:column;align-items:center;gap:1.25rem;width:100%;max-width:400px;}
+  .auth-wall-brand{font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700;color:var(--ink);text-align:center;}
+  .auth-wall-sub{font-size:1rem;color:var(--ink-light);font-style:italic;text-align:center;margin-top:.25rem;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Crimson Text',Georgia,serif;background:var(--parchment);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;}
   /* Nav */
@@ -99,9 +114,28 @@
       </div>
       <a class="top-nav-link" href="campaigns.html">Campaigns</a>
     </div>
-    <div class="top-nav-right"><div id="authBar"></div></div>
+    <div class="top-nav-right"><div class="theme-dots" id="themeDots"></div><div id="authBar"></div></div>
   </div>
 </nav>
+<div id="authWall">
+  <div class="auth-wall-inner">
+    <div style="text-align:center;">
+      <div style="font-size:2.5rem;margin-bottom:.5rem;">&#9876;&#65039;</div>
+      <div class="auth-wall-brand">D&amp;D 5e Tools</div>
+      <div class="auth-wall-sub">Sign in to access your characters &amp; campaigns</div>
+    </div>
+    <div class="auth-modal" style="width:100%;box-shadow:0 4px 24px rgba(0,0,0,.12);">
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-mode="signin" onclick="_wallMode='signin';_renderWall()">Sign In</button>
+        <button class="auth-tab" data-mode="signup" onclick="_wallMode='signup';_renderWall()">Create Account</button>
+      </div>
+      <div class="auth-field"><label>Email</label><input type="email" id="wall-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('wall-pass').focus()"/></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="wall-pass" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" onkeydown="if(event.key==='Enter')doWallAuth()"/></div>
+      <div id="wall-msg" style="min-height:18px;font-size:12px;color:var(--red);margin-bottom:2px;"></div>
+      <button class="btn btn-red" id="wallAuthBtn" style="width:100%;margin-top:2px;" onclick="doWallAuth()">Sign In</button>
+    </div>
+  </div>
+</div>
 <div class="page">
   <div class="page-header">
     <h1 class="page-title">My Characters</h1>
@@ -301,14 +335,67 @@ document.addEventListener('click',()=>{
   document.querySelectorAll('.nav-char-menu.open').forEach(m=>m.classList.remove('open'));
 });
 
+// ── THEME ─────────────────────────────────────────────────────────────────────
+const THEME_LIST=[
+  {id:'parchment',color:'#f0dfa0',label:'Parchment'},
+  {id:'midnight',color:'#3a3a5c',label:'Midnight'},
+  {id:'arcane',color:'#6a3d9a',label:'Arcane'},
+  {id:'forest',color:'#2e6b2e',label:'Forest'},
+  {id:'iron',color:'#555555',label:'Draconic'},
+];
+function setTheme(id){
+  document.documentElement.setAttribute('data-theme',id);
+  localStorage.setItem('dnd5e_theme',id);
+  document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active',d.dataset.theme===id));
+}
+function initTheme(){
+  const saved=localStorage.getItem('dnd5e_theme')||'parchment';
+  document.documentElement.setAttribute('data-theme',saved);
+  const el=document.getElementById('themeDots');
+  if(el)el.innerHTML=THEME_LIST.map(t=>`<div class="theme-dot${saved===t.id?' active':''}" data-theme="${t.id}" title="${t.label}" style="background:${t.color};" onclick="setTheme('${t.id}')"></div>`).join('');
+}
+
+// ── AUTH WALL ──────────────────────────────────────────────────────────────────
+let _wallMode='signin';
+function _showAuthWall(){const w=document.getElementById('authWall');if(w)w.classList.remove('hidden');}
+function _hideAuthWall(){const w=document.getElementById('authWall');if(w)w.classList.add('hidden');}
+function _renderWall(){
+  document.querySelectorAll('#authWall .auth-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===_wallMode));
+  const btn=document.getElementById('wallAuthBtn');if(btn)btn.textContent=_wallMode==='signin'?'Sign In':'Create Account';
+  const msg=document.getElementById('wall-msg');if(msg)msg.textContent='';
+}
+async function doWallAuth(){
+  if(!_sb){showToast('Auth service not available.','warning');return;}
+  const email=document.getElementById('wall-email')?.value?.trim();
+  const pass=document.getElementById('wall-pass')?.value;
+  const msg=document.getElementById('wall-msg');
+  if(!email||!pass){if(msg)msg.textContent='Enter email and password.';return;}
+  if(msg)msg.textContent='';
+  const{error}=_wallMode==='signin'
+    ?await _sb.auth.signInWithPassword({email,password:pass})
+    :await _sb.auth.signUp({email,password:pass});
+  if(error){if(msg)msg.textContent=error.message;return;}
+  if(_wallMode==='signup'){if(msg)msg.style.color='var(--green)';if(msg)msg.textContent='Account created — check your email to confirm.';return;}
+  // onAuthStateChange fires SIGNED_IN → hides wall automatically
+}
+
 const SUPABASE_URL='https://vjwefnkgclkczfwkvqis.supabase.co';
 const SUPABASE_KEY='sb_publishable_pDMmhqzBWnSYqNYC9m0KaA_2R3haySF';
 let _sb=null;
 // _sb initialized in initSupa() once the CDN script loads below
 function initSupa(){
   try{if(typeof supabase!=='undefined')_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){}
-  renderAuthBar();
-  _pullCloudChars();
+  if(!_sb)return;
+  _sb.auth.onAuthStateChange((event,session)=>{
+    if(session){
+      _hideAuthWall();
+      renderAuthBar();
+      if(event==='SIGNED_IN')_pullCloudChars();
+    } else {
+      _showAuthWall();
+      renderAuthBar();
+    }
+  });
 }
 
 // Add upsertMeta to CharStore
@@ -397,9 +484,10 @@ async function doAuth(){
 }
 async function signOut(){
   if(_sb)await _sb.auth.signOut();
-  renderAuthBar();
+  // onAuthStateChange fires SIGNED_OUT → shows wall + updates auth bar
 }
 
+initTheme();
 render();
 _populateNavCharMenu();
 renderAuthBar(); // shows Sign In button immediately; initSupa() updates it once CDN loads

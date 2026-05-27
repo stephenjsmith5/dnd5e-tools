@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="parchment">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +7,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<script>(function(){const t=localStorage.getItem('dnd5e_theme');if(t&&t!=='parchment')document.documentElement.setAttribute('data-theme',t);})();</script>
 <style>
   :root{--parchment:#fdf8f0;--surface:#fff;--surface2:#fdf4e8;--border:#d4c5a0;--ink:#2c2416;--ink-light:#5a4a2a;--gold:#8b6914;--red:#8b1a1a;--muted:#9a8a6a;--nav-bg:#2c1810;--nav-text:#f5e6d0;--nav-accent:#c9a84c;}
+  [data-theme="midnight"]{--parchment:#1a1a2e;--ink:#e2e4e7;--ink-light:#a0a8b2;--gold:#c9a84c;--red:#b0c4d8;--border:#3d3555;--surface:#22223a;--surface2:#2c2c4a;--muted:#8a8099;--nav-bg:#0d0d1a;--nav-text:#e2e4e7;--nav-accent:#c9a84c;}
+  [data-theme="arcane"]{--parchment:#12102a;--ink:#e8d5f5;--ink-light:#c4a8e0;--gold:#9b59b6;--red:#e0c055;--border:#5a3d7a;--surface:#1a1638;--surface2:#241e50;--muted:#8a7aa8;--nav-bg:#0a0818;--nav-text:#e8d5f5;--nav-accent:#e0c055;}
+  [data-theme="forest"]{--parchment:#0f1a12;--ink:#d4e8c4;--ink-light:#9fc28f;--gold:#7daa3f;--red:#90cc58;--border:#3a6a3a;--surface:#182a1a;--surface2:#213522;--muted:#6a9060;--nav-bg:#080f08;--nav-text:#d4e8c4;--nav-accent:#90cc58;}
+  [data-theme="iron"]{--parchment:#0e0e0e;--ink:#f0f0f0;--ink-light:#c8c8c8;--gold:#e8c84a;--red:#e84040;--border:#505050;--surface:#1a1a1a;--surface2:#242424;--muted:#909090;--nav-bg:#000;--nav-text:#f0f0f0;--nav-accent:#e84040;}
+  .theme-dots{display:flex;gap:5px;align-items:center;}
+  .theme-dot{width:14px;height:14px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .1s;}
+  .theme-dot.active,.theme-dot:hover{border-color:#fff;transform:scale(1.15);}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{font-family:'Crimson Text',Georgia,serif;background:var(--parchment);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;}
   /* Nav */
@@ -70,7 +78,6 @@
   footer{font-size:.8rem;color:var(--muted);text-align:center;padding:1.5rem;}
 </style>
 </head>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <body>
 <nav class="top-nav">
   <div class="top-nav-inner">
@@ -83,7 +90,7 @@
       </div>
       <a class="top-nav-link" href="campaigns.html">Campaigns</a>
     </div>
-    <div class="top-nav-right"><div id="authBar"></div></div>
+    <div class="top-nav-right"><div class="theme-dots" id="themeDots"></div><div id="authBar"></div></div>
   </div>
 </nav>
 <div class="hero">
@@ -109,16 +116,42 @@
 const SUPABASE_URL='https://vjwefnkgclkczfwkvqis.supabase.co';
 const SUPABASE_KEY='sb_publishable_pDMmhqzBWnSYqNYC9m0KaA_2R3haySF';
 let _sb=null;
-try{if(typeof supabase!=='undefined')_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){}
 
-function renderAuthBar(){
+const THEME_LIST=[
+  {id:'parchment',color:'#f0dfa0',label:'Parchment'},
+  {id:'midnight',color:'#3a3a5c',label:'Midnight'},
+  {id:'arcane',color:'#6a3d9a',label:'Arcane'},
+  {id:'forest',color:'#2e6b2e',label:'Forest'},
+  {id:'iron',color:'#555555',label:'Draconic'},
+];
+function setTheme(id){
+  document.documentElement.setAttribute('data-theme',id);
+  localStorage.setItem('dnd5e_theme',id);
+  document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active',d.dataset.theme===id));
+}
+function initTheme(){
+  const saved=localStorage.getItem('dnd5e_theme')||'parchment';
+  document.documentElement.setAttribute('data-theme',saved);
+  const el=document.getElementById('themeDots');
+  if(el)el.innerHTML=THEME_LIST.map(t=>`<div class="theme-dot${saved===t.id?' active':''}" data-theme="${t.id}" title="${t.label}" style="background:${t.color};" onclick="setTheme('${t.id}')"></div>`).join('');
+}
+
+function _initSupa(){
+  try{if(typeof supabase!=='undefined')_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){}
+  if(_sb){
+    _sb.auth.onAuthStateChange((event,session)=>{
+      renderAuthBar(session);
+    });
+  }
+}
+
+function renderAuthBar(session){
   const el=document.getElementById('authBar');if(!el)return;
-  el.innerHTML=`<div class="auth-bar"><button class="btn btn-gold btn-sm" onclick="openAuthModal()">☁ Sign In</button></div>`;
-  if(!_sb)return;
-  _sb.auth.getSession().then(({data:{session}})=>{
-    if(!session)return;
+  if(session){
     el.innerHTML=`<div class="auth-bar"><span class="auth-email">${session.user.email}</span><button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button></div>`;
-  }).catch(()=>{});
+  } else {
+    el.innerHTML=`<div class="auth-bar"><button class="btn btn-gold btn-sm" onclick="openAuthModal()">&#9729; Sign In</button></div>`;
+  }
 }
 
 let _authMode='signin';
@@ -161,7 +194,7 @@ async function doAuth(){
 }
 async function signOut(){
   if(_sb)await _sb.auth.signOut();
-  renderAuthBar();
+  // onAuthStateChange fires and calls renderAuthBar(null)
 }
 function showToast(msg,type='info'){
   let c=document.getElementById('toast-container');
@@ -209,7 +242,9 @@ function toggleNavCharMenu(e){
 document.addEventListener('click',()=>{
   document.querySelectorAll('.nav-char-menu.open').forEach(m=>m.classList.remove('open'));
 });
-renderAuthBar();
+initTheme();
+renderAuthBar(null); // show Sign In immediately; _initSupa() updates once CDN loads
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onload="_initSupa()" onerror="_initSupa()"></script>
 </body>
 </html>

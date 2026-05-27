@@ -140,6 +140,12 @@ label{font-size:12px;font-weight:600;color:var(--ink-light);display:block;margin
 .modal-field{margin-bottom:14px;}
 .modal-actions{display:flex;gap:8px;margin-top:4px;}
 
+/* ── Auth wall ── */
+#authWall{position:fixed;inset:0;background:var(--parchment);z-index:999;display:flex;align-items:center;justify-content:center;padding:2rem;flex-direction:column;}
+#authWall.hidden{display:none;}
+.auth-wall-inner{display:flex;flex-direction:column;align-items:center;gap:1.25rem;width:100%;max-width:400px;}
+.auth-wall-brand{font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700;color:var(--ink);text-align:center;}
+.auth-wall-sub{font-size:1rem;color:var(--muted);font-style:italic;text-align:center;margin-top:.25rem;}
 /* ── Auth modal ── */
 .auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:300;}
 .auth-modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.75rem;min-width:320px;max-width:420px;width:90%;}
@@ -178,6 +184,25 @@ label{font-size:12px;font-weight:600;color:var(--ink-light);display:block;margin
   </div>
 </nav>
 
+<div id="authWall">
+  <div class="auth-wall-inner">
+    <div style="text-align:center;">
+      <div style="font-size:2.5rem;margin-bottom:.5rem;">&#9876;&#65039;</div>
+      <div class="auth-wall-brand">D&amp;D 5e Tools</div>
+      <div class="auth-wall-sub">Sign in to access your characters &amp; campaigns</div>
+    </div>
+    <div class="auth-modal" style="width:100%;box-shadow:0 4px 24px rgba(0,0,0,.12);">
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-mode="signin" onclick="_wallMode='signin';_renderWall()">Sign In</button>
+        <button class="auth-tab" data-mode="signup" onclick="_wallMode='signup';_renderWall()">Create Account</button>
+      </div>
+      <div class="auth-field"><label>Email</label><input type="email" id="wall-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('wall-pass').focus()"/></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="wall-pass" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" onkeydown="if(event.key==='Enter')doWallAuth()"/></div>
+      <div id="wall-msg" style="min-height:18px;font-size:12px;color:var(--red);margin-bottom:2px;"></div>
+      <button class="btn btn-red" id="wallAuthBtn" style="width:100%;margin-top:2px;" onclick="doWallAuth()">Sign In</button>
+    </div>
+  </div>
+</div>
 <div class="page-wrap">
   <div class="page-heading">Campaigns</div>
   <div class="page-sub">Create or join a campaign to play with your group.</div>
@@ -216,7 +241,30 @@ function initTheme(){
 // ── SUPABASE ───────────────────────────────────────────────────────────────────
 function _sbEnabled(){return SUPABASE_URL!=='YOUR_SUPABASE_URL';}
 async function getSession(){if(!_sb)return null;try{const{data:{session}}=await _sb.auth.getSession();return session;}catch(e){return null;}}
-async function signOut(){if(_sb)await _sb.auth.signOut();renderAuthBar();render();}
+async function signOut(){if(_sb)await _sb.auth.signOut();}
+
+// ── AUTH WALL ──────────────────────────────────────────────────────────────────
+let _wallMode='signin';
+function _showAuthWall(){const w=document.getElementById('authWall');if(w)w.classList.remove('hidden');}
+function _hideAuthWall(){const w=document.getElementById('authWall');if(w)w.classList.add('hidden');}
+function _renderWall(){
+  document.querySelectorAll('#authWall .auth-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===_wallMode));
+  const btn=document.getElementById('wallAuthBtn');if(btn)btn.textContent=_wallMode==='signin'?'Sign In':'Create Account';
+  const msg=document.getElementById('wall-msg');if(msg)msg.textContent='';
+}
+async function doWallAuth(){
+  if(!_sb){showToast('Auth service not available.','warning');return;}
+  const email=document.getElementById('wall-email')?.value?.trim();
+  const pass=document.getElementById('wall-pass')?.value;
+  const msg=document.getElementById('wall-msg');
+  if(!email||!pass){if(msg)msg.textContent='Enter email and password.';return;}
+  if(msg)msg.textContent='';
+  const{error}=_wallMode==='signin'
+    ?await _sb.auth.signInWithPassword({email,password:pass})
+    :await _sb.auth.signUp({email,password:pass});
+  if(error){if(msg)msg.textContent=error.message;return;}
+  if(_wallMode==='signup'){if(msg){msg.style.color='var(--green)';msg.textContent='Account created — check your email to confirm.';}return;}
+}
 
 // ── LOCAL STORES (read-only mirrors of tracker localStorage) ──────────────────
 function getLocalChars(){try{return JSON.parse(localStorage.getItem('dnd5e_chars')||'[]');}catch(e){return[];}}
@@ -594,13 +642,19 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(_sbEnabled()){
     try{
       _sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-      _sb.auth.onAuthStateChange((event)=>{
-        if(event==='SIGNED_OUT'){renderAuthBar();render();}
+      _sb.auth.onAuthStateChange((event,session)=>{
+        if(session){
+          _hideAuthWall();
+          renderAuthBar();
+          render();
+        } else {
+          _showAuthWall();
+          renderAuthBar();
+        }
       });
     }catch(e){console.warn('Supabase init failed:',e);}
   }
   renderAuthBar();
-  render();
 });
 </script>
 </body>
