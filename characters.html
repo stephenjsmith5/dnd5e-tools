@@ -254,11 +254,21 @@ function render(){
   }
 }
 
+async function _deleteCloudChar(id){
+  if(!_sb)return;
+  try{
+    const{data:{session}}=await _sb.auth.getSession();
+    if(!session)return;
+    await _sb.from('characters').delete().eq('local_id',id).eq('user_id',session.user.id);
+  }catch(e){}
+}
+
 function deleteChar(id,name){
   if(!confirm('Delete "'+name+'" permanently? This cannot be undone.'))return;
   CharStore.delete(id);
   render();
   _populateNavCharMenu();
+  _deleteCloudChar(id);
 }
 
 function duplicateChar(id){
