@@ -90,8 +90,8 @@ input,select,textarea{color:var(--ink);background:var(--surface);border-color:va
 .btn-red:hover{filter:brightness(.88);}
 .btn-gold{background:var(--gold);color:var(--on-accent,#fff);border-color:var(--gold);}
 .btn-gold:hover{filter:brightness(.88);}
-.btn-ghost{background:transparent;color:var(--ink);border-color:var(--border);}
-.btn-ghost:hover{background:var(--surface2);}
+.btn-ghost{background:transparent;color:var(--nav-text);border-color:rgba(255,255,255,.3);}
+.btn-ghost:hover{background:rgba(255,255,255,.08);}
 .btn-danger{background:transparent;color:#c0392b;border-color:#c0392b;}
 .btn-danger:hover{background:rgba(192,57,43,.08);}
 .btn-sm{font-size:11px;padding:4px 10px;}
@@ -605,10 +605,11 @@ function _populateNavCharMenu(){
   const menu=document.getElementById('navCharMenu');
   if(!menu)return;
   const chars=(()=>{try{return JSON.parse(localStorage.getItem('dnd5e_chars')||'[]');}catch(e){return[];}})()
+    .filter(c=>c.status!=='draft')
     .sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
   const _footer=`<a href="builder.html?new=1" class="nav-char-footer">+ Create Character</a><a href="characters.html" class="nav-char-footer">View All →</a>`;
   if(!chars.length){
-    menu.innerHTML=`<div class="nav-char-empty">No characters yet</div>${_footer}`;
+    menu.innerHTML=`<div class="nav-char-empty">No saved characters yet</div>${_footer}`;
     return;
   }
   menu.innerHTML=chars.slice(0,8).map(c=>{
