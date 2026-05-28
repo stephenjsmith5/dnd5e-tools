@@ -570,7 +570,9 @@ let _currentUserId=null;  // cached session user ID for broadcast comparisons
 let _dmViewedPlayer=null; // {userId, charName, charData} — Phase 3 DM player sheet view
 let _dmExpandedPlayers=new Set(); // userIds of expanded player tiles in DM view
 let _dmNickname=''; // DM's display name override (persisted in campaign + broadcast)
-let _dmPendingSaves={}; // userId → {timer,desc} for debounced DM Supabase writes
+let _dmPendingSaves={}; // userId → {timer} for debounced DM Supabase writes
+let _dmBroadcastTimers={}; // userId → timer for debounced dm_edit broadcasts
+let _presenceTimer=null; // debounce handle for trackPresence() in saveAndRender
 let encounterCondExpanded=new Set(); // combatant IDs with condition panel open
 let _campaignEncounter=null; // DM-broadcast encounter state (read-only for players)
 
@@ -4816,7 +4818,10 @@ function computeMaxHP(){
   // subsequent levels use stored HP gains
   const gains=char.tracker.hpGains||[];
   gains.forEach(g=>hp+=g);
-  return hp+toughBonus+hillDwarfBonus;
+  const computed=hp+toughBonus+hillDwarfBonus;
+  // Never go below the builder's exported hp.max — hpGains is empty on fresh imports
+  // so the formula would undercount HP for higher-level or overridden characters
+  return Math.max(computed,char.hp?.max||0);
 }
 
 // Works on any char object — used by DM party view and pre-save normalization
@@ -5523,7 +5528,13 @@ function save(){
   store.set('dnd5e_tracker_char',JSON.stringify(char));
 }
 
-function saveAndRender(){save();render();if(_sessionCode)trackPresence();}
+function saveAndRender(){
+  save();render();
+  if(_sessionCode){
+    clearTimeout(_presenceTimer);
+    _presenceTimer=setTimeout(trackPresence,250);
+  }
+}
 
 function exportJSON(){
   if(!char)return;
@@ -6481,10 +6492,15 @@ function _applyDMEditToPlayer(userId,editFn,fieldName,_unused,desc){
   // Sync DM sheet overlay if open
   if(_dmViewedPlayer&&_dmViewedPlayer.userId===userId) _dmViewedPlayer.charData=updatedChar;
 
-  // Broadcast to player immediately (no waiting for DB write)
-  if(_sessionChannel){
-    _sessionChannel.send({type:'broadcast',event:'dm_edit',payload:{userId,trackerSnapshot:updatedChar.tracker}});
-  }
+  // Debounce broadcast so rapid clicks send one message, not N
+  clearTimeout(_dmBroadcastTimers[userId]);
+  _dmBroadcastTimers[userId]=setTimeout(()=>{
+    delete _dmBroadcastTimers[userId];
+    if(_sessionChannel){
+      const latest=_dmPlayerStates.find(s=>s.user_id===userId);
+      if(latest) _sessionChannel.send({type:'broadcast',event:'dm_edit',payload:{userId,trackerSnapshot:latest.char_data.tracker}});
+    }
+  },100);
 
   // Re-render DM UI immediately
   render();
