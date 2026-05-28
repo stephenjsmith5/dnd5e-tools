@@ -570,6 +570,7 @@ let _currentUserId=null;  // cached session user ID for broadcast comparisons
 let _dmViewedPlayer=null; // {userId, charName, charData} — Phase 3 DM player sheet view
 let _dmExpandedPlayers=new Set(); // userIds of expanded player tiles in DM view
 let _dmNickname=''; // DM's display name override (persisted in campaign + broadcast)
+let _dmPendingSaves={}; // userId → {timer,desc} for debounced DM Supabase writes
 let encounterCondExpanded=new Set(); // combatant IDs with condition panel open
 let _campaignEncounter=null; // DM-broadcast encounter state (read-only for players)
 
@@ -925,7 +926,7 @@ async function _joinChannel(code){
           else if(payload.field==='currency'&&payload.value) char.tracker.currency=payload.value;
           else if(payload.field==='inventory'&&Array.isArray(payload.value)) char.tracker.inventory=payload.value;
         }
-        save();render();
+        saveAndRender();
         showToast('DM updated your character','info');
       }
     })
@@ -4820,6 +4821,8 @@ function computeMaxHP(){
 
 // Works on any char object — used by DM party view and pre-save normalization
 function _computeMaxHPForChar(c){
+  // Prefer the authoritative value stamped by _saveCampaignChar on every player save
+  if(c?.tracker?.maxHPComputed) return c.tracker.maxHPComputed;
   if(!c||!c.effectiveAbilities||!c.class) return 0;
   const eff=c.effectiveAbilities;
   const conMod=getModNum(eff.con||10);
@@ -6053,7 +6056,7 @@ function renderDMTab(){
     const live=presenceByName[s.char_name];
     const cd=s.char_data||{};
     const tracker=cd.tracker||{};
-    const maxHP=_computeMaxHPForChar(cd)||cd.hp?.max||0;
+    const maxHP=(live?.maxHP)||_computeMaxHPForChar(cd)||cd.hp?.max||0;
     const currentHP=live?live.currentHP:(typeof tracker.currentHP==='number'?tracker.currentHP:maxHP);
     const tempHP=live?live.tempHP:(tracker.tempHP||0);
     const conditions=live?live.conditions:(tracker.conditions||[]);
@@ -6446,36 +6449,63 @@ function dmToggleExpandPlayer(userId){
 }
 
 async function dmAdjustPlayerHP(userId,delta){
-  const state=_dmPlayerStates.find(s=>s.user_id===userId);
-  const max=(_computeMaxHPForChar(state?.char_data)||state?.char_data?.hp?.max)||50;
-  const cur=state?.char_data?.tracker?.currentHP??max;
-  const newHP=Math.max(0,Math.min(max,cur+delta));
-  await _applyDMEditToPlayer(userId,c=>{c.tracker.currentHP=newHP;},'currentHP',newHP,delta<0?'DM dealt '+Math.abs(delta)+' damage':'DM healed '+delta+' HP');
+  // Delta is applied inside editFn against the live in-memory state — no pre-computation
+  await _applyDMEditToPlayer(userId,c=>{
+    const max=_computeMaxHPForChar(c)||c.hp?.max||50;
+    const cur=typeof c.tracker.currentHP==='number'?c.tracker.currentHP:max;
+    c.tracker.currentHP=Math.max(0,Math.min(max,cur+delta));
+  },'currentHP',null,delta<0?'DM dealt '+Math.abs(delta)+' damage':'DM healed '+delta+' HP');
 }
 
 function closeDMPlayerSheet(){_dmViewedPlayer=null;render();}
 
-async function _applyDMEditToPlayer(userId,editFn,fieldName,_unused,desc){
-  // Load current player state
-  const{data,error}=await _sb.from('campaign_character_state')
-    .select('char_data,char_name')
-    .eq('campaign_id',_campaign.id)
-    .eq('user_id',userId)
-    .single();
-  if(error||!data){showToast('Could not load player state.','warning');return;}
-  const updatedChar=JSON.parse(JSON.stringify(data.char_data));
-  editFn(updatedChar);
-  await _sb.from('campaign_character_state').update({char_data:updatedChar,char_name:data.char_name}).eq('campaign_id',_campaign.id).eq('user_id',userId);
-  // Update DM caches
+// In-memory apply: no Supabase read, immediate UI update, debounced persist.
+// This eliminates the race condition where rapid clicks both read stale DB state.
+function _applyDMEditToPlayer(userId,editFn,fieldName,_unused,desc){
   const idx=_dmPlayerStates.findIndex(s=>s.user_id===userId);
-  if(idx>=0) _dmPlayerStates[idx].char_data=updatedChar;
+  if(idx<0){showToast('Player not found in session.','warning');return Promise.resolve();}
+
+  // Apply edit to in-memory state immediately
+  const updatedChar=JSON.parse(JSON.stringify(_dmPlayerStates[idx].char_data));
+  editFn(updatedChar);
+  _dmPlayerStates[idx].char_data=updatedChar;
+  _dmPlayerStates[idx].updated_at=new Date().toISOString();
+
+  // Optimistically update presence cache so DM panel shows correct HP without waiting for player round-trip
+  const presKey=Object.keys(_sessionPresence).find(k=>_sessionPresence[k].charName===_dmPlayerStates[idx].char_name);
+  if(presKey){
+    const t=updatedChar.tracker;
+    _sessionPresence[presKey]={..._sessionPresence[presKey],currentHP:t.currentHP,tempHP:t.tempHP,conditions:t.conditions||[]};
+  }
+
+  // Sync DM sheet overlay if open
   if(_dmViewedPlayer&&_dmViewedPlayer.userId===userId) _dmViewedPlayer.charData=updatedChar;
-  // Broadcast full tracker snapshot so player applies the exact updated state
+
+  // Broadcast to player immediately (no waiting for DB write)
   if(_sessionChannel){
     _sessionChannel.send({type:'broadcast',event:'dm_edit',payload:{userId,trackerSnapshot:updatedChar.tracker}});
   }
-  await logActivity('dm_action',desc||'DM updated '+fieldName);
+
+  // Re-render DM UI immediately
   render();
+  logActivity('dm_action',desc||'DM updated '+fieldName);
+
+  // Debounced Supabase persist — clears any pending write for this user
+  if(_dmPendingSaves[userId]?.timer) clearTimeout(_dmPendingSaves[userId].timer);
+  _dmPendingSaves[userId]={
+    timer:setTimeout(async()=>{
+      delete _dmPendingSaves[userId];
+      // Read the latest in-memory state at flush time (not at schedule time)
+      const latest=_dmPlayerStates.find(s=>s.user_id===userId);
+      if(!latest) return;
+      await _sb.from('campaign_character_state')
+        .update({char_data:latest.char_data,char_name:latest.char_name})
+        .eq('campaign_id',_campaign.id)
+        .eq('user_id',userId);
+    },800)
+  };
+
+  return Promise.resolve();
 }
 
 async function dmSetPlayerHP(userId){
@@ -6537,7 +6567,7 @@ function renderDMPlayerSheet(){
   const cd=p.charData||{};
   const t=cd.tracker||{};
   const eff=cd.effectiveAbilities||{str:10,dex:10,con:10,int:10,wis:10,cha:10};
-  const maxHP=cd.hp?.max||0;
+  const maxHP=_computeMaxHPForChar(cd)||cd.hp?.max||0;
   const conditions=['Blinded','Charmed','Deafened','Frightened','Grappled','Incapacitated','Invisible','Paralyzed','Petrified','Poisoned','Prone','Restrained','Stunned','Unconscious'];
   const pct=maxHP?Math.max(0,Math.min(100,((t.currentHP??maxHP)/maxHP)*100)):100;
   const hpColor=pct>50?'var(--green)':pct>25?'var(--gold)':'var(--hp-red)';
@@ -6638,8 +6668,12 @@ async function _saveCampaignChar(){
   if(!char||!_campaign||_sandboxMode) return;
   const session=await getSession();
   if(!session) return;
-  // Keep stored hp.max in sync so DM party view always shows the correct number
-  if(char.hp&&char.effectiveAbilities&&char.class){char.hp.max=computeMaxHP();}
+  // Keep hp.max and tracker.maxHPComputed in sync — DM reads these authoritatively
+  if(char.hp&&char.effectiveAbilities&&char.class){
+    const computed=computeMaxHP();
+    char.hp.max=computed;
+    char.tracker.maxHPComputed=computed;
+  }
   const{error}=await _sb.from('campaign_character_state').upsert({
     campaign_id:_campaign.id,
     user_id:session.user.id,
