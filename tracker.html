@@ -817,7 +817,8 @@ async function _joinChannel(code){
     .on('broadcast',{event:'roll'},({payload})=>{
       _sessionFeed.unshift(payload);
       if(_sessionFeed.length>60)_sessionFeed.pop();
-      if(activeTab==='party') render();
+      if(_isDM) render();
+      else if(activeTab==='party') render();
       else{
         const dmg=payload.dmgTotal!=null?' · '+payload.dmgTotal+' dmg':'';
         showToast(payload.charName+': '+payload.label+' → '+(payload.isMiss?'Miss':payload.total)+dmg,payload.isCrit?'success':'info');
@@ -830,7 +831,7 @@ async function _joinChannel(code){
     .on('broadcast',{event:'activity'},({payload})=>{
       _activityFeed.unshift({char_name:payload.charName,action_type:payload.type,description:payload.desc,created_at:payload.ts});
       if(_activityFeed.length>60) _activityFeed.pop();
-      if(_isDM&&activeTab==='dm') render();
+      if(_isDM) render();
     })
     .on('broadcast',{event:'player_state_update'},({payload})=>{
       if(_isDM){
@@ -838,7 +839,7 @@ async function _joinChannel(code){
         if(idx>=0) _dmPlayerStates[idx]={..._dmPlayerStates[idx],char_data:payload.charData,char_name:payload.charName,updated_at:payload.ts};
         else _dmPlayerStates.push({user_id:payload.userId,char_name:payload.charName,char_data:payload.charData,updated_at:payload.ts});
         if(_dmViewedPlayer&&_dmViewedPlayer.userId===payload.userId) _dmViewedPlayer.charData=payload.charData;
-        if(activeTab==='dm') render();
+        if(_isDM) render();
       }
     })
     .on('broadcast',{event:'change_request'},({payload})=>{
@@ -846,8 +847,8 @@ async function _joinChannel(code){
       if(_isDM){
         _dmPendingRequests.unshift({id:payload.id,user_id:payload.userId,char_name:payload.charName,change_type:payload.type,description:payload.desc,change_data:null,created_at:payload.ts});
         // Full data will be fetched from Supabase on DM panel render; this just pings for immediate UI update
-        if(activeTab==='dm') render();
-        else showToast(payload.charName+' requests: '+payload.desc,'info');
+        render();
+        showToast(payload.charName+' requests: '+payload.desc,'info');
       }
     })
     .on('broadcast',{event:'change_resolved'},async({payload})=>{
@@ -6062,16 +6063,6 @@ function renderDMTab(){
 
   return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;">
     <div>
-      <div class="card" style="margin-bottom:1rem;">
-        <div class="card-title">Campaign</div>
-        <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px;">${camp?.name||'Unknown'}</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Invite code for players:</div>
-        <div style="font-family:'Cinzel',serif;font-size:26px;letter-spacing:6px;color:var(--gold);font-weight:700;background:var(--chip-bg);border:1px solid var(--gold);border-radius:6px;padding:10px 16px;text-align:center;margin-bottom:16px;">${camp?.invite_code||'------'}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText('${camp?.invite_code||''}').then(()=>showToast('Copied!','success'))">Copy Code</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteCampaign()">Delete Campaign</button>
-        </div>
-      </div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
           <div class="card-title" style="margin:0;">Party</div>
@@ -6107,6 +6098,7 @@ function renderDMTab(){
           <button class="btn btn-red" onclick="dmAnnounce('short_rest')">📯 Short Rest</button>
           <button class="btn btn-gold" onclick="dmAnnounce('long_rest')">🌙 Long Rest</button>
           <button class="btn btn-ghost btn-sm" onclick="loadDMPlayerStates();_loadDMPendingRequests();" title="Refresh">↻ Refresh</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCampaign()">Delete Campaign</button>
         </div>
       </div>
       <div class="card" style="margin-bottom:1rem;">

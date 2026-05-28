@@ -90,8 +90,8 @@ input,select,textarea{color:var(--ink);background:var(--surface);border-color:va
 .btn-red:hover{filter:brightness(.88);}
 .btn-gold{background:var(--gold);color:var(--on-accent,#fff);border-color:var(--gold);}
 .btn-gold:hover{filter:brightness(.88);}
-.btn-ghost{background:transparent;color:var(--nav-text);border-color:rgba(255,255,255,.3);}
-.btn-ghost:hover{background:rgba(255,255,255,.08);}
+.btn-ghost{background:transparent;color:var(--ink);border-color:var(--border);}
+.btn-ghost:hover{background:var(--surface2);}
 .btn-danger{background:transparent;color:#c0392b;border-color:#c0392b;}
 .btn-danger:hover{background:rgba(192,57,43,.08);}
 .btn-sm{font-size:11px;padding:4px 10px;}
@@ -293,7 +293,7 @@ function renderAuthBar(){
   const el=document.getElementById('authBar');if(!el||!_sbEnabled())return;
   getSession().then(s=>{
     el.innerHTML=s
-      ?`<div class="auth-bar"><span class="auth-email">${s.user.email}</span><button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button></div>`
+      ?`<div class="auth-bar"><span class="auth-email">${s.user.email}</span><button class="btn btn-ghost btn-sm" style="color:var(--nav-text);border-color:rgba(255,255,255,.3);" onclick="signOut()">Sign Out</button></div>`
       :`<div class="auth-bar"><button class="btn btn-gold btn-sm" onclick="openAuthModal()">☁ Sign In</button></div>`;
   });
 }
@@ -588,7 +588,7 @@ async function render(){
       :`<div class="empty-state"><p>You haven't joined any campaigns yet. Create one as DM or join an existing one below.</p></div>`}
     <div class="action-row" style="margin-bottom:1rem;">
       <button class="btn btn-red" onclick="openCreateModal()">⚔ Create Campaign</button>
-      <button class="btn btn-ghost" onclick="openJoinModal()">Join Campaign</button>
+      <button class="btn btn-gold" onclick="openJoinModal()">⚔ Join Campaign</button>
     </div>
     <div class="divider"></div>
     <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
