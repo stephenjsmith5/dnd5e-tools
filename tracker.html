@@ -1076,7 +1076,7 @@ function renderCampaignHeader(){
   const dmBtn=(_isDM&&_sessionCode)?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('dm')">⚔ DM Panel</button>`:'';
   const nicknameInput=_isDM
     ?`<input type="text" value="${(_dmNickname||'').replace(/"/g,'&quot;')}" placeholder="DM Nickname" maxlength="40"
-        style="font-size:11px;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:2px 7px;background:transparent;color:inherit;width:130px;flex-shrink:0;"
+        style="font-size:11px;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:2px 7px;background:rgba(0,0,0,.25);color:var(--nav-text);width:130px;flex-shrink:0;"
         onchange="updateDMNickname(this.value)" onblur="updateDMNickname(this.value)" />`
     :'';
   const hasPendingLeave=_pendingRequests.some(r=>r.change_type==='leave');
