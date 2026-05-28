@@ -1395,7 +1395,7 @@ function renderCharBar(){
   </div>`;
 }
 
-function initBuilder(){
+async function initBuilder(){
   initTheme();
   initSupabase();
   const params=new URLSearchParams(location.search);
@@ -1406,7 +1406,32 @@ function initBuilder(){
     state.status='draft';
     CharStore.setActive(state.charId);
   } else if(paramCharId){
-    const saved=CharStore.loadPart(paramCharId,'builder');
+    let saved=CharStore.loadPart(paramCharId,'builder');
+    if(!saved&&_sbEnabled()){
+      // Local builder data missing — try Supabase before giving up
+      try{
+        const session=await getSession();
+        if(session){
+          const{data}=await _sb.from('characters').select('builder_data,tracker_data,name,class_id,level,updated_at').eq('local_id',paramCharId).eq('user_id',session.user.id).single();
+          if(data?.builder_data&&!data.builder_data.identity){
+            // Raw builder state — restore directly
+            saved=data.builder_data;
+            CharStore.savePart(paramCharId,'builder',saved);
+            const status=saved.status||'saved';
+            CharStore.upsertMeta({id:paramCharId,name:data.name,classId:data.class_id,level:data.level,status,updatedAt:data.updated_at});
+          } else if(data?.tracker_data||data?.builder_data?.identity){
+            // Export format only — can't restore builder state; open in tracker instead
+            const exp=data.tracker_data||data.builder_data;
+            CharStore.savePart(paramCharId,'export',exp);
+            const status=exp?.status||'saved';
+            CharStore.upsertMeta({id:paramCharId,name:data.name,classId:data.class_id,level:data.level,status,updatedAt:data.updated_at});
+            showToast('This character was saved from the tracker — open it in the tracker to continue.','info');
+            setTimeout(()=>location.href='characters.html',2000);
+            updateAuthBar();render();return;
+          }
+        }
+      }catch(e){}
+    }
     if(saved){
       CharStore.setActive(paramCharId);
       Object.assign(state,saved);
@@ -1414,7 +1439,8 @@ function initBuilder(){
       const m=CharStore._idx().find(c=>c.id===paramCharId);
       state.status=m?.status??'saved';
     } else {
-      showToast('Character not found — starting fresh.','warning');
+      showToast('Character not found locally or in cloud.','warning');
+      // Don't create a new draft — just start the builder for a genuinely new char
       state.charId=CharStore.genId();
       state.status='draft';
       CharStore.setActive(state.charId);

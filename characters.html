@@ -461,9 +461,19 @@ async function _pullCloudChars(){
     data.forEach(row=>{
       if(!row.local_id)return;
       const existingMeta=CharStore._idx().find(c=>c.id===row.local_id);
-      // Prefer local status; fall back to what's embedded in cloud data
+      const rowUpdated=new Date(row.updated_at||0);
+      const localUpdated=existingMeta?new Date(existingMeta.updatedAt||0):new Date(0);
       const status=existingMeta?.status||row.builder_data?.status||row.tracker_data?.status||'saved';
       CharStore.upsertMeta({id:row.local_id,name:row.name||'Unnamed',classId:row.class_id||null,level:row.level||1,status:status,updatedAt:row.updated_at||null});
+      // Always restore actual data parts so Edit/Sandbox/Bring-In work without visiting builder first
+      if(!existingMeta||rowUpdated>localUpdated){
+        if(row.builder_data?.identity){
+          CharStore.savePart(row.local_id,'export',row.builder_data);
+        } else if(row.builder_data){
+          CharStore.savePart(row.local_id,'builder',row.builder_data);
+        }
+        if(row.tracker_data) CharStore.savePart(row.local_id,'export',row.tracker_data);
+      }
     });
     render();
     _populateNavCharMenu();

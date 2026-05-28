@@ -670,12 +670,23 @@ async function pullFromCloud(){
   const{data,error}=await _sb.from('characters').select('*').eq('user_id',session.user.id);
   if(error||!data)return;
   data.forEach(row=>{
-    const existing=CharStore.loadPart(row.local_id,'tracker');
+    if(!row.local_id)return;
+    const existingMeta=CharStore._idx().find(c=>c.id===row.local_id);
     const rowUpdated=new Date(row.updated_at||0);
-    const localUpdated=existing?new Date(CharStore._idx().find(c=>c.id===row.local_id)?.updatedAt||0):new Date(0);
-    if(!existing||rowUpdated>localUpdated){
-      CharStore.savePart(row.local_id,'tracker',row.tracker_data);
-      CharStore.upsertMeta({id:row.local_id,name:row.name,classId:row.class_id,level:row.level,updatedAt:row.updated_at});
+    const localUpdated=existingMeta?new Date(existingMeta?.updatedAt||0):new Date(0);
+    if(!existingMeta||rowUpdated>localUpdated){
+      // Restore all parts so the builder and campaign-init can find the character
+      if(row.builder_data?.identity){
+        CharStore.savePart(row.local_id,'export',row.builder_data);
+      } else if(row.builder_data){
+        CharStore.savePart(row.local_id,'builder',row.builder_data);
+      }
+      if(row.tracker_data){
+        CharStore.savePart(row.local_id,'tracker',row.tracker_data);
+        CharStore.savePart(row.local_id,'export',row.tracker_data);
+      }
+      const status=existingMeta?.status||row.builder_data?.status||row.tracker_data?.status||'saved';
+      CharStore.upsertMeta({id:row.local_id,name:row.name,classId:row.class_id,level:row.level,status:status,updatedAt:row.updated_at});
     }
   });
   render();
@@ -6810,13 +6821,27 @@ async function initCampaignCharacter(charId){
   if(_initCampaignCharBusy) return; // prevent double-click duplicates
   _initCampaignCharBusy=true;
   // Try tracker part first (character has been played before), then export format, then raw builder
-  const trackerData=CharStore.loadPart(charId,'tracker');
-  const exportData=CharStore.loadPart(charId,'export');
-  const builderData=CharStore.loadPart(charId,'builder');
+  let trackerData=CharStore.loadPart(charId,'tracker');
+  let exportData=CharStore.loadPart(charId,'export');
+  let builderData=CharStore.loadPart(charId,'builder');
+  // If nothing is local, try to fetch from Supabase before giving up
+  if(!trackerData&&!exportData&&!builderData&&_sb){
+    try{
+      const session=await getSession();
+      if(session){
+        const{data}=await _sb.from('characters').select('builder_data,tracker_data').eq('local_id',charId).eq('user_id',session.user.id).single();
+        if(data){
+          if(data.builder_data?.identity){exportData=data.builder_data;CharStore.savePart(charId,'export',exportData);}
+          else if(data.builder_data){builderData=data.builder_data;CharStore.savePart(charId,'builder',builderData);}
+          if(data.tracker_data){exportData=data.tracker_data;CharStore.savePart(charId,'export',exportData);}
+        }
+      }
+    }catch(e){}
+  }
   const rawData=trackerData||exportData||builderData;
   if(!rawData){
     _initCampaignCharBusy=false;
-    showToast('Character data not found — try rebuilding in the Character Builder.','warning');
+    showToast('Character data not found — try opening the Character Builder to re-save it.','warning');
     return;
   }
   try{
