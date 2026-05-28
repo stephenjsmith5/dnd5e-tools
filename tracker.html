@@ -251,7 +251,6 @@ button[data-tip],label[data-tip]{cursor:pointer;}
 .comb-hp-bar-wrap{flex:1;min-width:70px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;height:7px;overflow:hidden;}
 .comb-hp-bar{height:100%;border-radius:10px;transition:width 0.3s,background 0.3s;}
 .comb-hp-txt{font-family:'Cinzel',serif;font-size:11px;color:var(--muted);white-space:nowrap;}
-.enc-delta{width:50px;text-align:center;font-size:13px;padding:3px 5px;}
 .comb-conds{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
 .cond-pill{font-size:10px;padding:2px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all 0.1s;display:inline-flex;align-items:center;gap:3px;white-space:nowrap;}
 .cond-pill.active{background:var(--chip-bg,#f9e8e8);border-color:var(--red);color:var(--red);}
@@ -569,6 +568,7 @@ let _pendingRequests=[];  // player's own pending change requests [{id,change_ty
 let _dmPendingRequests=[]; // DM view: all pending requests in campaign
 let _currentUserId=null;  // cached session user ID for broadcast comparisons
 let _dmViewedPlayer=null; // {userId, charName, charData} — Phase 3 DM player sheet view
+let _dmExpandedPlayers=new Set(); // userIds of expanded player tiles in DM view
 let encounterCondExpanded=new Set(); // combatant IDs with condition panel open
 let _campaignEncounter=null; // DM-broadcast encounter state (read-only for players)
 
@@ -825,8 +825,24 @@ async function _joinChannel(code){
       }
     })
     .on('broadcast',{event:'dm_announce'},({payload})=>{
-      if(payload.type==='long_rest'){showToast('📯 DM called a Long Rest — resources restored!','info');}
-      else if(payload.type==='short_rest'){showToast('📯 DM called a Short Rest.','info');}
+      if(payload.type==='long_rest'){
+        if(char){
+          _applyLongRestLogic(char);
+          char.tracker.currentHP=computeMaxHP();
+          char.tracker.tempHP=0;
+          char.tracker.deathSaves={successes:0,failures:0};
+          saveAndRender();
+          logActivity('long_rest','DM called a Long Rest — HP and resources restored');
+        }
+        showToast('📯 DM called a Long Rest — HP and all resources restored!','success');
+      } else if(payload.type==='short_rest'){
+        if(char){
+          _applyShortRestLogic(char);
+          saveAndRender();
+          logActivity('short_rest','DM called a Short Rest — some resources restored');
+        }
+        showToast('📯 DM called a Short Rest — some resources restored.','info');
+      }
     })
     .on('broadcast',{event:'activity'},({payload})=>{
       _activityFeed.unshift({char_name:payload.charName,action_type:payload.type,description:payload.desc,created_at:payload.ts});
@@ -2313,7 +2329,14 @@ function render(){
   const root=document.getElementById('root');
   if(!char){
     _updateNavSessionMarker();
-    if(_isDM&&_campaign){root.innerHTML=renderDMOnlyView();return;}
+    if(_isDM&&_campaign){
+      root.innerHTML=renderDMOnlyView();
+      _updateNavSessionMarker();
+      const existingOverlay=document.getElementById('dm-player-sheet-overlay');
+      if(existingOverlay) existingOverlay.remove();
+      if(_dmViewedPlayer){const ol=document.createElement('div');ol.id='dm-player-sheet-overlay';ol.innerHTML=renderDMPlayerSheet();document.body.appendChild(ol);}
+      return;
+    }
     if(_campaign&&!_sandboxMode){root.innerHTML=renderCharacterInit();return;}
     root.innerHTML=renderUpload();return;
   }
@@ -4598,11 +4621,9 @@ function encounterSetInit(id,val){
 }
 
 function encounterDamage(id){
-  const amt=parseInt((document.getElementById('enc-delta-'+id)||{}).value)||0;
-  if(!amt) return;
   const c=encounter.combatants.find(c=>c.id===id);
   if(!c) return;
-  c.hp=Math.max(0,c.hp-amt);
+  c.hp=Math.max(0,c.hp-1);
   if(c.hp===0&&!c.conditions.includes('Unconscious')) c.conditions.push('Unconscious');
   broadcastEncounterUpdate();
   if(c.isPlayer){char.tracker.currentHP=c.hp;saveAndRender();}
@@ -4610,11 +4631,9 @@ function encounterDamage(id){
 }
 
 function encounterHeal(id){
-  const amt=parseInt((document.getElementById('enc-delta-'+id)||{}).value)||0;
-  if(!amt) return;
   const c=encounter.combatants.find(c=>c.id===id);
   if(!c) return;
-  c.hp=Math.min(c.maxHP,c.hp+amt);
+  c.hp=Math.min(c.maxHP,c.hp+1);
   c.conditions=c.conditions.filter(cd=>cd!=='Unconscious');
   c.defeated=false;
   broadcastEncounterUpdate();
@@ -4707,7 +4726,6 @@ function renderEncounter(){
       <div class="comb-hp-row">
         <div class="comb-hp-bar-wrap"><div class="comb-hp-bar" style="width:${hpPct.toFixed(1)}%;background:${hpColor};"></div></div>
         <span class="comb-hp-txt">${c.hp} / ${c.maxHP}</span>
-        <input type="number" id="enc-delta-${c.id}" class="enc-delta" placeholder="Amt" min="0"/>
         <button class="btn btn-danger btn-sm" onclick="encounterDamage('${c.id}')">− Dmg</button>
         <button class="btn btn-green btn-sm" onclick="encounterHeal('${c.id}')">+ Heal</button>
         <button class="btn btn-ghost btn-sm" onclick="encounterToggleDefeated('${c.id}')" style="font-size:10px;padding:3px 7px;" title="${c.defeated?'Mark alive':'Mark defeated'}">${c.defeated?'↩ Alive':'☠'}</button>
@@ -5948,6 +5966,11 @@ async function loadActiveCampaign(){
 
 function dmAnnounce(type){
   if(!_sessionChannel||!_isDM) return;
+  if(type==='short_rest'){
+    if(!confirm('Call a Short Rest for the party?\n\nPlayers will automatically restore:\n• Warlock spell slots\n• Fighter: Second Wind & Action Surge\n• Monk Ki points\n• Channel Divinity (Cleric / Paladin)\n• Bardic Inspiration (if short-rest class)\n\nHP is NOT restored on a short rest.')) return;
+  } else if(type==='long_rest'){
+    if(!confirm('Call a Long Rest for the party?\n\nPlayers will automatically restore:\n• HP to maximum\n• All spell slots\n• All class resources (Rages, Ki, Sorcery Points, etc.)\n• Temp HP cleared · Death saves reset\n\nThis represents a full 8-hour rest.')) return;
+  }
   _sessionChannel.send({type:'broadcast',event:'dm_announce',payload:{type}});
   if(type==='long_rest') showToast('Long Rest announced to party.','success');
   else if(type==='short_rest') showToast('Short Rest announced to party.','success');
@@ -6035,7 +6058,6 @@ function renderDMTab(){
         <div class="comb-hp-row">
           <div class="comb-hp-bar-wrap"><div class="comb-hp-bar" style="width:${hpPct.toFixed(1)}%;background:${hpColor};"></div></div>
           <span class="comb-hp-txt">${c.hp} / ${c.maxHP}</span>
-          <input type="number" id="enc-delta-${c.id}" class="enc-delta" placeholder="Amt" min="0"/>
           <button class="btn btn-danger btn-sm" onclick="encounterDamage('${c.id}')">− Dmg</button>
           <button class="btn btn-green btn-sm" onclick="encounterHeal('${c.id}')">+ Heal</button>
           <button class="btn btn-ghost btn-sm" onclick="encounterToggleDefeated('${c.id}')" style="font-size:10px;padding:3px 7px;">${c.defeated?'↩':'☠'}</button>
@@ -6072,20 +6094,41 @@ function renderDMTab(){
           ?'<p style="font-size:13px;color:var(--muted);font-style:italic;padding:8px 0;">No players have joined yet.</p>'
           :allPlayers.map(p=>{
             const userId=(_dmPlayerStates.find(s=>s.char_name===p.charName)||{}).user_id||'';
-            return`<div class="party-player">
-              <div style="flex:1;min-width:0;">
-                <div class="party-name" style="display:flex;align-items:center;gap:6px;">
-                  ${p.isOnline?'<span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;" title="Online"></span>':'<span style="width:7px;height:7px;border-radius:50%;background:var(--border);display:inline-block;" title="Offline"></span>'}
-                  ${p.charName||'Unknown'}
+            const expanded=userId&&_dmExpandedPlayers.has(userId);
+            const pState=userId?(_dmPlayerStates.find(s=>s.user_id===userId)||null):null;
+            const cur=pState?.char_data?.tracker?.currency||{cp:0,sp:0,gp:0,pp:0};
+            return`<div class="party-player" style="flex-direction:column;align-items:stretch;gap:0;">
+              <div style="display:flex;align-items:flex-start;gap:8px;">
+                <div style="flex:1;min-width:0;">
+                  <div class="party-name" style="display:flex;align-items:center;gap:6px;">
+                    ${p.isOnline?'<span style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;" title="Online"></span>':'<span style="width:7px;height:7px;border-radius:50%;background:var(--border);display:inline-block;" title="Offline"></span>'}
+                    ${p.charName||'Unknown'}
+                  </div>
+                  <div class="party-sub">${p.className} · Lv ${p.level}${p.tempHP?` · <span style="color:var(--ac-blue);">+${p.tempHP} tmp</span>`:''}</div>
+                  <div class="hp-mini-bar" style="margin-top:5px;"><div class="hp-mini-fill" style="width:${p.pct}%;background:${p.hpColor};"></div></div>
+                  ${p.conditions.length?`<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px;">${p.conditions.map(c=>`<span style="font-size:10px;background:var(--chip-bg);border:1px solid var(--red);border-radius:8px;padding:1px 6px;color:var(--red);">${c}</span>`).join('')}</div>`:''}
                 </div>
-                <div class="party-sub">${p.className} · Lv ${p.level}${p.tempHP?` · <span style="color:var(--ac-blue);">+${p.tempHP} tmp</span>`:''}</div>
-                <div class="hp-mini-bar" style="margin-top:5px;"><div class="hp-mini-fill" style="width:${p.pct}%;background:${p.hpColor};"></div></div>
-                ${p.conditions.length?`<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:3px;">${p.conditions.map(c=>`<span style="font-size:10px;background:var(--chip-bg);border:1px solid var(--red);border-radius:8px;padding:1px 6px;color:var(--red);">${c}</span>`).join('')}</div>`:''}
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+                  <div class="party-hp-val">${p.currentHP}<span style="font-size:11px;font-weight:400;color:var(--muted);">/${p.maxHP}</span></div>
+                  ${userId?`<button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 7px;" onclick="dmToggleExpandPlayer('${userId}')">${expanded?'▲ Less':'▼ More'}</button>`:''}
+                </div>
               </div>
-              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-                <div class="party-hp-val">${p.currentHP}<span style="font-size:11px;font-weight:400;color:var(--muted);">/${p.maxHP}</span></div>
-                ${userId?`<button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 7px;" onclick="viewPlayerSheet('${userId}')">View Sheet</button>`:''}
-              </div>
+              ${userId&&expanded?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  <span style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;min-width:32px;">HP</span>
+                  <button class="btn btn-danger btn-sm" onclick="dmAdjustPlayerHP('${userId}',-1)">− 1</button>
+                  <button class="btn btn-green btn-sm" onclick="dmAdjustPlayerHP('${userId}',1)">+ 1</button>
+                  <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 7px;" onclick="dmSetPlayerHP('${userId}')">Set</button>
+                  <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 7px;" onclick="viewPlayerSheet('${userId}')">Full Sheet</button>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  <span style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;min-width:32px;">Gold</span>
+                  ${['cp','sp','gp','pp'].map(k=>`<div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+                    <span style="font-size:9px;color:var(--muted);text-transform:uppercase;">${k}</span>
+                    <input type="number" min="0" value="${cur[k]||0}" style="width:46px;text-align:center;font-size:12px;border:1px solid var(--border);border-radius:4px;padding:2px;" onchange="dmSetPlayerCurrency('${userId}','${k}',this.value)"/>
+                  </div>`).join('')}
+                </div>
+              </div>`:''}
             </div>`;
           }).join('')}
       </div>
@@ -6337,6 +6380,20 @@ function viewPlayerSheet(userId){
   if(!state){showToast('No character data for this player yet.','warning');return;}
   _dmViewedPlayer={userId,charName:state.char_name,charData:JSON.parse(JSON.stringify(state.char_data))};
   render();
+}
+
+function dmToggleExpandPlayer(userId){
+  if(_dmExpandedPlayers.has(userId)) _dmExpandedPlayers.delete(userId);
+  else _dmExpandedPlayers.add(userId);
+  render();
+}
+
+async function dmAdjustPlayerHP(userId,delta){
+  const state=_dmPlayerStates.find(s=>s.user_id===userId);
+  const max=state?.char_data?.hp?.max||50;
+  const cur=state?.char_data?.tracker?.currentHP??max;
+  const newHP=Math.max(0,Math.min(max,cur+delta));
+  await _applyDMEditToPlayer(userId,c=>{c.tracker.currentHP=newHP;},'currentHP',newHP,delta<0?'DM dealt '+Math.abs(delta)+' damage':'DM healed '+delta+' HP');
 }
 
 function closeDMPlayerSheet(){_dmViewedPlayer=null;render();}
