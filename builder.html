@@ -16,7 +16,7 @@
   --muted: #7a5c3a; --hp-red: #c0392b; --ac-blue: #1a4a6b; --spd-green: #1a5c2a;
   --nav-bg:#2c1810;--nav-text:#f5e6d0;--nav-accent:#c9a84c;
   /* aliases so shared CSS (auth wall, toasts, nav dropdowns) can use --border/--red */
-  --border:var(--border-col);--red:var(--red-accent);
+  --border:var(--border-col);--red:var(--red-accent);--green:#1e6b1e;
 }
 body { background: var(--parchment); font-family: 'Crimson Text', Georgia, serif; color: var(--ink); min-height: 100vh; }
 input,select,textarea{color:var(--ink);background:var(--surface2);border-color:var(--border-col);}
@@ -2138,7 +2138,10 @@ function renderSummary(){
   <div class="nav-btns">
     <button class="btn-secondary" onclick="goStep(6)">← Back</button>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn-primary" onclick="saveCharacter()" style="background:var(--green);color:#fff;border-color:var(--green);">${state.status==='saved'?'✓ Saved':'💾 Save Character'}</button>
+      ${state.status==='saved'
+        ?`<button class="btn-primary" onclick="saveCharacter()" style="background:transparent;color:var(--green);border:2px solid var(--green);font-size:13px;">✓ Saved</button>`
+        :`<button class="btn-primary" onclick="saveCharacter()" style="background:var(--green);color:#fff;border-color:var(--green);font-size:15px;padding:10px 24px;box-shadow:0 2px 8px rgba(30,107,30,.4);">💾 Save Character</button>`
+      }
       <button class="btn-primary" onclick="openInSandbox()" style="background:var(--gold);color:#1a0a00;border-color:var(--gold);">▶ Open in Campaign Sandbox</button>
       <button class="btn-primary" onclick="exportCharacter()" style="background:var(--red-accent);color:#fff;border-color:var(--red-accent);">⬇ Export JSON</button>
       <button class="btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
