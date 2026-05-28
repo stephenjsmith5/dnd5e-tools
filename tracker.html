@@ -643,13 +643,8 @@ function initSupabase(){
         _hideAuthWall();
         renderTrackerAuthBar();
       } else {
-        if(_campaign||_isDM){
-          if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
-          location.href='campaigns.html';
-        } else {
-          _showAuthWall();
-          renderTrackerAuthBar();
-        }
+        if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
+        location.href='index.html';
       }
     });
   }catch(e){console.warn('Supabase init failed:',e);}

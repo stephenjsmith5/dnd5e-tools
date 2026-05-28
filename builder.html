@@ -1081,8 +1081,7 @@ function initSupabase(){
       updateAuthBar();
       if(event==='SIGNED_IN')pullFromCloud();
     } else {
-      _showAuthWall();
-      updateAuthBar();
+      location.href='index.html';
     }
   });
 }
