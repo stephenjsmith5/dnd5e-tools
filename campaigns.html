@@ -241,7 +241,7 @@ function initTheme(){
 // ── SUPABASE ───────────────────────────────────────────────────────────────────
 function _sbEnabled(){return SUPABASE_URL!=='YOUR_SUPABASE_URL';}
 async function getSession(){if(!_sb)return null;try{const{data:{session}}=await _sb.auth.getSession();return session;}catch(e){return null;}}
-async function signOut(){if(_sb)await _sb.auth.signOut();}
+async function signOut(){if(_sb)await _sb.auth.signOut();location.href='index.html';}
 
 // ── AUTH WALL ──────────────────────────────────────────────────────────────────
 let _wallMode='signin';

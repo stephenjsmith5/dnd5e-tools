@@ -659,12 +659,8 @@ async function signIn(email,pass){if(!_sb)return{error:{message:'Cloud sync not 
 async function signUp(email,pass){if(!_sb)return{error:{message:'Cloud sync not configured.'}};return await _sb.auth.signUp({email,password:pass});}
 async function signOut(){
   if(_sb)await _sb.auth.signOut();
-  if(_campaign||_isDM){
-    if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
-    location.href='campaigns.html';
-  } else {
-    renderTrackerAuthBar();
-  }
+  if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
+  location.href='index.html';
 }
 async function pushToCloud(charId){
   if(!_sb)return;const session=await getSession();if(!session)return;

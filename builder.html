@@ -1089,7 +1089,7 @@ function initSupabase(){
 async function getSession(){if(!_sb)return null;try{const{data:{session}}=await _sb.auth.getSession();return session;}catch(e){return null;}}
 async function signIn(email,pass){if(!_sb)return{error:{message:'Cloud sync not configured.'}};return await _sb.auth.signInWithPassword({email,password:pass});}
 async function signUp(email,pass){if(!_sb)return{error:{message:'Cloud sync not configured.'}};return await _sb.auth.signUp({email,password:pass});}
-async function signOut(){if(_sb)await _sb.auth.signOut();updateAuthBar();}
+async function signOut(){if(_sb)await _sb.auth.signOut();location.href='index.html';}
 async function pushToCloud(charId){
   if(!_sb)return;const session=await getSession();if(!session)return;
   const meta=CharStore.index().find(c=>c.id===charId);

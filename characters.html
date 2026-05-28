@@ -519,7 +519,7 @@ async function doAuth(){
 }
 async function signOut(){
   if(_sb)await _sb.auth.signOut();
-  // onAuthStateChange fires SIGNED_OUT → shows wall + updates auth bar
+  location.href='index.html';
 }
 
 initTheme();
