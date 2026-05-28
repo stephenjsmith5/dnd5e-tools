@@ -139,7 +139,7 @@
 <div class="page">
   <div class="page-header">
     <h1 class="page-title">My Characters</h1>
-    <a class="btn-create" href="builder.html">+ New Character</a>
+    <a class="btn-create" href="builder.html?new=1">+ New Character</a>
   </div>
   <div id="charGrid"></div>
 </div>
@@ -246,7 +246,7 @@ function render(){
       <div class="empty-title">No Characters Yet</div>
       <p class="empty-sub">Create your first character to get started.</p>
       <div class="divider"></div>
-      <a class="btn-create" href="builder.html">+ Create Character</a>
+      <a class="btn-create" href="builder.html?new=1">+ Create Character</a>
     </div>`;
     return;
   }
@@ -270,7 +270,7 @@ function render(){
         <div class="empty-title">No Saved Characters</div>
         <p class="empty-sub">Finish a draft and save it to play in campaigns.</p>
         <div class="divider"></div>
-        <a class="btn-create" href="builder.html">+ Create Character</a>
+        <a class="btn-create" href="builder.html?new=1">+ Create Character</a>
       </div>`+html;
     }
     grid.innerHTML=html;
@@ -333,7 +333,7 @@ function duplicateChar(id){
 function _populateNavCharMenu(){
   const menu=document.getElementById('navCharMenu');
   if(!menu)return;
-  const footer=`<a href="builder.html" class="nav-char-footer">+ Create Character</a><a href="characters.html" class="nav-char-footer">View All →</a>`;
+  const footer=`<a href="builder.html?new=1" class="nav-char-footer">+ Create Character</a><a href="characters.html" class="nav-char-footer">View All →</a>`;
   let chars=[];
   try{chars=CharStore.index().filter(c=>c.status!=='draft').sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));}catch(e){}
   if(!chars.length){
@@ -456,11 +456,14 @@ async function _pullCloudChars(){
   try{
     const{data:{session}}=await _sb.auth.getSession();
     if(!session)return;
-    const{data,error}=await _sb.from('characters').select('local_id,name,class_id,level,updated_at').eq('user_id',session.user.id);
+    const{data,error}=await _sb.from('characters').select('local_id,name,class_id,level,updated_at,builder_data,tracker_data').eq('user_id',session.user.id);
     if(error||!data||!data.length)return;
     data.forEach(row=>{
       if(!row.local_id)return;
-      CharStore.upsertMeta({id:row.local_id,name:row.name||'Unnamed',classId:row.class_id||null,level:row.level||1,updatedAt:row.updated_at||null});
+      const existingMeta=CharStore._idx().find(c=>c.id===row.local_id);
+      // Prefer local status; fall back to what's embedded in cloud data
+      const status=existingMeta?.status||row.builder_data?.status||row.tracker_data?.status||'saved';
+      CharStore.upsertMeta({id:row.local_id,name:row.name||'Unnamed',classId:row.class_id||null,level:row.level||1,status:status,updatedAt:row.updated_at||null});
     });
     render();
     _populateNavCharMenu();

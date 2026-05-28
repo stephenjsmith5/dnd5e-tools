@@ -76,6 +76,16 @@
   .card-title{font-family:'Cinzel',serif;font-size:1.1rem;font-weight:600;margin-bottom:.5rem;}
   .card-desc{font-size:.95rem;color:var(--ink-light);line-height:1.5;}
   footer{font-size:.8rem;color:var(--muted);text-align:center;padding:1.5rem;}
+  /* Auth wall */
+  #authWall{position:fixed;inset:0;background:var(--parchment);z-index:999;display:flex;align-items:center;justify-content:center;padding:2rem;flex-direction:column;}
+  #authWall.hidden{display:none;}
+  .auth-wall-inner{display:flex;flex-direction:column;align-items:center;gap:1.25rem;width:100%;max-width:400px;}
+  .auth-wall-brand{font-family:'Cinzel',serif;font-size:1.6rem;font-weight:700;color:var(--ink);text-align:center;}
+  .auth-wall-sub{font-size:1rem;color:var(--muted);font-style:italic;text-align:center;margin-top:.25rem;}
+  .auth-wall-form{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.75rem;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.12);}
+  .wall-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1rem;}
+  .wall-tab{background:none;border:none;padding:6px 14px;font-family:'Cinzel',serif;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;}
+  .wall-tab.active{color:var(--red);border-bottom-color:var(--red);}
 </style>
 </head>
 <body>
@@ -93,6 +103,25 @@
     <div class="top-nav-right"><div class="theme-dots" id="themeDots"></div><div id="authBar"></div></div>
   </div>
 </nav>
+<div id="authWall">
+  <div class="auth-wall-inner">
+    <div style="text-align:center;">
+      <div style="font-size:2.5rem;margin-bottom:.5rem;">⚔️</div>
+      <div class="auth-wall-brand">D&amp;D 5e Tools</div>
+      <div class="auth-wall-sub">Sign in to access your characters &amp; campaigns</div>
+    </div>
+    <div class="auth-wall-form">
+      <div class="wall-tabs">
+        <button class="wall-tab active" id="wallTabSignin" onclick="_wallMode='signin';_renderWall()">Sign In</button>
+        <button class="wall-tab" id="wallTabSignup" onclick="_wallMode='signup';_renderWall()">Create Account</button>
+      </div>
+      <div class="auth-field"><label>Email</label><input type="email" id="wall-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')document.getElementById('wall-pass').focus()"/></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="wall-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')wallAuth()"/></div>
+      <div id="wall-msg" style="font-size:12px;color:var(--red);min-height:18px;margin-bottom:6px;"></div>
+      <button class="btn btn-red" style="width:100%;" id="wallAuthBtn" onclick="wallAuth()">Sign In</button>
+    </div>
+  </div>
+</div>
 <div class="hero">
   <div class="crest">⚔️</div>
   <h1>D&D 5e Tools</h1>
@@ -136,12 +165,37 @@ function initTheme(){
   if(el)el.innerHTML=THEME_LIST.map(t=>`<div class="theme-dot${saved===t.id?' active':''}" data-theme="${t.id}" title="${t.label}" style="background:${t.color};" onclick="setTheme('${t.id}')"></div>`).join('');
 }
 
+let _wallMode='signin';
+function _showAuthWall(){const w=document.getElementById('authWall');if(w)w.classList.remove('hidden');}
+function _hideAuthWall(){const w=document.getElementById('authWall');if(w)w.classList.add('hidden');}
+function _renderWall(){
+  document.querySelectorAll('.wall-tab').forEach(t=>t.classList.toggle('active',t.id===(  _wallMode==='signin'?'wallTabSignin':'wallTabSignup')));
+  const btn=document.getElementById('wallAuthBtn');if(btn)btn.textContent=_wallMode==='signin'?'Sign In':'Create Account';
+  const msg=document.getElementById('wall-msg');if(msg)msg.textContent='';
+}
+async function wallAuth(){
+  if(!_sb){showToast('Supabase not loaded yet — try again.','warning');return;}
+  const email=document.getElementById('wall-email')?.value?.trim();
+  const pass=document.getElementById('wall-pass')?.value;
+  const msg=document.getElementById('wall-msg');
+  if(!email||!pass){if(msg)msg.textContent='Enter email and password.';return;}
+  const{error}=_wallMode==='signin'
+    ?await _sb.auth.signInWithPassword({email,password:pass})
+    :await _sb.auth.signUp({email,password:pass});
+  if(error){if(msg)msg.textContent=error.message;return;}
+  if(_wallMode==='signup'){if(msg){msg.style.color='var(--green)';msg.textContent='Account created — check your email to confirm.';}}
+  // onAuthStateChange fires SIGNED_IN → hides wall automatically
+}
 function _initSupa(){
   try{if(typeof supabase!=='undefined')_sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}catch(e){}
   if(_sb){
     _sb.auth.onAuthStateChange((event,session)=>{
+      if(session){_hideAuthWall();}else{_showAuthWall();}
       renderAuthBar(session);
     });
+  } else {
+    // Supabase failed to load — hide wall so app is still usable
+    _hideAuthWall();
   }
 }
 
@@ -212,12 +266,13 @@ function _populateNavCharMenu(){
   if(!menu)return;
   const chars=(()=>{try{return JSON.parse(localStorage.getItem('dnd5e_chars')||'[]');}catch(e){return[];}})()
     .sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
-  const _footer='<a href="builder.html" class="nav-char-footer">+ Create Character</a><a href="characters.html" class="nav-char-footer">View All →</a>';
-  if(!chars.length){
-    menu.innerHTML='<div class="nav-char-empty">No characters yet</div>'+_footer;
+  const _footer='<a href="builder.html?new=1" class="nav-char-footer">+ Create Character</a><a href="characters.html" class="nav-char-footer">View All →</a>';
+  const savedChars=chars.filter(c=>c.status!=='draft');
+  if(!savedChars.length){
+    menu.innerHTML='<div class="nav-char-empty">No saved characters yet</div>'+_footer;
     return;
   }
-  menu.innerHTML=chars.slice(0,8).map(c=>{
+  menu.innerHTML=savedChars.slice(0,8).map(c=>{
     const cls=c.classId?c.classId.charAt(0).toUpperCase()+c.classId.slice(1):'';
     return`<div class="nav-char-tile">
       <div class="nav-char-info">

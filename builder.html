@@ -1093,22 +1093,41 @@ async function signOut(){if(_sb)await _sb.auth.signOut();location.href='index.ht
 async function pushToCloud(charId){
   if(!_sb)return;const session=await getSession();if(!session)return;
   const meta=CharStore.index().find(c=>c.id===charId);
-  const data=CharStore.loadPart(charId,'export')||CharStore.loadPart(charId,'builder');
-  if(!meta||!data)return;
-  await _sb.from('characters').upsert({local_id:charId,user_id:session.user.id,name:meta.name,class_id:meta.classId,level:meta.level,builder_data:data,updated_at:new Date().toISOString()},{onConflict:'user_id,local_id'});
+  // Push raw builder state so it round-trips correctly back into the builder
+  const raw=CharStore.loadPart(charId,'builder');
+  const exp=CharStore.loadPart(charId,'export');
+  if(!meta||(raw==null&&exp==null))return;
+  await _sb.from('characters').upsert({
+    local_id:charId,user_id:session.user.id,
+    name:meta.name,class_id:meta.classId,level:meta.level,
+    builder_data:raw||exp,   // raw builder state preferred; export as fallback
+    tracker_data:exp||null,  // export format for tracker / cross-device restore
+    updated_at:new Date().toISOString()
+  },{onConflict:'user_id,local_id'});
 }
 async function pullFromCloud(){
   if(!_sb)return;const session=await getSession();if(!session)return;
   const{data,error}=await _sb.from('characters').select('*').eq('user_id',session.user.id);
   if(error||!data)return;
   data.forEach(row=>{
-    if(!row.builder_data)return;
-    const existing=CharStore.loadPart(row.local_id,'builder');
+    if(!row.builder_data&&!row.tracker_data)return;
+    const existingMeta=CharStore._idx().find(c=>c.id===row.local_id);
     const rowUpdated=new Date(row.updated_at||0);
-    const localUpdated=existing?new Date(CharStore._idx().find(c=>c.id===row.local_id)?.updatedAt||0):new Date(0);
-    if(!existing||rowUpdated>localUpdated){
-      CharStore.savePart(row.local_id,'builder',row.builder_data);
-      CharStore.upsertMeta({id:row.local_id,name:row.name,classId:row.class_id,level:row.level,updatedAt:row.updated_at});
+    const localUpdated=existingMeta?new Date(existingMeta.updatedAt||0):new Date(0);
+    if(!existingMeta||rowUpdated>localUpdated){
+      // builder_data: raw builder state (new rows) or export format (old rows).
+      // Detect by presence of 'identity' key (export format marker).
+      if(row.builder_data?.identity){
+        // Old row: export format — save to 'export' part only, don't corrupt 'builder'
+        CharStore.savePart(row.local_id,'export',row.builder_data);
+      } else if(row.builder_data){
+        // New row: raw builder state — correct slot
+        CharStore.savePart(row.local_id,'builder',row.builder_data);
+      }
+      // tracker_data holds export format in new rows
+      if(row.tracker_data){CharStore.savePart(row.local_id,'export',row.tracker_data);}
+      const status=existingMeta?.status||row.builder_data?.status||row.tracker_data?.status||'saved';
+      CharStore.upsertMeta({id:row.local_id,name:row.name,classId:row.class_id,level:row.level,status:status,updatedAt:row.updated_at});
     }
   });
   render();
@@ -1381,7 +1400,12 @@ function initBuilder(){
   initSupabase();
   const params=new URLSearchParams(location.search);
   const paramCharId=params.get('char');
-  if(paramCharId){
+  if(params.get('new')==='1'){
+    // Explicit new-character request — always start fresh regardless of active char
+    state.charId=CharStore.genId();
+    state.status='draft';
+    CharStore.setActive(state.charId);
+  } else if(paramCharId){
     const saved=CharStore.loadPart(paramCharId,'builder');
     if(saved){
       CharStore.setActive(paramCharId);
