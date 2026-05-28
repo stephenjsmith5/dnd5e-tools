@@ -569,6 +569,7 @@ let _dmPendingRequests=[]; // DM view: all pending requests in campaign
 let _currentUserId=null;  // cached session user ID for broadcast comparisons
 let _dmViewedPlayer=null; // {userId, charName, charData} — Phase 3 DM player sheet view
 let _dmExpandedPlayers=new Set(); // userIds of expanded player tiles in DM view
+let _dmNickname=''; // DM's display name override (persisted in campaign + broadcast)
 let encounterCondExpanded=new Set(); // combatant IDs with condition panel open
 let _campaignEncounter=null; // DM-broadcast encounter state (read-only for players)
 
@@ -897,13 +898,30 @@ async function _joinChannel(code){
     .on('broadcast',{event:'dm_edit'},({payload})=>{
       // Player receives a direct DM edit to their character
       if(!_isDM&&_currentUserId===payload.userId&&char){
-        if(payload.field==='currentHP') char.tracker.currentHP=payload.value;
-        else if(payload.field==='tempHP') char.tracker.tempHP=payload.value;
-        else if(payload.field==='conditions') char.tracker.conditions=payload.value;
-        else if(payload.field==='currency') char.tracker.currency=payload.value;
-        else if(payload.field==='inventory') char.tracker.inventory=payload.value;
+        if(payload.trackerSnapshot){
+          // Full tracker sync — apply all fields the DM changed
+          const t=payload.trackerSnapshot;
+          if(typeof t.currentHP==='number') char.tracker.currentHP=t.currentHP;
+          if(typeof t.tempHP==='number') char.tracker.tempHP=t.tempHP;
+          if(Array.isArray(t.conditions)) char.tracker.conditions=t.conditions;
+          if(t.currency&&typeof t.currency==='object') char.tracker.currency=t.currency;
+          if(Array.isArray(t.inventory)) char.tracker.inventory=t.inventory;
+        } else {
+          // Legacy single-field fallback
+          if(payload.field==='currentHP') char.tracker.currentHP=payload.value;
+          else if(payload.field==='tempHP') char.tracker.tempHP=payload.value;
+          else if(payload.field==='conditions'&&Array.isArray(payload.value)) char.tracker.conditions=payload.value;
+          else if(payload.field==='currency'&&payload.value) char.tracker.currency=payload.value;
+          else if(payload.field==='inventory'&&Array.isArray(payload.value)) char.tracker.inventory=payload.value;
+        }
         save();render();
-        showToast('DM updated your '+payload.field.replace('_',' '),'info');
+        showToast('DM updated your character','info');
+      }
+    })
+    .on('broadcast',{event:'dm_nick_update'},({payload})=>{
+      if(!_isDM&&_campaign){
+        _campaign.dm_display_name=payload.nickname||'DM';
+        render();
       }
     })
     .on('broadcast',{event:'encounter_update'},({payload})=>{
@@ -1038,11 +1056,17 @@ function renderCampaignHeader(){
   if(!_campaign) return '';
   const playerCount=Object.keys(_sessionPresence).length;
   const dmBadge=_isDM?`<span class="campaign-header-badge">DM</span>`:'';
+  const dmDisplayName=_campaign.dm_display_name||'DM';
   const inviteCode=_isDM
     ?`<span style="font-size:11px;color:var(--muted);flex-shrink:0;">Invite: <strong style="font-family:'Cinzel',serif;color:var(--gold);letter-spacing:2px;">${_campaign.invite_code}</strong></span>`
-    :'';
+    :`<span style="font-size:11px;color:var(--muted);flex-shrink:0;">DM: <strong style="color:var(--ink);">${dmDisplayName}</strong></span>`;
   const partyBtn=_sessionCode?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('party')">Party View</button>`:'';
   const dmBtn=(_isDM&&_sessionCode)?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('dm')">⚔ DM Panel</button>`:'';
+  const nicknameInput=_isDM
+    ?`<input type="text" value="${(_dmNickname||'').replace(/"/g,'&quot;')}" placeholder="DM Nickname" maxlength="40"
+        style="font-size:11px;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:2px 7px;background:transparent;color:inherit;width:130px;flex-shrink:0;"
+        onchange="updateDMNickname(this.value)" onblur="updateDMNickname(this.value)" />`
+    :'';
   const hasPendingLeave=_pendingRequests.some(r=>r.change_type==='leave');
   const actionBtn=_isDM
     ?`<a href="campaigns.html" class="btn btn-ghost btn-sm" style="flex-shrink:0;font-size:10px;opacity:.7;">← Back</a>`
@@ -1057,6 +1081,7 @@ function renderCampaignHeader(){
     ${partyBtn}
     ${dmBtn}
     <div style="flex:1;min-width:0;"></div>
+    ${nicknameInput}
     ${inviteCode}
     ${actionBtn}
   </div>`;
@@ -1101,7 +1126,10 @@ function renderPartyTab(){
   return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
     <div>
       <div class="card">
-        <div class="card-title">Party — ${players.length} online</div>
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:baseline;">
+          <span>Party — ${players.length} online</span>
+          ${_campaign?.dm_display_name?`<span style="font-size:11px;font-weight:400;color:var(--muted);">DM: ${_campaign.dm_display_name}</span>`:''}
+        </div>
         ${players.length===0
           ?'<p style="font-size:13px;color:var(--muted);font-style:italic;padding:8px 0;">Waiting for players to join…</p>'
           :players.map(p=>{
@@ -2236,11 +2264,10 @@ function renderSidebar(){
       </div>
       <div class="hp-bar-wrap" style="margin-bottom:8px;"><div class="hp-bar" style="width:${hpPct.toFixed(1)}%;background:${hpColor};"></div></div>
       <div style="display:flex;gap:4px;margin-bottom:4px;">
-        <input type="number" id="hp-delta" class="hp-input" placeholder="Amt" min="0" style="width:56px;"/>
         <button class="btn btn-danger btn-sm" onclick="adjustHP(-1)" style="flex:1;padding:5px 2px;">−&nbsp;Dmg</button>
         <button class="btn btn-green btn-sm" onclick="adjustHP(1)" style="flex:1;padding:5px 2px;">+&nbsp;Heal</button>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="adjustTempHP()" style="width:100%;font-size:11px;">Temp HP</button>
+      <button class="btn btn-ghost btn-sm" onclick="adjustTempHP()" style="width:100%;font-size:11px;">+ Temp HP</button>
       ${t.currentHP<=0?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
         <div style="font-size:10px;font-family:'Cinzel',serif;color:var(--hp-red);margin-bottom:4px;letter-spacing:1px;">DEATH SAVES</div>
         <div class="ds-row"><span style="font-size:10px;color:var(--green);min-width:52px;">Success</span>${[0,1,2].map(i=>`<div class="ds-pip${i<t.deathSaves.successes?' success':''}" onclick="toggleDS('success',${i})"></div>`).join('')}</div>
@@ -4780,32 +4807,39 @@ function computeMaxHP(){
   return hp+toughBonus+hillDwarfBonus;
 }
 
+// Works on any char object — used by DM party view and pre-save normalization
+function _computeMaxHPForChar(c){
+  if(!c||!c.effectiveAbilities||!c.class) return 0;
+  const eff=c.effectiveAbilities;
+  const conMod=getModNum(eff.con||10);
+  const toughBonus=(c.feats||[]).find(f=>f.id==='tough')||(c.tracker?.featChoices||[]).find(f=>f.id==='tough')?c.level*2:0;
+  const hillDwarfBonus=(c.race?.subraceId==='dwarf_hill')?c.level:0;
+  let hp=(c.class.hitDie||8)+conMod;
+  (c.tracker?.hpGains||[]).forEach(g=>hp+=g);
+  return hp+toughBonus+hillDwarfBonus;
+}
+
 function adjustHP(dir){
-  const el=document.getElementById('hp-delta');
-  const amt=parseInt(el?el.value:0)||0;
-  if(amt<=0)return;
   const t=char.tracker;
   const max=computeMaxHP();
   const prevHP=t.currentHP;
   if(dir>0){
-    t.currentHP=Math.min(max,t.currentHP+amt);
-    logActivity('hp_change','healed '+amt+' HP ('+prevHP+' → '+t.currentHP+')');
+    t.currentHP=Math.min(max,t.currentHP+1);
+    logActivity('hp_change','healed 1 HP ('+prevHP+' → '+t.currentHP+')');
   } else {
-    let dmg=amt;
-    if(t.tempHP>0){const absorbed=Math.min(t.tempHP,dmg);t.tempHP-=absorbed;dmg-=absorbed;}
-    t.currentHP=Math.max(0,t.currentHP-dmg);
-    logActivity('hp_change','took '+amt+' damage ('+prevHP+' → '+t.currentHP+')');
+    if(t.tempHP>0){t.tempHP=Math.max(0,t.tempHP-1);}
+    else{t.currentHP=Math.max(0,t.currentHP-1);}
+    logActivity('hp_change','took 1 damage ('+prevHP+' → '+t.currentHP+')');
   }
-  if(el)el.value='';
   saveAndRender();
 }
 
 function adjustTempHP(){
-  const el=document.getElementById('hp-delta');
-  const amt=parseInt(el?el.value:0)||0;
-  if(amt<=0)return;
-  char.tracker.tempHP=Math.max(char.tracker.tempHP,amt);
-  if(el)el.value='';
+  const raw=prompt('Set Temp HP (integer):',char.tracker.tempHP||0);
+  if(raw===null) return;
+  const amt=parseInt(raw,10);
+  if(!Number.isInteger(amt)||amt<0){showToast('Enter a whole number ≥ 0.','warning');return;}
+  char.tracker.tempHP=amt;
   saveAndRender();
 }
 
@@ -5462,7 +5496,7 @@ function save(){
     // Campaign mode: cache locally + debounce to Supabase
     store.set('dnd5e_camp_'+_campaign.id, JSON.stringify(char));
     if(_campaignSaveTimer) clearTimeout(_campaignSaveTimer);
-    _campaignSaveTimer=setTimeout(()=>{ _saveCampaignChar(); }, 2000);
+    _campaignSaveTimer=setTimeout(()=>{ _saveCampaignChar(); }, 500);
     return;
   }
   // Sandbox or standalone mode: save to CharStore + localStorage
@@ -5885,10 +5919,11 @@ async function createCampaign(name){
   if(!char){showToast('Load a character before creating a campaign.','warning');return;}
   let invite_code=_genInviteCode();
   // Retry if code collision (extremely rare)
-  const{error}=await _sb.from('campaigns').insert({created_by:session.user.id,name:name.trim(),invite_code});
+  const dm_display_name=session.user.email||'DM';
+  const{error}=await _sb.from('campaigns').insert({created_by:session.user.id,name:name.trim(),invite_code,dm_display_name});
   if(error&&error.code==='23505'){
     invite_code=_genInviteCode();
-    const{error:e2}=await _sb.from('campaigns').insert({created_by:session.user.id,name:name.trim(),invite_code});
+    const{error:e2}=await _sb.from('campaigns').insert({created_by:session.user.id,name:name.trim(),invite_code,dm_display_name});
     if(e2){showToast('Could not create campaign: '+e2.message,'warning');return;}
   } else if(error){showToast('Could not create campaign: '+error.message,'warning');return;}
   const{data:camp}=await _sb.from('campaigns').select('*').eq('invite_code',invite_code).single();
@@ -5964,6 +5999,17 @@ async function loadActiveCampaign(){
   showToast('Rejoined '+camp.name,'info');
 }
 
+async function updateDMNickname(name){
+  if(!_isDM||!_campaign) return;
+  _dmNickname=name.trim()||(_campaign.dm_display_name||'DM');
+  _campaign.dm_display_name=_dmNickname;
+  _sb.from('campaigns').update({dm_display_name:_dmNickname}).eq('id',_campaign.id).then(()=>{});
+  _saveCampaignToRegistry({...(_getCampaignRegistry().find(c=>c.id===_campaign.id)||{}),id:_campaign.id,name:_campaign.name,invite_code:_campaign.invite_code,isDM:true,dmDisplayName:_dmNickname});
+  if(_sessionChannel){
+    _sessionChannel.send({type:'broadcast',event:'dm_nick_update',payload:{nickname:_dmNickname}});
+  }
+}
+
 function dmAnnounce(type){
   if(!_sessionChannel||!_isDM) return;
   if(type==='short_rest'){
@@ -5996,7 +6042,7 @@ function renderDMTab(){
     const live=presenceByName[s.char_name];
     const cd=s.char_data||{};
     const tracker=cd.tracker||{};
-    const maxHP=cd.hp?.max||0;
+    const maxHP=_computeMaxHPForChar(cd)||cd.hp?.max||0;
     const currentHP=live?live.currentHP:(typeof tracker.currentHP==='number'?tracker.currentHP:maxHP);
     const tempHP=live?live.tempHP:(tracker.tempHP||0);
     const conditions=live?live.conditions:(tracker.conditions||[]);
@@ -6390,7 +6436,7 @@ function dmToggleExpandPlayer(userId){
 
 async function dmAdjustPlayerHP(userId,delta){
   const state=_dmPlayerStates.find(s=>s.user_id===userId);
-  const max=state?.char_data?.hp?.max||50;
+  const max=(_computeMaxHPForChar(state?.char_data)||state?.char_data?.hp?.max)||50;
   const cur=state?.char_data?.tracker?.currentHP??max;
   const newHP=Math.max(0,Math.min(max,cur+delta));
   await _applyDMEditToPlayer(userId,c=>{c.tracker.currentHP=newHP;},'currentHP',newHP,delta<0?'DM dealt '+Math.abs(delta)+' damage':'DM healed '+delta+' HP');
@@ -6398,7 +6444,7 @@ async function dmAdjustPlayerHP(userId,delta){
 
 function closeDMPlayerSheet(){_dmViewedPlayer=null;render();}
 
-async function _applyDMEditToPlayer(userId,editFn,fieldName,newValue,desc){
+async function _applyDMEditToPlayer(userId,editFn,fieldName,_unused,desc){
   // Load current player state
   const{data,error}=await _sb.from('campaign_character_state')
     .select('char_data,char_name')
@@ -6413,9 +6459,9 @@ async function _applyDMEditToPlayer(userId,editFn,fieldName,newValue,desc){
   const idx=_dmPlayerStates.findIndex(s=>s.user_id===userId);
   if(idx>=0) _dmPlayerStates[idx].char_data=updatedChar;
   if(_dmViewedPlayer&&_dmViewedPlayer.userId===userId) _dmViewedPlayer.charData=updatedChar;
-  // Broadcast to player
+  // Broadcast full tracker snapshot so player applies the exact updated state
   if(_sessionChannel){
-    _sessionChannel.send({type:'broadcast',event:'dm_edit',payload:{userId,field:fieldName,value:newValue}});
+    _sessionChannel.send({type:'broadcast',event:'dm_edit',payload:{userId,trackerSnapshot:updatedChar.tracker}});
   }
   await logActivity('dm_action',desc||'DM updated '+fieldName);
   render();
@@ -6423,7 +6469,7 @@ async function _applyDMEditToPlayer(userId,editFn,fieldName,newValue,desc){
 
 async function dmSetPlayerHP(userId){
   const state=_dmPlayerStates.find(s=>s.user_id===userId)||(_dmViewedPlayer?.userId===userId?{char_data:_dmViewedPlayer.charData}:null);
-  const max=state?.char_data?.hp?.max||50;
+  const max=(_computeMaxHPForChar(state?.char_data)||state?.char_data?.hp?.max)||50;
   const cur=state?.char_data?.tracker?.currentHP??max;
   const val=prompt('Set HP for this player (max '+max+'):',cur);
   if(val===null||val==='') return;
@@ -6581,6 +6627,8 @@ async function _saveCampaignChar(){
   if(!char||!_campaign||_sandboxMode) return;
   const session=await getSession();
   if(!session) return;
+  // Keep stored hp.max in sync so DM party view always shows the correct number
+  if(char.hp&&char.effectiveAbilities&&char.class){char.hp.max=computeMaxHP();}
   const{error}=await _sb.from('campaign_character_state').upsert({
     campaign_id:_campaign.id,
     user_id:session.user.id,
@@ -6628,7 +6676,7 @@ async function logActivity(type,desc,data){
   const entry={
     campaign_id:_campaign.id,
     user_id:session.user.id,
-    char_name:char?.identity?.name||'Unknown',
+    char_name:_isDM?(_dmNickname||_campaign.dm_display_name||'DM'):(char?.identity?.name||'Unknown'),
     action_type:type,
     description:desc,
     data:data||null
@@ -6666,8 +6714,15 @@ async function _initCampaignMode(campaignId,isDM,session){
   _campaign=camp;
   _isDM=isDM||(camp.created_by===session.user.id);
   _currentUserId=session.user.id;
+  _dmNickname=camp.dm_display_name||'';
+  // If DM and dm_display_name is blank, back-fill with their email
+  if(_isDM&&!_dmNickname){
+    _dmNickname=session.user.email||'DM';
+    _sb.from('campaigns').update({dm_display_name:_dmNickname}).eq('id',camp.id).then(()=>{});
+    camp.dm_display_name=_dmNickname;
+  }
   store.set('dnd5e_campaign_id',camp.id);
-  _saveCampaignToRegistry({id:camp.id,name:camp.name,invite_code:camp.invite_code,isDM:_isDM});
+  _saveCampaignToRegistry({id:camp.id,name:camp.name,invite_code:camp.invite_code,isDM:_isDM,dmDisplayName:_dmNickname});
   await _joinChannel(camp.id);
   if(_isDM){
     char=null;
@@ -6844,6 +6899,14 @@ document.addEventListener('DOMContentLoaded', async function(){
 
   // No campaign, no sandbox → redirect to campaigns hub
   window.location.href='campaigns.html';
+});
+
+// Flush campaign save immediately when the page is hidden (tab switch, navigation, close)
+window.addEventListener('pagehide',()=>{
+  if(char&&_campaign&&!_sandboxMode&&!_isDM){
+    if(_campaignSaveTimer){clearTimeout(_campaignSaveTimer);_campaignSaveTimer=null;}
+    _saveCampaignChar(); // fire-and-forget — browser may or may not wait for it
+  }
 });
 
 // File input handled via handleFileInput() defined at top of script

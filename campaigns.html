@@ -482,8 +482,8 @@ async function render(){
   // Supabase is the source of truth — fetch everything fresh
   const userId=session.user.id;
   const [{data:dmData},{data:memberRows}]=await Promise.all([
-    _sb.from('campaigns').select('id,name,invite_code,created_by,deleted_at,created_at').eq('created_by',userId),
-    _sb.from('campaign_members').select('campaign_id,char_name,campaigns(id,name,invite_code,created_by,deleted_at,created_at)').eq('user_id',userId)
+    _sb.from('campaigns').select('id,name,invite_code,created_by,deleted_at,created_at,dm_display_name').eq('created_by',userId),
+    _sb.from('campaign_members').select('campaign_id,char_name,campaigns(id,name,invite_code,created_by,deleted_at,created_at,dm_display_name)').eq('user_id',userId)
   ]);
 
   // Build unified list: DM campaigns + player campaigns (no duplicates)
@@ -540,6 +540,7 @@ async function render(){
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span class="badge dm-badge">DM</span><span style="font-size:12px;color:var(--muted);">${memberCountMap[c.id]||0} player${memberCountMap[c.id]!==1?'s':''} joined</span></div>
           <div class="campaign-name">${c.name}</div>
           <div class="campaign-meta">Invite code: <strong style="font-family:'Cinzel',serif;letter-spacing:2px;">${c.invite_code}</strong></div>
+          ${c.dm_display_name?`<div class="campaign-meta" style="margin-top:2px;">Shown as: <strong>${c.dm_display_name}</strong> <span style="font-size:11px;color:var(--muted);">(edit in DM panel)</span></div>`:''}
         </div>
         <div class="campaign-card-actions">
           <a class="btn btn-red" href="tracker.html?campaign=${c.id}&dm=true">Open DM Panel →</a>
@@ -569,6 +570,7 @@ async function render(){
       <div class="campaign-card-body">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><span class="badge player-badge">Player</span><span style="font-size:12px;color:var(--muted);">${memberCountMap[c.id]||0} in party</span></div>
         <div class="campaign-name">${c.name}</div>
+        ${c.dm_display_name?`<div class="campaign-meta" style="margin-top:2px;">DM: <strong>${c.dm_display_name}</strong></div>`:''}
         ${local.charName
           ?`<div class="campaign-meta" style="margin-top:4px;">
               <strong style="font-family:'Cinzel',serif;font-size:13px;">${local.charName}</strong>
