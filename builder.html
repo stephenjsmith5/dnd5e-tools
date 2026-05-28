@@ -2378,10 +2378,10 @@ function openInSandbox(){
 function _populateNavCharMenu(){
   const menu=document.getElementById('navCharMenu');
   if(!menu)return;
-  const chars=CharStore.index().sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
+  const chars=CharStore.index().filter(c=>c.status!=='draft').sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0));
   const _footer=`<a href="builder.html" class="nav-char-footer" onclick="newCharacter();return false;">+ Create Character</a><a href="characters.html" class="nav-char-footer">View All →</a>`;
   if(!chars.length){
-    menu.innerHTML=`<div class="nav-char-empty">No characters yet</div>${_footer}`;
+    menu.innerHTML=`<div class="nav-char-empty">No saved characters yet</div>${_footer}`;
     return;
   }
   menu.innerHTML=chars.slice(0,8).map(c=>{
