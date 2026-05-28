@@ -1189,7 +1189,7 @@ async function doAuth(){
 let state={
   charId:null,
   status:'draft',
-  step:0,name:'',alignment:'True Neutral',appearance:'',personalityTrait:'',ideals:'',bonds:'',flaws:'',
+  step:0,name:'Unnamed Character',alignment:'True Neutral',appearance:'',personalityTrait:'',ideals:'',bonds:'',flaws:'',
   backstory:'',
   ruleset:'phb2014',
   race:null,subrace:null,
@@ -1354,7 +1354,7 @@ function autoSaveBuilder(){
 }
 
 function saveCharacter(){
-  if(!state.charId||!state.name.trim()){showToast('Add a character name first.','warning');return;}
+  if(!state.charId){showToast('No character to save.','warning');return;}
   state.status='saved';
   autoSaveBuilder();
   showToast(state.name+' saved!','success');
@@ -1363,22 +1363,17 @@ function saveCharacter(){
 
 function renderCharBar(){
   const el=document.getElementById('charBar');if(!el)return;
-  const chars=CharStore.index();
-  if(!chars.length){el.innerHTML='';return;}
-  const activeId=state.charId;
-  el.innerHTML=`<div class="char-bar">${
-    chars.sort((a,b)=>new Date(b.updatedAt||0)-new Date(a.updatedAt||0)).map(c=>{
-      const cls=CLASSES.find(cl=>cl.id===c.classId);
-      const sub=cls?`${cls.name} Lv ${c.level||1}`:'—';
-      const isActive=c.id===activeId;
-      return`<div class="char-tab${isActive?' active':''}" onclick="switchChar('${c.id}')">
-        ${isActive?`<span class="char-tab-del" onclick="event.stopPropagation();deleteChar('${c.id}')">×</span>`:''}
-        <span class="char-tab-name">${c.name||'Unnamed'}</span>
-        <span class="char-tab-sub">${sub}</span>
-        ${c.status==='draft'?`<span style="font-size:9px;color:var(--gold);border:1px solid var(--gold);padding:1px 4px;border-radius:2px;font-family:'Cinzel',serif;letter-spacing:.5px;opacity:.85;">DRAFT</span>`:''}
-      </div>`;
-    }).join('')
-  }<button class="char-tab-new" onclick="newCharacter()">+ New</button></div>`;
+  if(!state.charId){el.innerHTML='';return;}
+  const cls=CLASSES.find(cl=>cl.id===state.class);
+  const sub=cls?`${cls.name} Lv ${state.level||1}`:'New Character';
+  el.innerHTML=`<div class="char-bar">
+    <div class="char-tab active">
+      <span class="char-tab-del" onclick="deleteChar('${state.charId}')">×</span>
+      <span class="char-tab-name">${state.name||'Unnamed Character'}</span>
+      <span class="char-tab-sub">${sub}</span>
+      ${state.status==='draft'?`<span style="font-size:9px;color:var(--gold);border:1px solid var(--gold);padding:1px 4px;border-radius:2px;font-family:'Cinzel',serif;letter-spacing:.5px;opacity:.85;">DRAFT</span>`:''}
+    </div>
+  </div>`;
 }
 
 function initBuilder(){
@@ -1422,7 +1417,7 @@ function newCharacter(){
   const id=CharStore.genId();
   CharStore.setActive(id);
   Object.assign(state,{
-    charId:id,status:'draft',step:0,name:'',alignment:'True Neutral',appearance:'',
+    charId:id,status:'draft',step:0,name:'Unnamed Character',alignment:'True Neutral',appearance:'',
     personalityTrait:'',ideals:'',bonds:'',flaws:'',backstory:'',
     ruleset:'phb2014',background:null,race:null,subrace:null,
     variantASI:[],halfElfASI:[],variantSkill:null,variantFeat:null,
