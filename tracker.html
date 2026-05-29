@@ -2428,7 +2428,16 @@ function render(){
     overlay.innerHTML=renderCastDialog();
     if(overlay.firstElementChild) document.body.appendChild(overlay.firstElementChild);
   }
-  // Phase 3: DM player sheet overlay (appended after root so it overlaps everything)
+  // Roll result popup — body-appended so it appears on every tab, immune to sidebar CSS
+  const existingRollOverlay=document.getElementById('roll-result-overlay');
+  if(existingRollOverlay) existingRollOverlay.remove();
+  if(rollResult&&char){
+    const ro=document.createElement('div');
+    ro.id='roll-result-overlay';
+    ro.innerHTML=renderRollResult();
+    document.body.appendChild(ro);
+  }
+  // DM player sheet overlay (appended after root so it overlaps everything)
   const existingOverlay=document.getElementById('dm-player-sheet-overlay');
   if(existingOverlay) existingOverlay.remove();
   if(_dmViewedPlayer){
@@ -2601,8 +2610,8 @@ function renderCombat(){
   const classFeatHTML=(()=>{if(!t.classFeatures||!t.classFeatures.length)return'';return`<div><div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--ink);letter-spacing:0.5px;margin-bottom:5px;">Class Features</div>${t.classFeatures.map(f=>{if(typeof f==='string')return`<div style="font-size:11px;color:var(--ink-light);margin-bottom:3px;">• ${f}</div>`;return`<div style="margin-bottom:6px;"><span style="font-size:12px;font-weight:600;color:var(--ink);">${f.name}</span> <em style="font-size:10px;color:var(--muted);">(Lv ${f.level})</em><div style="font-size:11px;color:var(--ink-light);line-height:1.45;margin-top:1px;">${f.desc}</div></div>`;}).join('')}</div>`;})();
   const featuresHTML=(featHTML||subclassHTML||classFeatHTML)?`<div class="card"><div class="card-title">Features</div>${featHTML}${subclassHTML}${classFeatHTML}</div>`:'';
 
-  // Roll result + smite dialog (full-width below the grid)
-  const dialogs=(rollResult?renderRollResult():'')+(smiteDialogOpen?renderSmiteDialog():'');
+  // Smite dialog only — roll result overlay is appended to body in render()
+  const dialogs=(smiteDialogOpen?renderSmiteDialog():'');
 
   return`<div>
     ${encStrip}
@@ -3727,7 +3736,6 @@ function renderAttacks(){
       ${tabs.map(t=>`<button class="btn${attacksView===t.id?' btn-red':' btn-ghost'} btn-sm" onclick="setAtksView('${t.id}')">${t.label}</button>`).join('')}
     </div>
     ${attacksView==='actions'?renderActionsSubTab():attacksView==='attacks'?renderAttackList():attacksView==='maneuvers'?renderManeuversTab():renderCombatFeatures()}
-    ${rollResult?renderRollResult():''}
     ${smiteDialogOpen?renderSmiteDialog():''}
   </div>`;
 }
