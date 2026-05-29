@@ -550,6 +550,7 @@ let atkForm={name:'',type:'melee',abilityKey:'str',proficient:true,dmgDice:'1d8'
 let smiteDialogOpen=false;
 let castDialogId=null;
 let shortRestDialogState=null; // {hpGained, diceSpent, rolls[]} — open while player spending Hit Dice
+let longRestDialogOpen=false;
 // Encounter tracker state (session-only — not persisted to JSON)
 let encounter={active:false,round:1,activeCombatantId:null,combatants:[]};
 
@@ -2448,6 +2449,15 @@ function render(){
     rd.innerHTML=renderShortRestDialog();
     document.body.appendChild(rd);
   }
+  // Long rest dialog
+  const existingLongRestDlg=document.getElementById('long-rest-dialog');
+  if(existingLongRestDlg) existingLongRestDlg.remove();
+  if(longRestDialogOpen&&char){
+    const lrd=document.createElement('div');
+    lrd.id='long-rest-dialog';
+    lrd.innerHTML=renderLongRestDialog();
+    document.body.appendChild(lrd);
+  }
   // Roll result popup — body-appended so it appears on every tab, immune to sidebar CSS
   const existingRollOverlay=document.getElementById('roll-result-overlay');
   if(existingRollOverlay) existingRollOverlay.remove();
@@ -2468,7 +2478,7 @@ function render(){
   }
 }
 
-function setTab(t){activeTab=t;rollResult=null;smiteDialogOpen=false;castDialogId=null;shortRestDialogState=null;render();}
+function setTab(t){activeTab=t;rollResult=null;smiteDialogOpen=false;castDialogId=null;shortRestDialogState=null;longRestDialogOpen=false;render();}
 
 // ── COMBAT TAB — shows attacks/actions + character features ──
 function renderCombat(){
@@ -3000,6 +3010,15 @@ function cancelShortRest(){
   render();
 }
 
+function shortRestFullHeal(){
+  if(!shortRestDialogState||!char) return;
+  const maxHP=computeMaxHP();
+  shortRestDialogState.hpGained=maxHP-char.tracker.currentHP;
+  // Don't deduct any Hit Dice — this is the house-rule path
+  shortRestDialogState.diceSpent=0;
+  finishShortRest();
+}
+
 function renderShortRestDialog(){
   if(!shortRestDialogState||!char) return '';
   const res=char.tracker.resources;
@@ -3040,6 +3059,12 @@ function renderShortRestDialog(){
         <button class="btn btn-ghost btn-sm" onclick="finishShortRest()" style="flex:1;">
           ${_campaign&&!_sandboxMode?'Submit to DM':'Finish Rest'}
         </button>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:0.75rem 0;"></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-green btn-sm" onclick="shortRestFullHeal()" style="flex:1;" ${atMax?'disabled':''}>
+          Restore All HP
+        </button>
         <button class="btn btn-ghost btn-sm" onclick="cancelShortRest()">Cancel</button>
       </div>
     </div>
@@ -3047,62 +3072,58 @@ function renderShortRestDialog(){
 }
 
 function doLongRest(){
+  if(_campaign&&!_sandboxMode&&_pendingRequests.some(r=>r.change_type==='long_rest')){
+    showToast('Long rest request already pending DM approval.','info');return;
+  }
+  longRestDialogOpen=true;
+  render();
+}
+
+function confirmLongRest(){
+  longRestDialogOpen=false;
+  _applyLongRestLogic(char);
   if(_campaign&&!_sandboxMode){
-    if(_pendingRequests.some(r=>r.change_type==='long_rest')){showToast('Long rest request already pending DM approval.','info');return;}
-    const proposed=JSON.parse(JSON.stringify(char));
-    _applyLongRestLogic(proposed);
-    submitChangeRequest('long_rest','take a long rest',proposed);
+    submitChangeRequest('long_rest','take a long rest',JSON.parse(JSON.stringify(char)));
     return;
   }
-  syncResources(char);
-  const res=char.tracker.resources;
-  const cls=char.class.id;
-  const sub=char.tracker.subclass?char.tracker.subclass.id:'';
-
-  // All spell slots
-  if(res.spellSlots) res.spellSlots=res.spellSlots.map(([,max])=>[max,max]);
-  // Warlock slots
-  if(cls==='warlock') res.warlockSlots=res.warlockSlotsMax||0;
-  // Mystic Arcanum
-  if(char.tracker.mysticArcanumUsed) char.tracker.mysticArcanumUsed={};
-  // Arcane Recovery
-  res.arcaneRecoveryUsed=false;
-  // Sorcery Points
-  if(cls==='sorcerer') res.sorceryPoints=res.sorceryPointsMax||0;
-  // Rages
-  if(cls==='barbarian') res.rageUses=res.rageUsesMax||0;
-  // Bardic Inspiration
-  if(cls==='bard') res.bardicInspiration=res.bardicInspirationMax||0;
-  // Channel Divinity
-  if(cls==='cleric'||cls==='paladin') res.channelDivinity=res.channelDivinityMax||0;
-  // Wild Shape
-  if(cls==='druid') res.wildShape=res.wildShapeMax||0;
-  // Fighter
-  if(cls==='fighter'){
-    res.secondWind=res.secondWindMax||0;
-    res.actionSurge=res.actionSurgeMax||0;
-    res.indomitable=res.indomitableMax||0;
-    if(sub==='battlemaster') res.superiorityDice=res.superiorityDiceMax||0;
-  }
-  // Ki
-  if(cls==='monk') res.ki=res.kiMax||0;
-  // Lay on Hands
-  if(cls==='paladin') res.layOnHandsHP=res.layOnHandsHPMax||0;
-
-  // Reset prepared spells on long rest (Wizard/Cleric/Druid/Paladin re-prepare each long rest)
-  // We keep spellbook/known intact but clear prepared list so player re-selects
-  if(char.tracker.spells&&getSpellMode(char)==='prepared') char.tracker.spells.prepared=[];
-  if(char.tracker.spells&&getSpellMode(char)==='spellbook') char.tracker.spells.prepared=[];
-  // Also restore HP to max on long rest
-  char.tracker.currentHP=computeMaxHP();
-  char.tracker.tempHP=0;
-  char.tracker.deathSaves={successes:0,failures:0};
-
   saveAndRender();
   showToast('Long rest complete — HP and all resources restored.','success');
   logActivity('long_rest','took a long rest — HP and resources restored');
 }
 
+function cancelLongRest(){longRestDialogOpen=false;render();}
+
+function renderLongRestDialog(){
+  if(!longRestDialogOpen||!char) return '';
+  const maxHP=computeMaxHP();
+  const curHP=char.tracker.currentHP;
+  const missing=maxHP-curHP;
+  const res=char.tracker.resources;
+  const hdCur=res.hitDiceCurrent??char.level;
+  const hdRestore=Math.min(char.level,hdCur+Math.max(1,Math.floor(char.level/2)));
+  return`<div style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:3000;display:flex;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:var(--surface);border:2px solid var(--gold);border-radius:10px;padding:1.5rem;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.35);">
+      <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;margin-bottom:2px;">Long Rest</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:1.2rem;">8 hours of rest. Restores all spell slots, class resources, and Hit Dice.</div>
+      <div style="display:flex;gap:1.5rem;margin-bottom:1.2rem;justify-content:center;">
+        <div style="text-align:center;">
+          <div style="font-family:'Cinzel',serif;font-size:28px;font-weight:700;color:var(--green);">${maxHP}</div>
+          <div style="font-size:10px;color:var(--muted);letter-spacing:.5px;">HP (FULL)</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Cinzel',serif;font-size:28px;font-weight:700;">${hdRestore}</div>
+          <div style="font-size:10px;color:var(--muted);letter-spacing:.5px;">HIT DICE</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-green btn-sm" onclick="confirmLongRest()" style="flex:1;">
+          ${_campaign&&!_sandboxMode?'Submit to DM':'Restore All HP'}
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="cancelLongRest()">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+}
 
 // ─── SPELL TAB STATE ─────────────────────────────────────────────────────────
 // (spell view state declared at top of script)
