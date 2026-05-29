@@ -40,6 +40,9 @@ input,select,textarea{color:var(--ink);background:var(--surface2);border-color:v
 .tab-btn{font-family:'Cinzel',serif;font-size:11px;padding:7px 14px;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:4px 4px 0 0;letter-spacing:0.5px;transition:all 0.15s;margin-bottom:-2px;}
 .tab-btn:hover{background:var(--surface2);color:var(--ink);}
 .tab-btn.active{background:var(--surface);border-color:var(--border);border-bottom-color:var(--surface);color:var(--red);font-weight:600;}
+.tab-btn.tab-levelup{color:var(--gold);border:1px solid var(--gold);border-bottom:none;margin-left:4px;}
+.tab-btn.tab-levelup:hover{background:rgba(201,168,76,.12);color:var(--gold);}
+.tab-btn.tab-levelup.active{background:var(--surface);border-color:var(--gold);border-bottom-color:var(--surface);color:var(--gold);}
 
 /* Layout */
 .two-col{display:grid;grid-template-columns:280px 1fr;gap:1rem;}
@@ -1078,7 +1081,7 @@ function renderCampaignHeader(){
   const dmDisplayName=_campaign.dm_display_name||'DM';
   const inviteCode=_isDM
     ?`<span style="font-size:11px;color:var(--muted);flex-shrink:0;">Invite: <strong style="font-family:'Cinzel',serif;color:var(--gold);letter-spacing:2px;">${_campaign.invite_code}</strong></span>`
-    :`<span style="font-size:11px;color:var(--muted);flex-shrink:0;">DM: <strong style="color:var(--ink);">${dmDisplayName}</strong></span>`;
+    :`<span style="font-size:11px;color:rgba(255,255,255,.6);flex-shrink:0;">DM: <strong style="color:var(--nav-text);">${dmDisplayName}</strong></span>`;
   const partyBtn=_sessionCode?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('party')">Party View</button>`:'';
   const dmBtn=(_isDM&&_sessionCode)?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('dm')">⚔ DM Panel</button>`:'';
   const nicknameInput=_isDM
@@ -2334,18 +2337,6 @@ function renderSidebar(){
       </div>
     </div>
     <div class="card" style="margin-bottom:8px;">
-      <div class="card-title" style="font-size:11px;margin-bottom:6px;">Saving Throws</div>
-      <div class="sidebar-saves">
-        ${STAT_NAMES.map(s=>{
-          const isProf=(char.class.saves||[]).includes(s);
-          const mod=getModNum(eff[s])+(isProf?prof:0);
-          return`<div class="sidebar-save-row" onclick="rollCheck('${STAT_LABELS[s]} Save',${mod})" title="Roll ${STAT_LABELS[s]} save">
-            <span style="color:${isProf?'var(--ink)':'var(--muted)'};">${isProf?'●':'○'}&nbsp;${STAT_LABELS[s]}</span>
-            <span style="font-family:'Cinzel',serif;font-size:12px;font-weight:600;">${(mod>=0?'+':'')+mod}</span>
-          </div>`;}).join('')}
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:8px;">
       <div class="card-title" style="font-size:11px;margin-bottom:6px;">Conditions</div>
       <div class="condition-chips" style="margin-bottom:5px;">
         ${t.conditions.length?t.conditions.map(c=>`<div class="condition-chip active" style="font-size:11px;">${c}<button onclick="removeCondition('${c}')">✕</button></div>`).join(''):'<span style="font-size:11px;color:var(--muted);font-style:italic;">None</span>'}
@@ -2386,10 +2377,10 @@ function renderSidebar(){
         </button>
       </div>
       ${_campaign&&!_sandboxMode&&_pendingRequests.length>0?`<div style="margin-top:6px;font-size:11px;color:var(--gold);text-align:center;">${_pendingRequests.length} request${_pendingRequests.length>1?'s':''} pending DM approval</div>`:''}
-      <div style="display:flex;gap:5px;margin-top:5px;">
-        ${!_campaign||_sandboxMode?`<button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="exportJSON()">💾 Save</button>`:''}
-        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="${_campaign&&!_sandboxMode?'window.location.href=\'campaigns.html\'':'showCharSelect()'}">${_campaign&&!_sandboxMode?'⚔ Campaigns':'Characters'}</button>
-      </div>
+      ${!_campaign||_sandboxMode?`<div style="display:flex;gap:5px;margin-top:5px;">
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="exportJSON()">💾 Save</button>
+        <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;" onclick="showCharSelect()">Characters</button>
+      </div>`:''}
     </div>
   </div>`;
 }
@@ -2415,13 +2406,14 @@ function render(){
   // Encounter tab shown only in sandbox/standalone — in campaign the DM controls encounters
   const _inCampaignAsPlayer=_campaign&&!_isDM&&!_sandboxMode;
   const _allTabs=_inCampaignAsPlayer
-    ?['combat','spells','skills','levelup','inventory','log','notes']
-    :['combat','encounter','spells','skills','levelup','inventory','log','notes'];
+    ?['combat','spells','skills','inventory','log','notes','levelup']
+    :['combat','encounter','spells','skills','inventory','log','notes','levelup'];
   let _tabs=_sessionCode?['party',..._allTabs]:_allTabs;
   if(_isDM&&_sessionCode&&!_tabs.includes('dm'))_tabs=['dm',..._tabs];
   if(!_tabs.includes(activeTab)) activeTab='combat'; // guard stale tab (e.g. 'resources')
-  const _tabLabels={dm:'⚔ DM',party:'Party',combat:'Combat',encounter:'Encounter',spells:'Spells',skills:'Skills & Saves',levelup:'Level Up',inventory:'Inventory',log:'Session Log',notes:'Notes'};
+  const _tabLabels={dm:'⚔ DM',party:'Party',combat:'Combat',encounter:'Encounter',spells:'Spells',skills:'Skills & Saves',levelup:'⬆ Level Up',inventory:'Inventory',log:'Session Log',notes:'Notes'};
   const _tabContent=activeTab==='dm'?renderDMTab():activeTab==='party'?renderPartyTab():activeTab==='combat'?renderCombat():activeTab==='encounter'?renderEncounter():activeTab==='spells'?renderSpells():activeTab==='skills'?renderSkills():activeTab==='levelup'?renderLevelUp():activeTab==='inventory'?renderInventory():activeTab==='log'?renderLog():renderNotes();
+  const _sidebarScrollTop=document.querySelector('.tracker-sidebar')?.scrollTop||0;
   root.innerHTML=`
     <div class="${_campaign||_sandboxMode?'with-campaign':''}">
       ${renderCampaignHeader()}
@@ -2429,13 +2421,14 @@ function render(){
         ${renderSidebar()}
         <div class="tracker-main">
           <div class="tab-nav">
-            ${_tabs.map(t=>`<button class="tab-btn${activeTab===t?' active':''}" onclick="setTab('${t}')">${_tabLabels[t]}</button>`).join('')}
+            ${_tabs.map(t=>`<button class="tab-btn${activeTab===t?' active':''}${t==='levelup'?' tab-levelup':''}" onclick="setTab('${t}')">${_tabLabels[t]}</button>`).join('')}
           </div>
           ${_tabContent}
         </div>
       </div>
     </div>
   `;
+  if(_sidebarScrollTop){const sb=document.querySelector('.tracker-sidebar');if(sb) sb.scrollTop=_sidebarScrollTop;}
   _updateNavSessionMarker();
   attachTrackerEvents();
   if(castDialogId&&char){
@@ -4396,7 +4389,21 @@ function renderSkills(){
   const hasExpertise=slots>0;
   const used=ex.length;
 
-  return`<div class="card">
+  const savesHTML=`<div class="card" style="margin-bottom:1rem;">
+    <div class="card-title">Saving Throws</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+      ${STAT_NAMES.map(s=>{
+        const isProf=(char.class.saves||[]).includes(s);
+        const mod=getModNum(eff[s])+(isProf?prof:0);
+        const modStr=(mod>=0?'+':'')+mod;
+        return`<div class="sidebar-save-row" onclick="rollCheck('${STAT_LABELS[s]} Save',${mod})" title="Roll ${STAT_LABELS[s]} save" style="cursor:pointer;padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:${isProf?'var(--ink)':'var(--muted)'};">${isProf?'●':'○'} ${STAT_LABELS[s]}</span>
+          <span style="font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:${isProf?'var(--ink)':'var(--muted)'};">${modStr}</span>
+        </div>`;}).join('')}
+    </div>
+  </div>`;
+
+  return`${savesHTML}<div class="card">
     <div class="card-title">Skills</div>
     ${hasExpertise?`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:13px;color:var(--ink-light);">
       <strong style="color:var(--ink);">Expertise</strong> — Double proficiency bonus on selected skills.
@@ -6680,7 +6687,8 @@ function _applyDMEditToPlayer(userId,editFn,fieldName,_unused,desc){
 
   // Re-render DM UI immediately
   render();
-  logActivity('dm_action',desc||'DM updated '+fieldName);
+  const _targetName=_dmPlayerStates[idx].char_name||'player';
+  logActivity('dm_action',(desc||'DM updated '+fieldName)+' for '+_targetName);
 
   // Debounced Supabase persist — clears any pending write for this user
   if(_dmPendingSaves[userId]?.timer) clearTimeout(_dmPendingSaves[userId].timer);
