@@ -850,7 +850,6 @@ async function _joinChannel(code){
           char.tracker.tempHP=0;
           char.tracker.deathSaves={successes:0,failures:0};
           saveAndRender();
-          logActivity('long_rest','DM called a Long Rest — HP and resources restored');
         }
         showToast('📯 DM called a Long Rest — HP and all resources restored!','success');
       } else if(payload.type==='short_rest'){
@@ -861,7 +860,6 @@ async function _joinChannel(code){
             char.tracker.tempHP=0;
           }
           saveAndRender();
-          logActivity('short_rest','DM called a Short Rest'+(payload.restoreHP?' — HP and resources restored':'— some resources restored'));
         }
         showToast(payload.restoreHP?'📯 DM called a Short Rest — HP and resources restored!':'📯 DM called a Short Rest — some resources restored.','info');
       }
@@ -3024,15 +3022,6 @@ function cancelShortRest(){
   render();
 }
 
-function shortRestFullHeal(){
-  if(!shortRestDialogState||!char) return;
-  const maxHP=computeMaxHP();
-  shortRestDialogState.hpGained=maxHP-char.tracker.currentHP;
-  // Don't deduct any Hit Dice — this is the house-rule path
-  shortRestDialogState.diceSpent=0;
-  finishShortRest();
-}
-
 function renderShortRestDialog(){
   if(!shortRestDialogState||!char) return '';
   const res=char.tracker.resources;
@@ -3072,12 +3061,6 @@ function renderShortRestDialog(){
         </button>
         <button class="btn btn-ghost btn-sm" onclick="finishShortRest()" style="flex:1;">
           ${_campaign&&!_sandboxMode?'Submit to DM':'Finish Rest'}
-        </button>
-      </div>
-      <div style="border-top:1px solid var(--border);margin:0.75rem 0;"></div>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn btn-green btn-sm" onclick="shortRestFullHeal()" style="flex:1;" ${atMax?'disabled':''}>
-          Restore All HP
         </button>
         <button class="btn btn-ghost btn-sm" onclick="cancelShortRest()">Cancel</button>
       </div>
