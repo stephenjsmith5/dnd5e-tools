@@ -2398,6 +2398,8 @@ function render(){
       const existingOverlay=document.getElementById('dm-player-sheet-overlay');
       if(existingOverlay) existingOverlay.remove();
       if(_dmViewedPlayer){const ol=document.createElement('div');ol.id='dm-player-sheet-overlay';ol.innerHTML=renderDMPlayerSheet();document.body.appendChild(ol);}
+      const _exDMRest=document.getElementById('dm-rest-dialog');if(_exDMRest)_exDMRest.remove();
+      if(_dmRestDialog){const drd=document.createElement('div');drd.id='dm-rest-dialog';drd.innerHTML=renderDMRestDialog();document.body.appendChild(drd);}
       return;
     }
     if(_campaign&&!_sandboxMode){root.innerHTML=renderCharacterInit();return;}
