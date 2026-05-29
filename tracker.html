@@ -551,6 +551,7 @@ let smiteDialogOpen=false;
 let castDialogId=null;
 let shortRestDialogState=null; // {hpGained, diceSpent, rolls[]} — open while player spending Hit Dice
 let longRestDialogOpen=false;
+let _dmRestDialog=null; // null | 'short_rest' | 'long_rest'
 // Encounter tracker state (session-only — not persisted to JSON)
 let encounter={active:false,round:1,activeCombatantId:null,combatants:[]};
 
@@ -855,10 +856,14 @@ async function _joinChannel(code){
       } else if(payload.type==='short_rest'){
         if(char){
           _applyShortRestLogic(char);
+          if(payload.restoreHP){
+            char.tracker.currentHP=computeMaxHP();
+            char.tracker.tempHP=0;
+          }
           saveAndRender();
-          logActivity('short_rest','DM called a Short Rest — some resources restored');
+          logActivity('short_rest','DM called a Short Rest'+(payload.restoreHP?' — HP and resources restored':'— some resources restored'));
         }
-        showToast('📯 DM called a Short Rest — some resources restored.','info');
+        showToast(payload.restoreHP?'📯 DM called a Short Rest — HP and resources restored!':'📯 DM called a Short Rest — some resources restored.','info');
       }
     })
     .on('broadcast',{event:'activity'},({payload})=>{
@@ -2475,6 +2480,15 @@ function render(){
     ol.id='dm-player-sheet-overlay';
     ol.innerHTML=renderDMPlayerSheet();
     document.body.appendChild(ol);
+  }
+  // DM rest dialog
+  const existingDMRest=document.getElementById('dm-rest-dialog');
+  if(existingDMRest) existingDMRest.remove();
+  if(_dmRestDialog){
+    const drd=document.createElement('div');
+    drd.id='dm-rest-dialog';
+    drd.innerHTML=renderDMRestDialog();
+    document.body.appendChild(drd);
   }
 }
 
@@ -6186,14 +6200,40 @@ async function updateDMNickname(name){
 
 function dmAnnounce(type){
   if(!_sessionChannel||!_isDM) return;
-  if(type==='short_rest'){
-    if(!confirm('Call a Short Rest for the party?\n\nPlayers will automatically restore:\n• Warlock spell slots\n• Fighter: Second Wind & Action Surge\n• Monk Ki points\n• Channel Divinity (Cleric / Paladin)\n• Bardic Inspiration (if short-rest class)\n\nHP is NOT restored on a short rest.')) return;
-  } else if(type==='long_rest'){
-    if(!confirm('Call a Long Rest for the party?\n\nPlayers will automatically restore:\n• HP to maximum\n• All spell slots\n• All class resources (Rages, Ki, Sorcery Points, etc.)\n• Temp HP cleared · Death saves reset\n\nThis represents a full 8-hour rest.')) return;
-  }
-  _sessionChannel.send({type:'broadcast',event:'dm_announce',payload:{type}});
-  if(type==='long_rest') showToast('Long Rest announced to party.','success');
-  else if(type==='short_rest') showToast('Short Rest announced to party.','success');
+  _dmRestDialog=type;
+  render();
+}
+
+function dmConfirmRest(restoreHP){
+  if(!_dmRestDialog||!_sessionChannel) return;
+  const type=_dmRestDialog;
+  _dmRestDialog=null;
+  _sessionChannel.send({type:'broadcast',event:'dm_announce',payload:{type,restoreHP:!!restoreHP}});
+  logActivity('dm_action',type==='long_rest'?'DM called a Long Rest':'DM called a Short Rest'+(restoreHP?' (full HP restore)':''));
+  showToast(type==='long_rest'?'Long Rest announced to party.':'Short Rest announced to party.','success');
+  render();
+}
+
+function dmCancelRest(){_dmRestDialog=null;render();}
+
+function renderDMRestDialog(){
+  if(!_dmRestDialog) return '';
+  const isLong=_dmRestDialog==='long_rest';
+  return`<div style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:3000;display:flex;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:var(--surface);border:2px solid var(--gold);border-radius:10px;padding:1.5rem;max-width:380px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.35);">
+      <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;margin-bottom:4px;">${isLong?'📯 Long Rest':'📯 Short Rest'}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;">${isLong
+        ?'Announces a full 8-hour rest. Restores all spell slots, class resources, and Hit Dice.'
+        :'Announces a short rest. Restores class resources (Warlock slots, Ki, Second Wind, etc.).'
+      }</div>
+      ${!isLong?`<div style="font-size:12px;color:var(--ink-light);margin-bottom:1.2rem;">Choose how HP is handled:</div>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-green btn-sm" onclick="dmConfirmRest(true)" style="flex:1;">Restore All HP</button>
+        ${!isLong?`<button class="btn btn-ghost btn-sm" onclick="dmConfirmRest(false)" style="flex:1;">Resources Only</button>`:''}
+        <button class="btn btn-ghost btn-sm" onclick="dmCancelRest()">Cancel</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 async function deleteCampaign(){
