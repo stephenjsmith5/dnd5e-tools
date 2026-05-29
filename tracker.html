@@ -6201,7 +6201,7 @@ function dmConfirmRest(restoreHP){
   const type=_dmRestDialog;
   _dmRestDialog=null;
   _sessionChannel.send({type:'broadcast',event:'dm_announce',payload:{type,restoreHP:!!restoreHP}});
-  logActivity('dm_action',type==='long_rest'?'DM called a Long Rest':'DM called a Short Rest'+(restoreHP?' (full HP restore)':''));
+  logActivity('dm_action',type==='long_rest'?'DM called a Long Rest':'DM called a Short Rest'+(restoreHP?' — HP restored':'— players rolling Hit Dice for HP'));
   showToast(type==='long_rest'?'Long Rest announced to party.':'Short Rest announced to party.','success');
   render();
 }
@@ -6215,13 +6215,15 @@ function renderDMRestDialog(){
     <div style="background:var(--surface);border:2px solid var(--gold);border-radius:10px;padding:1.5rem;max-width:380px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.35);">
       <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;margin-bottom:4px;">${isLong?'📯 Long Rest':'📯 Short Rest'}</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:1rem;">${isLong
-        ?'Announces a full 8-hour rest. Restores all spell slots, class resources, and Hit Dice.'
-        :'Announces a short rest. Restores class resources (Warlock slots, Ki, Second Wind, etc.).'
+        ?'Restores all HP, spell slots, class resources, and half of each player\'s Hit Dice.'
+        :'Restores class resources (Warlock slots, Ki, Second Wind, etc.). Choose how HP is handled:'
       }</div>
-      ${!isLong?`<div style="font-size:12px;color:var(--ink-light);margin-bottom:1.2rem;">Choose how HP is handled:</div>`:''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <button class="btn btn-green btn-sm" onclick="dmConfirmRest(true)" style="flex:1;">Restore All HP</button>
-        ${!isLong?`<button class="btn btn-ghost btn-sm" onclick="dmConfirmRest(false)" style="flex:1;">Resources Only</button>`:''}
+        ${isLong
+          ?`<button class="btn btn-green btn-sm" onclick="dmConfirmRest(true)" style="flex:1;">Confirm</button>`
+          :`<button class="btn btn-green btn-sm" onclick="dmConfirmRest(true)" style="flex:1;">Restore All HP</button>
+            <button class="btn btn-ghost btn-sm" onclick="dmConfirmRest(false)" style="flex:1;">Roll Hit Dice for HP</button>`
+        }
         <button class="btn btn-ghost btn-sm" onclick="dmCancelRest()">Cancel</button>
       </div>
     </div>
