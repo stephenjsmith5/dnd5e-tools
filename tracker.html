@@ -538,6 +538,7 @@ let activeTab='combat';
 let levelUpState={active:false,pending:[],asiChoice:[],featChoice:null,useAsi:true};
 let addItemForm={name:'',qty:1};
 let logDraft='';
+let editingLogIdx=null; // original array index of the entry being edited
 let newCondition='';
 let spellView='myspells';
 let spellSearch='';
@@ -4749,11 +4750,28 @@ function renderLog(){
 function renderNotes(){
   const t=char.tracker;
   const logHTML=t.sessionLog.length
-    ?`<div class="log-list">${[...t.sessionLog].reverse().map(e=>`
-        <div class="log-entry">
-          <div class="log-entry-date">${new Date(e.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</div>
-          <div class="log-entry-text">${e.text.replace(/\n/g,'<br>')}</div>
-        </div>`).join('')}</div>`
+    ?`<div class="log-list">${[...t.sessionLog].map((e,ri)=>{
+        const idx=t.sessionLog.length-1-ri; // original array index (reversed display)
+        const isEditing=editingLogIdx===idx;
+        const dateStr=new Date(e.date).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+        return`<div class="log-entry">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+            <div class="log-entry-date">${dateStr}</div>
+            <div style="display:flex;gap:4px;">
+              ${isEditing
+                ?`<button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 7px;" onclick="cancelLogEdit()">Cancel</button>
+                   <button class="btn btn-red btn-sm" style="font-size:10px;padding:2px 7px;" onclick="saveLogEdit(${idx})">Save</button>`
+                :`<button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 7px;" onclick="startEditLog(${idx})">Edit</button>
+                   <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 7px;color:var(--hp-red);" onclick="deleteLogEntry(${idx})">Delete</button>`
+              }
+            </div>
+          </div>
+          ${isEditing
+            ?`<textarea id="log-edit-${idx}" style="width:100%;min-height:100px;resize:vertical;font-family:'Crimson Text',serif;font-size:13px;line-height:1.6;padding:6px 8px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);color:var(--ink);">${e.text}</textarea>`
+            :`<div class="log-entry-text">${e.text.replace(/\n/g,'<br>')}</div>`
+          }
+        </div>`;
+      }).reverse().join('')}</div>`
     :`<p style="font-size:13px;color:var(--muted);font-style:italic;padding:4px 0;">No entries yet. Start logging your adventure!</p>`;
   return`<div class="two-col">
     <div>
@@ -5173,6 +5191,25 @@ function addLogEntry(){
   if(!text)return;
   char.tracker.sessionLog.push({date:new Date().toISOString(),text});
   logDraft='';
+  saveAndRender();
+}
+
+function deleteLogEntry(idx){
+  if(!confirm('Delete this log entry?')) return;
+  char.tracker.sessionLog.splice(idx,1);
+  if(editingLogIdx===idx) editingLogIdx=null;
+  saveAndRender();
+}
+
+function startEditLog(idx){editingLogIdx=idx;render();}
+function cancelLogEdit(){editingLogIdx=null;render();}
+function saveLogEdit(idx){
+  const ta=document.getElementById('log-edit-'+idx);
+  if(!ta) return;
+  const text=ta.value.trim();
+  if(!text){deleteLogEntry(idx);return;}
+  char.tracker.sessionLog[idx].text=text;
+  editingLogIdx=null;
   saveAndRender();
 }
 
