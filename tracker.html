@@ -549,6 +549,7 @@ let showAddAtk=false;
 let atkForm={name:'',type:'melee',abilityKey:'str',proficient:true,dmgDice:'1d8',dmgType:'slashing',notes:'',range:''};
 let smiteDialogOpen=false;
 let castDialogId=null;
+let shortRestDialogState=null; // {hpGained, diceSpent, rolls[]} — open while player spending Hit Dice
 // Encounter tracker state (session-only — not persisted to JSON)
 let encounter={active:false,round:1,activeCombatantId:null,combatants:[]};
 
@@ -2266,6 +2267,12 @@ function syncResources(char){
   if(cls==='wizard'){ res.arcaneRecoverySlots=max.arcaneRecoverySlots; if(res.arcaneRecoveryUsed===undefined) res.arcaneRecoveryUsed=false; }
   if(max.spellDC!==undefined){ res.spellDC=max.spellDC; res.spellAttack=max.spellAttack; }
 
+  // Hit Dice — universal, equal to character level, type = class hit die
+  if(res.hitDiceCurrent===undefined) res.hitDiceCurrent=char.level;
+  res.hitDiceCurrent=Math.min(res.hitDiceCurrent,char.level);
+  res.hitDiceMax=char.level;
+  res.hitDieType=char.class.hitDie||8;
+
   char.tracker.resources=res;
 }
 
@@ -2362,6 +2369,10 @@ function renderSidebar(){
       </div>
     </div>
     <div class="card" style="margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:10px;font-family:'Cinzel',serif;font-weight:700;letter-spacing:.5px;color:var(--ink-light);">HIT DICE</span>
+        <span style="font-size:12px;font-weight:600;">${t.resources?.hitDiceCurrent??char.level}<span style="font-size:10px;color:var(--muted);">/${char.level} d${char.class.hitDie||8}</span></span>
+      </div>
       <div class="sidebar-rest-row">
         <button class="btn btn-ghost btn-sm" style="flex:1;font-size:11px;${_campaign&&!_sandboxMode&&_pendingRequests.some(r=>r.change_type==='short_rest')?'opacity:.5;':''}position:relative;" onclick="doShortRest()">
           Short Rest${_campaign&&!_sandboxMode&&_pendingRequests.some(r=>r.change_type==='short_rest')?'<span style="position:absolute;top:-4px;right:-4px;width:7px;height:7px;background:var(--gold);border-radius:50%;"></span>':''}
@@ -2428,6 +2439,15 @@ function render(){
     overlay.innerHTML=renderCastDialog();
     if(overlay.firstElementChild) document.body.appendChild(overlay.firstElementChild);
   }
+  // Short rest Hit Die dialog
+  const existingRestDlg=document.getElementById('short-rest-dialog');
+  if(existingRestDlg) existingRestDlg.remove();
+  if(shortRestDialogState&&char){
+    const rd=document.createElement('div');
+    rd.id='short-rest-dialog';
+    rd.innerHTML=renderShortRestDialog();
+    document.body.appendChild(rd);
+  }
   // Roll result popup — body-appended so it appears on every tab, immune to sidebar CSS
   const existingRollOverlay=document.getElementById('roll-result-overlay');
   if(existingRollOverlay) existingRollOverlay.remove();
@@ -2448,7 +2468,7 @@ function render(){
   }
 }
 
-function setTab(t){activeTab=t;rollResult=null;smiteDialogOpen=false;castDialogId=null;render();}
+function setTab(t){activeTab=t;rollResult=null;smiteDialogOpen=false;castDialogId=null;shortRestDialogState=null;render();}
 
 // ── COMBAT TAB — shows attacks/actions + character features ──
 function renderCombat(){
@@ -2929,17 +2949,101 @@ function showToast(msg,type='info'){
 }
 
 function doShortRest(){
+  if(_campaign&&!_sandboxMode&&_pendingRequests.some(r=>r.change_type==='short_rest')){
+    showToast('Short rest request already pending DM approval.','info');return;
+  }
+  // Open the interactive Hit Die spending dialog
+  shortRestDialogState={hpGained:0,diceSpent:0,rolls:[]};
+  render();
+}
+
+function spendHitDie(){
+  if(!shortRestDialogState||!char) return;
+  const res=char.tracker.resources;
+  const available=(res.hitDiceCurrent??char.level)-shortRestDialogState.diceSpent;
+  if(available<=0) return;
+  const hitDie=char.class.hitDie||8;
+  const conMod=getModNum(char.effectiveAbilities.con);
+  const roll=Math.floor(Math.random()*hitDie)+1;
+  const gained=Math.max(0,roll+conMod);
+  const maxHP=computeMaxHP();
+  const curHP=char.tracker.currentHP;
+  const headroom=maxHP-(curHP+shortRestDialogState.hpGained);
+  const actual=Math.min(gained,headroom);
+  shortRestDialogState.hpGained+=actual;
+  shortRestDialogState.diceSpent++;
+  shortRestDialogState.rolls.push({roll,mod:conMod,gained:actual,hitDie});
+  render();
+}
+
+function finishShortRest(){
+  if(!shortRestDialogState||!char) return;
+  const{hpGained,diceSpent}=shortRestDialogState;
+  shortRestDialogState=null;
+  char.tracker.currentHP=Math.min(computeMaxHP(),char.tracker.currentHP+hpGained);
+  char.tracker.resources.hitDiceCurrent=Math.max(0,(char.tracker.resources.hitDiceCurrent??char.level)-diceSpent);
   if(_campaign&&!_sandboxMode){
-    if(_pendingRequests.some(r=>r.change_type==='short_rest')){showToast('Short rest request already pending DM approval.','info');return;}
+    _applyShortRestLogic(char);
     const proposed=JSON.parse(JSON.stringify(char));
-    _applyShortRestLogic(proposed);
     submitChangeRequest('short_rest','take a short rest',proposed);
     return;
   }
   _applyShortRestLogic(char);
   saveAndRender();
-  showToast('Short rest taken — some resources restored.','warning');
-  logActivity('short_rest','took a short rest');
+  const msg=hpGained>0?`+${hpGained} HP recovered, resources restored.`:'Resources restored (no HP spent).';
+  showToast('Short rest — '+msg,'info');
+  logActivity('short_rest','took a short rest'+(hpGained>0?` (+${hpGained} HP)`:''));
+}
+
+function cancelShortRest(){
+  shortRestDialogState=null;
+  render();
+}
+
+function renderShortRestDialog(){
+  if(!shortRestDialogState||!char) return '';
+  const res=char.tracker.resources;
+  const hitDie=char.class.hitDie||8;
+  const conMod=getModNum(char.effectiveAbilities.con);
+  const conStr=(conMod>=0?'+':'')+conMod;
+  const maxHP=computeMaxHP();
+  const curHP=char.tracker.currentHP;
+  const{hpGained,diceSpent,rolls}=shortRestDialogState;
+  const available=(res.hitDiceCurrent??char.level)-diceSpent;
+  const atMax=curHP+hpGained>=maxHP;
+  const canSpend=available>0&&!atMax;
+  return`<div style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:3000;display:flex;align-items:center;justify-content:center;padding:1rem;">
+    <div style="background:var(--surface);border:2px solid var(--gold);border-radius:10px;padding:1.5rem;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.35);">
+      <div style="font-family:'Cinzel',serif;font-size:16px;font-weight:700;margin-bottom:2px;">Short Rest</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:1.2rem;">Spend Hit Dice (d${hitDie} ${conStr} each) to recover HP</div>
+      <div style="display:flex;gap:1.5rem;margin-bottom:1.2rem;justify-content:center;">
+        <div style="text-align:center;">
+          <div style="font-family:'Cinzel',serif;font-size:28px;font-weight:700;color:var(--hp-red);">${curHP+hpGained}<span style="font-size:14px;color:var(--muted);">/${maxHP}</span></div>
+          <div style="font-size:10px;color:var(--muted);letter-spacing:.5px;">HP</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-family:'Cinzel',serif;font-size:28px;font-weight:700;">${available}</div>
+          <div style="font-size:10px;color:var(--muted);letter-spacing:.5px;">d${hitDie} LEFT</div>
+        </div>
+        ${hpGained>0?`<div style="text-align:center;">
+          <div style="font-family:'Cinzel',serif;font-size:28px;font-weight:700;color:var(--green);">+${hpGained}</div>
+          <div style="font-size:10px;color:var(--muted);letter-spacing:.5px;">GAINED</div>
+        </div>`:''}
+      </div>
+      ${rolls.length>0?`<div style="font-size:11px;color:var(--muted);margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:4px;">
+        ${rolls.map(r=>`<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;">d${r.hitDie}(${r.roll})${r.mod>=0?'+':''}${r.mod}=<strong style="color:var(--green);">+${r.gained}</strong></span>`).join('')}
+      </div>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-red btn-sm" onclick="spendHitDie()" ${canSpend?'':'disabled'} style="flex:1;">
+          ${atMax?'At full HP':available<=0?'No dice left':'Roll a Hit Die'}
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="finishShortRest()" style="flex:1;">
+          ${_campaign&&!_sandboxMode?'Submit to DM':'Finish Rest'}
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="cancelShortRest()">Cancel</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 function doLongRest(){
@@ -6338,9 +6442,13 @@ function _applyLongRestLogic(c){
   if(cls==='paladin') res.layOnHandsHP=res.layOnHandsHPMax||0;
   if(c.tracker.spells&&getSpellMode(c)==='prepared') c.tracker.spells.prepared=[];
   if(c.tracker.spells&&getSpellMode(c)==='spellbook') c.tracker.spells.prepared=[];
-  c.tracker.currentHP=computeMaxHP(); // same value since level hasn't changed
+  c.tracker.currentHP=computeMaxHP();
   c.tracker.tempHP=0;
   c.tracker.deathSaves={successes:0,failures:0};
+  // Restore half your total Hit Dice (rounded down, minimum 1) on a long rest (PHB p.186)
+  const hdMax=c.level;
+  const hdCur=c.tracker.resources.hitDiceCurrent??hdMax;
+  c.tracker.resources.hitDiceCurrent=Math.min(hdMax,hdCur+Math.max(1,Math.floor(hdMax/2)));
 }
 
 // ── PHASE 2: APPROVAL QUEUE ───────────────────────────────────────────────────
