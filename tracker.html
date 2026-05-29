@@ -555,6 +555,7 @@ let castDialogId=null;
 let shortRestDialogState=null; // {hpGained, diceSpent, rolls[]} — open while player spending Hit Dice
 let longRestDialogOpen=false;
 let _dmRestDialog=null; // null | 'short_rest' | 'long_rest'
+let _dmActiveTab='party'; // 'party' | 'encounter'
 // Encounter tracker state (session-only — not persisted to JSON)
 let encounter={active:false,round:1,activeCombatantId:null,combatants:[]};
 
@@ -1082,8 +1083,8 @@ function renderCampaignHeader(){
   const inviteCode=_isDM
     ?`<span style="font-size:11px;color:var(--muted);flex-shrink:0;">Invite: <strong style="font-family:'Cinzel',serif;color:var(--gold);letter-spacing:2px;">${_campaign.invite_code}</strong></span>`
     :`<span style="font-size:11px;color:rgba(255,255,255,.6);flex-shrink:0;">DM: <strong style="color:var(--nav-text);">${dmDisplayName}</strong></span>`;
-  const partyBtn=_sessionCode?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('party')">Party View</button>`:'';
-  const dmBtn=(_isDM&&_sessionCode)?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;" onclick="setTab('dm')">⚔ DM Panel</button>`:'';
+  const partyBtn='';
+  const dmBtn='';
   const nicknameInput=_isDM
     ?`<input type="text" value="${(_dmNickname||'').replace(/"/g,'&quot;')}" placeholder="DM Nickname" maxlength="40"
         style="font-size:11px;border:1px solid rgba(255,255,255,.2);border-radius:4px;padding:2px 7px;background:rgba(0,0,0,.25);color:var(--nav-text);width:130px;flex-shrink:0;"
@@ -6148,7 +6149,7 @@ async function leaveCampaign(){
   if(_sessionChannel){_sessionChannel.unsubscribe();_sessionChannel=null;}
   _sessionCode=null;_sessionPresence={};_sessionFeed=[];
   _campaign=null;_isDM=false;_sandboxMode=false;
-  _dmPlayerStates=[];_activityFeed=[];
+  _dmPlayerStates=[];_activityFeed=[];_dmActiveTab='party';
   char=null;
   store.remove('dnd5e_campaign_id');
   activeTab='combat';
@@ -6337,7 +6338,23 @@ function renderDMTab(){
     </div>
   </div>`;
 
-  return`<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;">
+  const dmTabNav=`<div style="display:flex;gap:4px;margin-bottom:1rem;border-bottom:2px solid var(--border);">
+    <button class="tab-btn${_dmActiveTab==='party'?' active':''}" onclick="_dmActiveTab='party';render()">Party</button>
+    <button class="tab-btn${_dmActiveTab==='encounter'?' active':''}" onclick="_dmActiveTab='encounter';render()">⚔ Encounter${e.active?` <span style="background:var(--red);color:#fff;border-radius:8px;padding:0 6px;font-size:10px;font-family:sans-serif;">Live</span>`:''}
+    </button>
+  </div>`;
+
+  if(_dmActiveTab==='encounter'){
+    return dmTabNav+`<div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="card-title" style="margin:0;">⚔️ Encounter Manager</div>
+        <span style="font-size:11px;color:var(--muted);">Players see this in their Combat tab</span>
+      </div>
+      ${dmEncHTML}
+    </div>`;
+  }
+
+  return dmTabNav+`<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start;">
     <div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
@@ -6436,13 +6453,6 @@ function renderDMTab(){
           </div>`}
       </div>
     </div>
-  </div>
-  <div class="card" style="margin-top:1rem;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div class="card-title" style="margin:0;">⚔️ Encounter Manager</div>
-      <span style="font-size:11px;color:var(--muted);">Players see this in their Combat tab</span>
-    </div>
-    ${dmEncHTML}
   </div>`;
 }
 
