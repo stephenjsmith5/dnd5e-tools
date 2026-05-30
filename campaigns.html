@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<script>(function(){try{var k=Object.keys(localStorage).find(function(k){return k.startsWith('sb-')&&k.endsWith('-auth-token');});if(!k||!JSON.parse(localStorage.getItem(k)||'{}').access_token)location.replace('index.html');}catch(e){}})();</script>
 <title>Campaigns — D&D 5e Tools</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -656,10 +655,10 @@ document.addEventListener('DOMContentLoaded',()=>{
           _hideAuthWall();
           renderAuthBar();
           render();
-        } else if(event==='SIGNED_OUT'){
+        } else if(event==='SIGNED_OUT'||(event==='INITIAL_SESSION'&&!session)){
           location.href='index.html';
         }
-        // Ignore USER_UPDATED, TOKEN_REFRESHED etc. that may fire without a session momentarily
+        // Ignore USER_UPDATED, TOKEN_REFRESHED etc. — they may fire transiently without a session
       });
     }catch(e){console.warn('Supabase init failed:',e);}
   }

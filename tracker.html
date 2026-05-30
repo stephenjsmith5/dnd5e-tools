@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<script>(function(){try{var k=Object.keys(localStorage).find(function(k){return k.startsWith('sb-')&&k.endsWith('-auth-token');});if(!k||!JSON.parse(localStorage.getItem(k)||'{}').access_token)location.replace('index.html');}catch(e){}})();</script>
 <title>Seabass' DnD Tracker</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzJjMWEwZSIvPgogIDxwb2x5Z29uIHBvaW50cz0iMTYsMiAyOCwxMCAyOCwyMiAxNiwzMCA0LDIyIDQsMTAiIGZpbGw9IiM4YjFhMWEiIHN0cm9rZT0iI2M5YTg0YyIgc3Ryb2tlLXdpZHRoPSIxLjUiLz4KICA8bGluZSB4MT0iMTYiIHkxPSIyIiB4Mj0iMTYiIHkyPSIzMCIgc3Ryb2tlPSIjYzlhODRjIiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC42Ii8+CiAgPGxpbmUgeDE9IjQiIHkxPSIxMCIgeDI9IjI4IiB5Mj0iMTAiIHN0cm9rZT0iI2M5YTg0YyIgc3Ryb2tlLXdpZHRoPSIwLjgiIG9wYWNpdHk9IjAuNiIvPgogIDxsaW5lIHgxPSI0IiB5MT0iMjIiIHgyPSIyOCIgeTI9IjIyIiBzdHJva2U9IiNjOWE4NGMiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjYiLz4KICA8bGluZSB4MT0iNCIgeTE9IjEwIiB4Mj0iMTYiIHkyPSIzMCIgc3Ryb2tlPSIjYzlhODRjIiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC40Ii8+CiAgPGxpbmUgeDE9IjI4IiB5MT0iMTAiIHgyPSIxNiIgeTI9IjMwIiBzdHJva2U9IiNjOWE4NGMiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjQiLz4KICA8bGluZSB4MT0iNCIgeTE9IjIyIiB4Mj0iMTYiIHkyPSIyIiBzdHJva2U9IiNjOWE4NGMiIHN0cm9rZS13aWR0aD0iMC44IiBvcGFjaXR5PSIwLjQiLz4KICA8bGluZSB4MT0iMjgiIHkxPSIyMiIgeDI9IjE2IiB5Mj0iMiIgc3Ryb2tlPSIjYzlhODRjIiBzdHJva2Utd2lkdGg9IjAuOCIgb3BhY2l0eT0iMC40Ii8+CiAgPHRleHQgeD0iMTYiIHk9IjE5IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtd2VpZ2h0PSJib2xkIiBmb250LXNpemU9IjEwIiBmaWxsPSIjZjVlZGQ2Ij4yMDwvdGV4dD4KPC9zdmc+">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
@@ -657,11 +656,11 @@ function initSupabase(){
       if(session){
         _hideAuthWall();
         renderTrackerAuthBar();
-      } else if(event==='SIGNED_OUT'){
+      } else if(event==='SIGNED_OUT'||(event==='INITIAL_SESSION'&&!session)){
         if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
         location.href='index.html';
       }
-      // Ignore USER_UPDATED, TOKEN_REFRESHED etc. that may fire without a session momentarily
+      // Ignore USER_UPDATED, TOKEN_REFRESHED etc. — they may fire transiently without a session
     });
   }catch(e){console.warn('Supabase init failed:',e);}
 }
