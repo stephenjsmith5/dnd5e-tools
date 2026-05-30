@@ -7124,8 +7124,11 @@ async function loadDMPlayerStates(){
 async function _initCampaignMode(campaignId,isDM,session){
   const{data:camp,error}=await _sb.from('campaigns').select('*').eq('id',campaignId).single();
   if(error||!camp){
-    showToast('Campaign not found.','warning');
-    window.location.href='campaigns.html';
+    document.getElementById('root').innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px;">
+      <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--red);">Campaign Not Found</div>
+      <div style="font-size:13px;color:var(--muted);">${error?'Error: '+error.message:'This campaign does not exist or you do not have access.'}</div>
+      <a href="campaigns.html" class="btn btn-ghost">← Back to Campaigns</a>
+    </div>`;
     return;
   }
   if(camp.deleted_at){

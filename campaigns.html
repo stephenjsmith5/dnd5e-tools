@@ -645,24 +645,25 @@ document.addEventListener('click',()=>{
 });
 
 // ── INIT ───────────────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',async()=>{
   initTheme();
-  if(_sbEnabled()){
-    try{
-      _sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-      _sb.auth.onAuthStateChange((event,session)=>{
-        if(session){
-          _hideAuthWall();
-          renderAuthBar();
-          render();
-        } else if(event==='SIGNED_OUT'){
-          location.href='index.html';
-        }
-        // INITIAL_SESSION+null: show auth wall inline rather than bouncing to index.html
-      });
-    }catch(e){console.warn('Supabase init failed:',e);}
+  if(!_sbEnabled()){location.href='index.html';return;}
+  try{
+    _sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    _sb.auth.onAuthStateChange((event,session)=>{
+      if(session){_hideAuthWall();renderAuthBar();render();}
+      else if(event==='SIGNED_OUT'){location.href='index.html';}
+    });
+  }catch(e){location.href='index.html';return;}
+  // Retry getSession() to handle async Supabase init (same pattern as tracker.html)
+  let session=null;
+  for(let i=0;i<10;i++){
+    session=await getSession();
+    if(session) break;
+    await new Promise(r=>setTimeout(r,100));
   }
-  renderAuthBar();
+  if(session){_hideAuthWall();renderAuthBar();render();}
+  else{location.href='index.html';}
 });
 </script>
 </body>
