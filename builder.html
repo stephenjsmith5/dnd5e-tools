@@ -397,7 +397,7 @@ function setTheme(id){
   document.documentElement.setAttribute('data-theme',id);
   localStorage.setItem('dnd5e_theme',id);
   document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active',d.dataset.theme===id));
-  if(typeof _sb!=='undefined'&&_sb) _sb.auth.updateUser({data:{theme:id}}).catch(()=>{});
+  if(typeof _sb!=='undefined'&&_sb) getSession().then(s=>{if(s) _sb.auth.updateUser({data:{theme:id}}).catch(()=>{});});
 }
 function initTheme(){
   const saved=localStorage.getItem('dnd5e_theme')||'parchment';

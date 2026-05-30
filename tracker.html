@@ -522,7 +522,7 @@ function setTheme(id){
   document.documentElement.setAttribute('data-theme',id);
   localStorage.setItem('dnd5e_theme',id);
   document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active',d.dataset.theme===id));
-  if(_sb) _sb.auth.updateUser({data:{theme:id}}).catch(()=>{});
+  if(_sb) getSession().then(s=>{if(s) _sb.auth.updateUser({data:{theme:id}}).catch(()=>{});});
 }
 function initTheme(){
   const saved=localStorage.getItem('dnd5e_theme')||'parchment';
@@ -657,10 +657,11 @@ function initSupabase(){
       if(session){
         _hideAuthWall();
         renderTrackerAuthBar();
-      } else {
+      } else if(event==='SIGNED_OUT'){
         if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
         location.href='index.html';
       }
+      // Ignore USER_UPDATED, TOKEN_REFRESHED etc. that may fire without a session momentarily
     });
   }catch(e){console.warn('Supabase init failed:',e);}
 }
