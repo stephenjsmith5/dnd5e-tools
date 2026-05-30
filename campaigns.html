@@ -230,7 +230,6 @@ function setTheme(id){
   document.documentElement.setAttribute('data-theme',id);
   localStorage.setItem('dnd5e_theme',id);
   document.querySelectorAll('.theme-dot').forEach(d=>d.classList.toggle('active',d.dataset.theme===id));
-  if(typeof _sb!=='undefined'&&_sb) getSession().then(s=>{if(s) _sb.auth.updateUser({data:{theme:id}}).catch(()=>{});});
 }
 function initTheme(){
   const saved=localStorage.getItem('dnd5e_theme')||'parchment';
@@ -293,8 +292,6 @@ function renderAuthBar(){
   const el=document.getElementById('authBar');if(!el||!_sbEnabled())return;
   getSession().then(s=>{
     if(s){
-      const ct=s.user.user_metadata?.theme;
-      if(ct&&ct!==localStorage.getItem('dnd5e_theme')) setTheme(ct);
       el.innerHTML=`<div class="auth-bar"><span class="auth-email">${s.user.email}</span><button class="btn btn-ghost btn-sm" style="color:var(--nav-text);border-color:rgba(255,255,255,.3);" onclick="signOut()">Sign Out</button></div>`;
     } else {
       el.innerHTML=`<div class="auth-bar"><button class="btn btn-gold btn-sm" onclick="openAuthModal()">☁ Sign In</button></div>`;
