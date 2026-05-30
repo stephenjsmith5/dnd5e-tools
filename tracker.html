@@ -2327,7 +2327,7 @@ function renderSidebar(){
     </div>
     <div class="card" style="margin-bottom:8px;">
       <div class="sidebar-stat-row">
-        <div class="sidebar-stat-badge" title="Armor Class"><div class="sidebar-stat-val">${char.ac}</div><div class="sidebar-stat-label">AC</div></div>
+        <div class="sidebar-stat-badge" title="Armor Class${getFightingStyle()===\'Defense\'&&char.equipment?.armorId&&char.equipment.armorId!==\'none\'?\' (+1 Defense)\':\'\'}"><div class="sidebar-stat-val">${computeAC()}</div><div class="sidebar-stat-label">AC</div></div>
         <div class="sidebar-stat-badge" title="Speed (ft)"><div class="sidebar-stat-val">${char.speed}</div><div class="sidebar-stat-label">SPD</div></div>
         <div class="sidebar-stat-badge" title="Proficiency Bonus"><div class="sidebar-stat-val">+${prof}</div><div class="sidebar-stat-label">PROF</div></div>
         <div class="sidebar-stat-badge" title="Initiative"><div class="sidebar-stat-val">${getModNum(eff.dex)>=0?'+':''}${getModNum(eff.dex)+prof}</div><div class="sidebar-stat-label">INIT</div></div>
@@ -2660,7 +2660,20 @@ function renderCombat(){
   const allFeats=[...(char.feats||[]),...(t.featChoices||[])];
   const featHTML=allFeats.length?`<div style="margin-bottom:12px;"><div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--ink);letter-spacing:0.5px;margin-bottom:6px;">Feats</div>${allFeats.map(f=>`<div style="margin-bottom:6px;"><span style="font-size:12px;font-weight:600;color:var(--ink);">${f.name}</span><span style="font-size:11px;color:var(--ink-light);"> — ${f.desc}</span></div>`).join('')}</div>`:'';
   const subclassHTML=(()=>{if(!t.subclass)return'';const sc=(SUBCLASSES[char.class.id]||[]).find(s=>s.id===t.subclass.id);const desc=sc?sc.desc:t.subclass.desc||'';return`<div style="margin-bottom:12px;"><div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--ink);letter-spacing:0.5px;margin-bottom:4px;">${t.subclass.name}</div>${desc?`<div style="font-size:11px;color:var(--ink-light);line-height:1.5;">${desc}</div>`:''}</div>`;})();
-  const classFeatHTML=(()=>{if(!t.classFeatures||!t.classFeatures.length)return'';return`<div><div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--ink);letter-spacing:0.5px;margin-bottom:5px;">Class Features</div>${t.classFeatures.map(f=>{if(typeof f==='string')return`<div style="font-size:11px;color:var(--ink-light);margin-bottom:3px;">• ${f}</div>`;return`<div style="margin-bottom:6px;"><span style="font-size:12px;font-weight:600;color:var(--ink);">${f.name}</span> <em style="font-size:10px;color:var(--muted);">(Lv ${f.level})</em><div style="font-size:11px;color:var(--ink-light);line-height:1.45;margin-top:1px;">${f.desc}</div></div>`;}).join('')}</div>`;})();
+  const _fs=getFightingStyle();
+  const classFeatHTML=(()=>{
+    if(!t.classFeatures||!t.classFeatures.length)return'';
+    return`<div><div style="font-family:'Cinzel',serif;font-size:11px;font-weight:700;color:var(--ink);letter-spacing:0.5px;margin-bottom:5px;">Class Features</div>${t.classFeatures.map(f=>{
+      if(typeof f==='string') return`<div style="font-size:11px;color:var(--ink-light);margin-bottom:3px;">• ${f}</div>`;
+      // Replace the full "choose one" blurb with just the player's chosen option
+      let desc=f.desc;
+      if(f.name==='Fighting Style'||f.name==='Fighting Style (Improved)'){
+        if(_fs) desc=`<strong>${_fs}</strong> — ${FIGHTING_STYLE_DESCS[_fs]||''}`;
+        else desc='No style chosen yet.';
+      }
+      return`<div style="margin-bottom:6px;"><span style="font-size:12px;font-weight:600;color:var(--ink);">${f.name}</span> <em style="font-size:10px;color:var(--muted);">(Lv ${f.level})</em><div style="font-size:11px;color:var(--ink-light);line-height:1.45;margin-top:1px;">${desc}</div></div>`;
+    }).join('')}</div>`;
+  })();
   const featuresHTML=(featHTML||subclassHTML||classFeatHTML)?`<div class="card"><div class="card-title">Features</div>${featHTML}${subclassHTML}${classFeatHTML}</div>`:'';
 
   // Smite dialog only — roll result overlay is appended to body in render()
@@ -3605,10 +3618,16 @@ function getEquippedWeaponAttacks(char){
   eq.weaponDetails.forEach(w=>{
     const isFinesse=(w.props||'').includes('Finesse');
     const isRanged=(w.profCat||'').includes('ranged')||['xbow_light','xbow_hand','xbow_heavy','longbow','shortbow','dart','sling','blowgun'].includes(w.id);
+    const isTwoHanded=(w.props||'').includes('Two-Handed');
+    const isLight=(w.props||'').includes('Light');
     const abilityMod=isFinesse?Math.max(str,dex):isRanged?dex:str;
     const isProficient=w.proficient!==false;
-    const atkBonus=abilityMod+(isProficient?prof:0);
-    const dmgBonus=abilityMod;
+    const _wfs=getFightingStyle(char);
+    // Fighting style bonuses: Archery +2 ranged atk, Dueling +2 melee dmg (one-handed, no shield-irrelevant)
+    const fsAtkBonus=isRanged&&_wfs==='Archery'?2:0;
+    const fsDmgBonus=!isRanged&&!isTwoHanded&&_wfs==='Dueling'?2:0;
+    const atkBonus=abilityMod+(isProficient?prof:0)+fsAtkBonus;
+    const dmgBonus=abilityMod+fsDmgBonus;
     attacks.push({
       id:'equipped_'+w.id,
       name:w.name,
@@ -4815,7 +4834,7 @@ function encounterAddPlayer(){
     initiative:initRoll,
     hp:char.tracker.currentHP,
     maxHP:computeMaxHP(),
-    ac:char.ac||10,
+    ac:computeAC(char)||10,
     conditions:[...(Array.isArray(char.tracker.conditions)?char.tracker.conditions.map(c=>typeof c==='string'?c:(c.name||String(c))):[])],
     defeated:char.tracker.currentHP<=0,
   });
@@ -5059,6 +5078,28 @@ function renderEncounter(){
 }
 
 // ─── ACTIONS ──────────────────────────────────────────────────────────────────
+
+const FIGHTING_STYLE_DESCS={
+  'Archery':'+2 to attack rolls with ranged weapons.',
+  'Defense':'+1 AC while wearing armor.',
+  'Dueling':'+2 damage when wielding a one-handed melee weapon and no other weapons.',
+  'Great Weapon Fighting':'Reroll 1s and 2s on damage dice with two-handed or versatile weapons.',
+  'Protection':'Reaction: impose disadvantage on an attack roll against an adjacent ally (requires shield).',
+  'Two-Weapon Fighting':'Add your ability modifier to the damage of your off-hand attack.',
+};
+
+function getFightingStyle(c){
+  return (c||char).fightingStyle||(c||char).tracker?.fightingStyle||null;
+}
+
+// AC + Defense fighting style bonus (+1 while wearing armor)
+function computeAC(c){
+  c=c||char;
+  const base=c.ac||10;
+  const fs=getFightingStyle(c);
+  const hasArmor=c.equipment?.armorId&&c.equipment.armorId!=='none';
+  return base+(fs==='Defense'&&hasArmor?1:0);
+}
 
 function computeMaxHP(){
   const eff=char.effectiveAbilities;

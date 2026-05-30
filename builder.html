@@ -1284,6 +1284,7 @@ function getAC(){
     else ac=10+d;
   }
   if(eq&&eq.hasShield) ac+=2;
+  if(armor&&state.fightingStyle==='Defense') ac+=1;
   return ac;
 }
 function getUnarmoredAC(){
@@ -1306,6 +1307,7 @@ function getACBreakdown(){
     parts.push(`Unarmored (10${d>=0?'+'+d:d})`);
   }
   if(eq&&eq.hasShield) parts.push('+2 Shield');
+  if(armor&&state.fightingStyle==='Defense') parts.push('+1 Defense');
   return parts.join(' ');
 }
 // Lookup: weapon id → keyword(s) that grant proficiency when found in cls.weapons string
@@ -1627,7 +1629,8 @@ function renderClass(){
     paladin:['Defense','Dueling','Great Weapon Fighting','Protection'],
     ranger:['Archery','Defense','Dueling','Two-Weapon Fighting'],
   };
-  const fightingStyleChoices=sel&&FIGHTING_STYLE_OPTIONS[sel.id]&&lvl>=2?FIGHTING_STYLE_OPTIONS[sel.id]:null;
+  const FIGHTING_STYLE_MIN_LEVEL={fighter:1,paladin:2,ranger:2};
+  const fightingStyleChoices=sel&&FIGHTING_STYLE_OPTIONS[sel.id]&&lvl>=(FIGHTING_STYLE_MIN_LEVEL[sel.id]||2)?FIGHTING_STYLE_OPTIONS[sel.id]:null;
 
   let extraHtml='';
   if(sel){
