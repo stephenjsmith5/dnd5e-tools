@@ -655,10 +655,10 @@ document.addEventListener('DOMContentLoaded',()=>{
           _hideAuthWall();
           renderAuthBar();
           render();
-        } else if(event==='SIGNED_OUT'||(event==='INITIAL_SESSION'&&!session)){
+        } else if(event==='SIGNED_OUT'){
           location.href='index.html';
         }
-        // Ignore USER_UPDATED, TOKEN_REFRESHED etc. — they may fire transiently without a session
+        // INITIAL_SESSION+null: show auth wall inline rather than bouncing to index.html
       });
     }catch(e){console.warn('Supabase init failed:',e);}
   }

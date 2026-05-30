@@ -663,11 +663,11 @@ function initSupabase(){
         if(event==='INITIAL_SESSION'&&_campId&&!_campaign){
           _initCampaignMode(_campId,_isDMParam,session);
         }
-      } else if(event==='SIGNED_OUT'||(event==='INITIAL_SESSION'&&!session)){
+      } else if(event==='SIGNED_OUT'){
         if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
         location.href='index.html';
       }
-      // Ignore USER_UPDATED, TOKEN_REFRESHED etc. — they may fire transiently without a session
+      // INITIAL_SESSION+null and other events handled by the campaign init retry loop
     });
   }catch(e){console.warn('Supabase init failed:',e);}
 }
@@ -7324,12 +7324,30 @@ document.addEventListener('DOMContentLoaded', async function(){
   }
 
   if(campaignId){
-    // Campaign init is handled by onAuthStateChange INITIAL_SESSION — no direct getSession() call
-    // here because createClient() reads localStorage async; INITIAL_SESSION fires when it's ready.
-    if(!_sbEnabled()){
-      showToast('Sign in required to join a campaign.','warning');
-      window.location.href='index.html';
+    if(!_sbEnabled()){window.location.href='index.html';return;}
+    // Show a loading state immediately so the user sees something
+    document.getElementById('root').innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px;">
+      <div style="font-family:'Cinzel',serif;font-size:20px;color:var(--ink);">Joining Campaign…</div>
+      <div style="font-size:13px;color:var(--muted);">Verifying session</div>
+    </div>`;
+    // Retry getSession up to 10 times (100ms apart = 1s max) to handle async Supabase init
+    let session=null;
+    for(let i=0;i<10;i++){
+      if(_campaign) return; // INITIAL_SESSION handler already ran
+      session=await getSession();
+      if(session) break;
+      await new Promise(r=>setTimeout(r,100));
     }
+    if(_campaign) return; // handled by INITIAL_SESSION during retry loop
+    if(!session){
+      document.getElementById('root').innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px;">
+        <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--red);">Session Expired</div>
+        <div style="font-size:13px;color:var(--muted);">Please sign in again to join this campaign.</div>
+        <a href="index.html" class="btn btn-red">Sign In</a>
+      </div>`;
+      return;
+    }
+    await _initCampaignMode(campaignId,isDMParam,session);
     return;
   }
 
