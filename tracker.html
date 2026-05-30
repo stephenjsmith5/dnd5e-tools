@@ -652,10 +652,17 @@ function initSupabase(){
   if(!_sbEnabled())return;
   try{
     _sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    const params=new URLSearchParams(location.search);
+    const _campId=params.get('campaign');
+    const _isDMParam=params.get('dm')==='true'||params.get('dm')==='1';
     _sb.auth.onAuthStateChange((event,session)=>{
       if(session){
         _hideAuthWall();
         renderTrackerAuthBar();
+        // INITIAL_SESSION is the guaranteed-ready signal — use it to kick off campaign init
+        if(event==='INITIAL_SESSION'&&_campId&&!_campaign){
+          _initCampaignMode(_campId,_isDMParam,session);
+        }
       } else if(event==='SIGNED_OUT'||(event==='INITIAL_SESSION'&&!session)){
         if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
         location.href='index.html';
@@ -7317,12 +7324,12 @@ document.addEventListener('DOMContentLoaded', async function(){
   }
 
   if(campaignId){
-    const session=await getSession();
-    if(!session){
-      window.location.href='campaigns.html?signin=1';
-      return;
+    // Campaign init is handled by onAuthStateChange INITIAL_SESSION — no direct getSession() call
+    // here because createClient() reads localStorage async; INITIAL_SESSION fires when it's ready.
+    if(!_sbEnabled()){
+      showToast('Sign in required to join a campaign.','warning');
+      window.location.href='index.html';
     }
-    await _initCampaignMode(campaignId,isDMParam,session);
     return;
   }
 
