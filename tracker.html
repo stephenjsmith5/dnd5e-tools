@@ -2329,7 +2329,7 @@ function renderSidebar(){
     </div>
     <div class="card" style="margin-bottom:8px;">
       <div class="sidebar-stat-row">
-        <div class="sidebar-stat-badge" title="Armor Class${getFightingStyle()===\'Defense\'&&char.equipment?.armorId&&char.equipment.armorId!==\'none\'?\' (+1 Defense)\':\'\'}"><div class="sidebar-stat-val">${computeAC()}</div><div class="sidebar-stat-label">AC</div></div>
+        <div class="sidebar-stat-badge" title="Armor Class${getFightingStyle()==='Defense'&&char.equipment?.armorId&&char.equipment.armorId!=='none'?' (+1 Defense)':''}"><div class="sidebar-stat-val">${computeAC()}</div><div class="sidebar-stat-label">AC</div></div>
         <div class="sidebar-stat-badge" title="Speed (ft)"><div class="sidebar-stat-val">${char.speed}</div><div class="sidebar-stat-label">SPD</div></div>
         <div class="sidebar-stat-badge" title="Proficiency Bonus"><div class="sidebar-stat-val">+${prof}</div><div class="sidebar-stat-label">PROF</div></div>
         <div class="sidebar-stat-badge" title="Initiative"><div class="sidebar-stat-val">${getModNum(eff.dex)>=0?'+':''}${getModNum(eff.dex)+prof}</div><div class="sidebar-stat-label">INIT</div></div>
