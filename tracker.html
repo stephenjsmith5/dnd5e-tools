@@ -471,7 +471,7 @@ button[data-tip],label[data-tip]{cursor:pointer;}
     </div>
   </div>
 </nav>
-<div id="authWall">
+<div id="authWall" class="hidden">
   <div class="auth-wall-inner">
     <div style="text-align:center;">
       <div style="font-size:2.5rem;margin-bottom:.5rem;">&#9876;&#65039;</div>
@@ -656,18 +656,15 @@ function initSupabase(){
     const _isDMParam=params.get('dm')==='true'||params.get('dm')==='1';
     _sb.auth.onAuthStateChange((event,session)=>{
       if(session){
-        _hideAuthWall();
         renderTrackerAuthBar();
-        // INITIAL_SESSION is the guaranteed-ready signal — use it to kick off campaign init
+        // INITIAL_SESSION is the guaranteed-ready signal — kick off campaign init if not already running
         if(event==='INITIAL_SESSION'&&_campId&&!_campaign){
-          _hideAuthWall();
           _initCampaignMode(_campId,_isDMParam,session);
         }
       } else if(event==='SIGNED_OUT'){
         if(_sessionChannel){try{_sessionChannel.unsubscribe();}catch(e){}}
         location.href='index.html';
       }
-      // INITIAL_SESSION+null and other events handled by the campaign init retry loop
     });
   }catch(e){console.warn('Supabase init failed:',e);}
 }
@@ -7326,10 +7323,6 @@ document.addEventListener('DOMContentLoaded', async function(){
 
   if(campaignId){
     if(!_sbEnabled()){window.location.href='index.html';return;}
-    // In campaign mode the auth wall is irrelevant — hide it immediately and
-    // show a loading screen instead. The wall is z-index:11000 and visible by
-    // default; leaving it up covers the campaign even after a successful load.
-    _hideAuthWall();
     document.getElementById('root').innerHTML=`<div style="display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px;">
       <div style="font-family:'Cinzel',serif;font-size:20px;color:var(--ink);">Joining Campaign…</div>
       <div style="font-size:13px;color:var(--muted);">Verifying session</div>
@@ -7351,7 +7344,6 @@ document.addEventListener('DOMContentLoaded', async function(){
       </div>`;
       return;
     }
-    _hideAuthWall();
     await _initCampaignMode(campaignId,isDMParam,session);
     return;
   }
